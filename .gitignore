@@ -51,6 +51,13 @@ out/
 .mf/
 
 # ===========================
+# Jupyter Notebooks
+# ===========================
+.ipynb_checkpoints/
+notebooks/.ipynb_checkpoints/
+notebooks/**/.ipynb_checkpoints/
+
+# ===========================
 # Python
 # ===========================
 __pycache__/

@@ -51,21 +51,22 @@ You **MUST** read and follow the style guides. These are not optional — they d
 
 ## Quick reference
 
-| Need                                  | File                                                                 |
-| ------------------------------------- | -------------------------------------------------------------------- |
-| What can I do? What must I ask about? | [agentic/agentic_coding.md](agentic/agentic_coding.md)               |
-| Step-by-step workflow                 | [agentic/workflow_guide.md](agentic/workflow_guide.md)               |
-| Code style, commits, PRs              | [agentic/contribute_standards.md](agentic/contribute_standards.md)   |
-| Project-specific rules                | [agentic/custom-instructions.md](agentic/custom-instructions.md)     |
-| Markdown formatting                   | [agentic/markdown_style_guide.md](agentic/markdown_style_guide.md)   |
-| Mermaid diagrams                      | [agentic/mermaid_style_guide.md](agentic/mermaid_style_guide.md)     |
-| Document templates                    | [agentic/markdown_templates/](agentic/markdown_templates/)           |
-| Diagram type guides                   | [agentic/mermaid_diagrams/](agentic/mermaid_diagrams/)               |
-| System constraints                    | [agentic/operational_readiness.md](agentic/operational_readiness.md) |
-| Token management                      | [agentic/context_budget_guide.md](agentic/context_budget_guide.md)   |
-| Error recovery                        | [agentic/agent_error_recovery.md](agentic/agent_error_recovery.md)   |
-| File locations                        | [agentic/file_organization.md](agentic/file_organization.md)         |
-| Architecture decisions                | [agentic/adr/](agentic/adr/)                                         |
+| Need                                  | File                                                                           |
+| ------------------------------------- | ------------------------------------------------------------------------------ |
+| What can I do? What must I ask about? | [agentic/agentic_coding.md](agentic/agentic_coding.md)                         |
+| Step-by-step workflow                 | [agentic/workflow_guide.md](agentic/workflow_guide.md)                         |
+| Code style, commits, PRs              | [agentic/contribute_standards.md](agentic/contribute_standards.md)             |
+| Project-specific rules                | [agentic/custom-instructions.md](agentic/custom-instructions.md)               |
+| Markdown formatting                   | [agentic/markdown_style_guide.md](agentic/markdown_style_guide.md)             |
+| Mermaid diagrams                      | [agentic/mermaid_style_guide.md](agentic/mermaid_style_guide.md)               |
+| Document templates                    | [agentic/markdown_templates/](agentic/markdown_templates/)                     |
+| Diagram type guides                   | [agentic/mermaid_diagrams/](agentic/mermaid_diagrams/)                         |
+| System constraints                    | [agentic/operational_readiness.md](agentic/operational_readiness.md)           |
+| Token management                      | [agentic/context_budget_guide.md](agentic/context_budget_guide.md)             |
+| Error recovery                        | [agentic/agent_error_recovery.md](agentic/agent_error_recovery.md)             |
+| Idempotent script standards           | [agentic/idempotent_design_patterns.md](agentic/idempotent_design_patterns.md) |
+| File locations                        | [agentic/file_organization.md](agentic/file_organization.md)                   |
+| Architecture decisions                | [agentic/adr/](agentic/adr/)                                                   |
 
 ---
 
@@ -76,7 +77,8 @@ agentic/                        → Agent instructions, style guides, templates,
 docs/pr/                        → Pull request records (pr-NNNNNNNN.md)
 docs/issues/                    → Issue records (issue-NNNNNNNN.md)
 docs/kanban/                    → Sprint/project boards
-src/                            → Application source code
+notebooks/                      → Jupyter notebooks, prototypes, analysis
+src/                            → Python apps, libraries, and utilities
 ```
 
 ---

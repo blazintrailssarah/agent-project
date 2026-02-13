@@ -4,6 +4,7 @@ parse_and_contextualize:
 
     STEP 1: Call WorkspaceTool(operation="read", filename="diff.txt", content="")
     STEP 2: Call WorkspaceTool(operation="read", filename="commit_messages.txt", content="")
+    If commit_messages.txt is empty, try: WorkspaceTool(operation="read", filename="commits.json", content="")
 
     Apply smart diff sampling strategy:
     - If <100 lines changed: return full diff

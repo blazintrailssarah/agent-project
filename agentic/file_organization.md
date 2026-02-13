@@ -23,6 +23,7 @@
 │   ├── operational_readiness.md     # System constraints and limits
 │   ├── context_budget_guide.md      # Token management strategies
 │   ├── agent_error_recovery.md      # Error recovery procedures (9 categories)
+│   ├── idempotent_design_patterns.md # Script idempotency standards and examples
 │   ├── file_organization.md         # This file
 │   ├── markdown_style_guide.md      # Markdown formatting standards
 │   ├── mermaid_style_guide.md       # Mermaid diagram standards
@@ -69,7 +70,8 @@
 │   ├── pr/                          # Pull request records (pr-NNNNNNNN.md)
 │   ├── issues/                      # Issue records (issue-NNNNNNNN.md)
 │   └── kanban/                      # Sprint/project boards ({scope}-{id}.md)
-└── src/                             # Application source code (project-specific)
+├── notebooks/                       # Jupyter notebooks, prototypes, analyses
+└── src/                             # Python apps, libraries, and utilities
 ```
 
 ---
@@ -101,17 +103,18 @@ If guidance still conflicts after checking all sources, **stop and ask the human
 
 ### Agent operating instructions
 
-| File                       | Purpose                             | When to read       |
-| -------------------------- | ----------------------------------- | ------------------ |
-| `instructions.md`          | Entry point — what to read and when | Every task (first) |
-| `agentic_coding.md`        | Autonomy rules + workflow           | Every task         |
-| `autonomy_boundaries.md`   | Capability matrix                   | Every task         |
-| `workflow_guide.md`        | 14-step process                     | Every task         |
-| `contribute_standards.md`  | Code style, commits, PRs            | When writing code  |
-| `custom-instructions.md`   | Project-specific rules              | When writing code  |
-| `operational_readiness.md` | System constraints                  | Complex work       |
-| `context_budget_guide.md`  | Token management                    | Long sessions      |
-| `agent_error_recovery.md`  | Error procedures                    | When errors occur  |
+| File                            | Purpose                             | When to read         |
+| ------------------------------- | ----------------------------------- | -------------------- |
+| `instructions.md`               | Entry point — what to read and when | Every task (first)   |
+| `agentic_coding.md`             | Autonomy rules + workflow           | Every task           |
+| `autonomy_boundaries.md`        | Capability matrix                   | Every task           |
+| `workflow_guide.md`             | 14-step process                     | Every task           |
+| `contribute_standards.md`       | Code style, commits, PRs            | When writing code    |
+| `custom-instructions.md`        | Project-specific rules              | When writing code    |
+| `operational_readiness.md`      | System constraints                  | Complex work         |
+| `context_budget_guide.md`       | Token management                    | Long sessions        |
+| `agent_error_recovery.md`       | Error procedures                    | When errors occur    |
+| `idempotent_design_patterns.md` | Idempotent script standards         | When writing scripts |
 
 ### Style guides and templates
 
@@ -140,6 +143,9 @@ See the [Everything is Code](markdown_style_guide.md#-everything-is-code) sectio
 - **Where are style guides?** → `agentic/markdown_style_guide.md` and `agentic/mermaid_style_guide.md`
 - **Where are templates?** → `agentic/markdown_templates/`
 - **Where are diagram guides?** → `agentic/mermaid_diagrams/`
+- **Where are idempotent script standards?** → `agentic/idempotent_design_patterns.md`
 - **Where are PRs/issues/boards?** → `docs/pr/`, `docs/issues/`, `docs/kanban/`
+- **Where are notebooks?** → `notebooks/`
+- **Where is Python app/library code?** → `src/`
 - **Which version is authoritative?** → The repo version, always
 - **Where do I start?** → `AGENTS.md` at repo root → `agentic/instructions.md`

@@ -629,7 +629,7 @@ def create_fallback_summary(workspace_dir, env_vars, workflows_executed):
             ci_data = workspace.read_json("ci_summary.json")
             summary_parts.append("### ✅ CI Analysis")
             status = ci_data.get("status", "unknown")
-            passed = ci_data.get("passed", False)
+            passed = ci_data.get("passed", status == "success")
             status_emoji = "✅" if passed else "❌"
             summary_parts.append(f"**Status**: {status_emoji} {status}")
 

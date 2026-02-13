@@ -4,8 +4,19 @@
   "description": "Persistent review memory — learned patterns and observations across CI runs",
   "learned_patterns": [],
   "review_history": {
-    "total_reviews": 0,
-    "last_review": null,
-    "findings_trend": []
+    "total_reviews": 2,
+    "last_review": "2026-02-13T18:24:31Z",
+    "findings_trend": [
+      {
+        "pr": "local",
+        "findings": 0,
+        "date": "2026-02-13"
+      },
+      {
+        "pr": "local",
+        "findings": 0,
+        "date": "2026-02-13"
+      }
+    ]
   }
 }

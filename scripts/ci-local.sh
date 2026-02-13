@@ -92,15 +92,36 @@ while [[ $# -gt 0 ]]; do
       echo "  --step <name>   Run a single step by name"
       echo "  --verbose       Show full command output"
       echo ""
-      echo "Crews: security, legal, finance, docs, agentic, marketing, science, government, strategy"
       echo ""
-      echo "Steps: format, lint, lint-md, lint-css, typecheck, commitlint,"
-      echo "       link-check, test-crewai, test-website, build-website, review"
+      echo "Specialist crews (use with --crew <name> or --full-review for all):"
+      echo "  security     OWASP-grade vulnerability analysis (1 agent)"
+      echo "  legal        OSS licenses, 50-state US law, export controls, global privacy (4 agents)"
+      echo "  finance      Billing logic, payment flows, SOX, PCI-DSS (1 agent)"
+      echo "  docs         README accuracy, API docs, code examples (1 agent)"
+      echo "  agentic      AGENTS.md compliance, convention enforcement (1 agent)"
+      echo "  marketing    Copy quality, i18n, regional ad law, dark patterns (3 agents)"
+      echo "  science      Reproducibility, statistical rigor, data leakage (1 agent)"
+      echo "  government   WCAG 2.1 AA, Section 508, audit trails (1 agent)"
+      echo "  strategy     Business impact, global expansion, competitive intel (3 agents)"
+      echo ""
+      echo "Always-run crews (included in every --review):"
+      echo "  router       Analyzes diff, decides which crews to run"
+      echo "  ci-log       CI log triage and error analysis (3 agents)"
+      echo "  quick        Code quality, style, and basic security (3 agents)"
+      echo "  summary      Synthesizes all crew outputs into final_summary.md"
+      echo ""
+      echo "Steps (use with --step <name>):"
+      echo "  format, lint, lint-md, lint-css, typecheck, commitlint,"
+      echo "  link-check, test-crewai, test-website, build-website, review"
       echo ""
       echo "Examples:"
-      echo "  ./scripts/ci-local.sh --review                   # Quick review only"
-      echo "  ./scripts/ci-local.sh --full-review              # All 9 specialist crews"
-      echo "  ./scripts/ci-local.sh --crew security --crew legal  # Specific crews"
+      echo "  ./scripts/ci-local.sh                                # Full CI (no review)"
+      echo "  ./scripts/ci-local.sh --review                       # Quick review"
+      echo "  ./scripts/ci-local.sh --full-review                  # All 9 specialist crews"
+      echo "  ./scripts/ci-local.sh --crew security                # Just security crew"
+      echo "  ./scripts/ci-local.sh --crew security --crew legal   # Multiple specific crews"
+      echo "  ./scripts/ci-local.sh --step test-crewai             # Just run CrewAI tests"
+      echo "  ./scripts/ci-local.sh --review --verbose             # Review with full output"
       exit 0
       ;;
     *) echo "Unknown option: $1"; exit 1 ;;
@@ -655,6 +676,9 @@ with open('${workspace_dir}/commits.json', 'w') as f:
     json.dump(data, f, indent=2)
 " 2>/dev/null || true
 
+  # Write commit_messages.txt for quick review agent (expects plain text)
+  echo "${commit_messages}" > "${workspace_dir}/commit_messages.txt"
+
   export PR_NUMBER="local"
   export COMMIT_SHA="${commit_sha}"
   export GITHUB_REPOSITORY="local/${repo_name}"
@@ -737,7 +761,7 @@ print_summary() {
       warn) status_icon="${YELLOW}${WARN} warn${NC}" ;;
     esac
 
-    printf "  %-24s %b %s\n" "$step" "$status_icon" "${DIM}${duration}s${NC}"
+    printf "  %-24s %b %b\n" "$step" "$status_icon" "${DIM}${duration}s${NC}"
   done
 
   echo ""

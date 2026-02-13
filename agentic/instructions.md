@@ -31,6 +31,11 @@ Read these files in order before starting any task:
 - ✅ [operational_readiness.md](operational_readiness.md) — system constraints and limits
 - ✅ [context_budget_guide.md](context_budget_guide.md) — token management strategies
 
+### Scripting and automation work
+
+- ✅ [idempotent_design_patterns.md](idempotent_design_patterns.md) — required patterns for safe re-runnable scripts
+- ✅ [operational_readiness.md](operational_readiness.md) — execution constraints and failure boundaries
+
 ### Documentation or diagram work
 
 - ✅ [markdown_style_guide.md](markdown_style_guide.md) — formatting rules for ALL markdown
@@ -121,6 +126,9 @@ See [workflow_guide.md](workflow_guide.md) for the full 14-step process.
 | PR records                     | `docs/pr/`                                                          |
 | Issue records                  | `docs/issues/`                                                      |
 | Kanban boards                  | `docs/kanban/`                                                      |
+| Idempotent script standards    | `agentic/idempotent_design_patterns.md`                             |
+| Jupyter notebooks              | `notebooks/`                                                        |
+| Python applications/libraries  | `src/`                                                              |
 | Agent entry point              | `AGENTS.md` at repo root → points to `agentic/instructions.md`      |
 
 See [file_organization.md](file_organization.md) for the complete directory map.
@@ -129,21 +137,22 @@ See [file_organization.md](file_organization.md) for the complete directory map.
 
 ## 📚 All files in this framework
 
-| File                                                 | Purpose                                                   |
-| ---------------------------------------------------- | --------------------------------------------------------- |
-| [README.md](README.md)                               | Directory overview with architecture diagram              |
-| [instructions.md](instructions.md)                   | This file — agent entry point                             |
-| [agentic_coding.md](agentic_coding.md)               | CAN/MUST/NEVER + 14-step workflow                         |
-| [autonomy_boundaries.md](autonomy_boundaries.md)     | Capability matrix and escalation rules                    |
-| [workflow_guide.md](workflow_guide.md)               | 14-step workflow with checkpoints                         |
-| [contribute_standards.md](contribute_standards.md)   | Code style, commits, PR standards                         |
-| [custom-instructions.md](custom-instructions.md)     | Project-specific rules (template — customize per project) |
-| [operational_readiness.md](operational_readiness.md) | System constraints and limits                             |
-| [context_budget_guide.md](context_budget_guide.md)   | Token management strategies                               |
-| [agent_error_recovery.md](agent_error_recovery.md)   | Error recovery procedures                                 |
-| [file_organization.md](file_organization.md)         | File locations and source of truth                        |
-| [markdown_style_guide.md](markdown_style_guide.md)   | Markdown formatting standards                             |
-| [mermaid_style_guide.md](mermaid_style_guide.md)     | Mermaid diagram standards                                 |
+| File                                                           | Purpose                                                   |
+| -------------------------------------------------------------- | --------------------------------------------------------- |
+| [README.md](README.md)                                         | Directory overview with architecture diagram              |
+| [instructions.md](instructions.md)                             | This file — agent entry point                             |
+| [agentic_coding.md](agentic_coding.md)                         | CAN/MUST/NEVER + 14-step workflow                         |
+| [autonomy_boundaries.md](autonomy_boundaries.md)               | Capability matrix and escalation rules                    |
+| [workflow_guide.md](workflow_guide.md)                         | 14-step workflow with checkpoints                         |
+| [contribute_standards.md](contribute_standards.md)             | Code style, commits, PR standards                         |
+| [custom-instructions.md](custom-instructions.md)               | Project-specific rules (template — customize per project) |
+| [operational_readiness.md](operational_readiness.md)           | System constraints and limits                             |
+| [context_budget_guide.md](context_budget_guide.md)             | Token management strategies                               |
+| [agent_error_recovery.md](agent_error_recovery.md)             | Error recovery procedures                                 |
+| [file_organization.md](file_organization.md)                   | File locations and source of truth                        |
+| [idempotent_design_patterns.md](idempotent_design_patterns.md) | Idempotent standards for all automation scripts           |
+| [markdown_style_guide.md](markdown_style_guide.md)             | Markdown formatting standards                             |
+| [mermaid_style_guide.md](mermaid_style_guide.md)               | Mermaid diagram standards                                 |
 
 ---
 

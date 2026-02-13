@@ -78,17 +78,18 @@ flowchart TD
 
 ### Operational files (load for complex work)
 
-| #   | File                                                     | When to load                                      |
-| --- | -------------------------------------------------------- | ------------------------------------------------- |
-| 7   | **[operational_readiness.md](operational_readiness.md)** | System constraints, rate limits, resource budgets |
-| 8   | **[context_budget_guide.md](context_budget_guide.md)**   | Token management, session planning                |
+| #   | File                                                               | When to load                                      |
+| --- | ------------------------------------------------------------------ | ------------------------------------------------- |
+| 7   | **[operational_readiness.md](operational_readiness.md)**           | System constraints, rate limits, resource budgets |
+| 8   | **[context_budget_guide.md](context_budget_guide.md)**             | Token management, session planning                |
+| 9   | **[idempotent_design_patterns.md](idempotent_design_patterns.md)** | Writing or reviewing automation scripts           |
 
 ### Error and recovery
 
 | #   | File                                                   | When to load                                          |
 | --- | ------------------------------------------------------ | ----------------------------------------------------- |
-| 9   | **[agent_error_recovery.md](agent_error_recovery.md)** | When errors occur — 9 categories with recovery steps  |
-| 10  | **[file_organization.md](file_organization.md)**       | When confused about file locations or source of truth |
+| 10  | **[agent_error_recovery.md](agent_error_recovery.md)** | When errors occur — 9 categories with recovery steps  |
+| 11  | **[file_organization.md](file_organization.md)**       | When confused about file locations or source of truth |
 
 ### Style guides and templates
 
