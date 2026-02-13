@@ -1,16 +1,3 @@
-/**
- * Google OAuth Authentication Worker (Cloudflare Workers)
- *
- * Handles:
- * - Google OAuth 2.0 login flow
- * - Email allowlist enforcement (ALLOWED_EMAILS)
- * - Session management via KV
- * - User records via D1
- *
- * Protected routes check the session cookie. Public routes pass through.
- * Only emails listed in ALLOWED_EMAILS can access protected content.
- */
-
 interface Env {
   SESSION_STORE: KVNamespace;
   DB: D1Database;
@@ -34,25 +21,28 @@ interface SessionData {
 }
 
 const SESSION_TTL = 86400; // 24 hours
+const STATE_TTL = 600; // 10 minutes — CSRF state token lifetime
+const MAX_AUTH_ATTEMPTS = 10; // per IP per window
+const RATE_LIMIT_WINDOW = 300; // 5 minutes
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
 
-    const corsHeaders = {
-      'Access-Control-Allow-Origin': url.origin,
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    };
-
     if (request.method === 'OPTIONS') {
-      return new Response(null, { headers: corsHeaders });
+      return new Response(null, {
+        headers: {
+          'Access-Control-Allow-Origin': url.origin,
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+        },
+      });
     }
 
     try {
       switch (url.pathname) {
         case '/auth/google':
-          return handleLogin(env);
+          return await handleLogin(request, env);
         case '/auth/callback':
           return await handleCallback(request, env);
         case '/auth/session':
@@ -62,17 +52,45 @@ export default {
         default:
           return new Response('Not Found', { status: 404 });
       }
-    } catch (error) {
-      console.error('Auth error:', error);
+    } catch {
       return new Response('Internal Server Error', { status: 500 });
     }
   },
 };
 
-function handleLogin(env: Env): Response {
-  const state = crypto.randomUUID();
-  const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+async function checkRateLimit(request: Request, env: Env): Promise<boolean> {
+  const ip =
+    request.headers.get('CF-Connecting-IP') ||
+    request.headers.get('X-Forwarded-For') ||
+    'unknown';
+  const key = `ratelimit:auth:${ip}`;
+  const current = parseInt((await env.SESSION_STORE.get(key)) || '0', 10);
 
+  if (current >= MAX_AUTH_ATTEMPTS) {
+    return false;
+  }
+
+  await env.SESSION_STORE.put(key, String(current + 1), {
+    expirationTtl: RATE_LIMIT_WINDOW,
+  });
+  return true;
+}
+
+async function handleLogin(request: Request, env: Env): Promise<Response> {
+  const allowed = await checkRateLimit(request, env);
+  if (!allowed) {
+    return new Response('Too many requests. Try again later.', {
+      status: 429,
+      headers: { 'Retry-After': String(RATE_LIMIT_WINDOW) },
+    });
+  }
+
+  const state = crypto.randomUUID();
+  await env.SESSION_STORE.put(`oauth_state:${state}`, 'valid', {
+    expirationTtl: STATE_TTL,
+  });
+
+  const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
   authUrl.searchParams.set('client_id', env.GOOGLE_CLIENT_ID);
   authUrl.searchParams.set('redirect_uri', env.GOOGLE_REDIRECT_URI);
   authUrl.searchParams.set('response_type', 'code');
@@ -86,9 +104,24 @@ function handleLogin(env: Env): Response {
 async function handleCallback(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
   const code = url.searchParams.get('code');
+  const state = url.searchParams.get('state');
 
-  if (!code) {
-    return new Response('Missing authorization code', { status: 400 });
+  if (!code || !state) {
+    return Response.redirect('/denied.html', 302);
+  }
+
+  const storedState = await env.SESSION_STORE.get(`oauth_state:${state}`);
+  if (!storedState) {
+    return Response.redirect('/denied.html', 302);
+  }
+  await env.SESSION_STORE.delete(`oauth_state:${state}`);
+
+  const allowed = await checkRateLimit(request, env);
+  if (!allowed) {
+    return new Response('Too many requests. Try again later.', {
+      status: 429,
+      headers: { 'Retry-After': String(RATE_LIMIT_WINDOW) },
+    });
   }
 
   const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
@@ -104,7 +137,7 @@ async function handleCallback(request: Request, env: Env): Promise<Response> {
   });
 
   if (!tokenResponse.ok) {
-    return new Response('Token exchange failed', { status: 401 });
+    return Response.redirect('/denied.html', 302);
   }
 
   const tokens = (await tokenResponse.json()) as { access_token: string };
@@ -115,7 +148,7 @@ async function handleCallback(request: Request, env: Env): Promise<Response> {
   );
 
   if (!userInfoResponse.ok) {
-    return new Response('Failed to fetch user info', { status: 502 });
+    return Response.redirect('/denied.html', 302);
   }
 
   const userInfo: GoogleUserInfo = await userInfoResponse.json();
@@ -125,9 +158,7 @@ async function handleCallback(request: Request, env: Env): Promise<Response> {
   );
 
   if (!allowedEmails.includes(userInfo.email.toLowerCase())) {
-    return new Response(`Access denied. ${userInfo.email} is not authorized.`, {
-      status: 403,
-    });
+    return Response.redirect('/denied.html', 302);
   }
 
   await env.DB.prepare(
@@ -157,7 +188,7 @@ async function handleCallback(request: Request, env: Env): Promise<Response> {
   return new Response(null, {
     status: 302,
     headers: {
-      Location: '/',
+      Location: '/dashboard.html',
       'Set-Cookie': `session=${sessionToken}; HttpOnly; Secure; SameSite=Lax; Max-Age=${SESSION_TTL}; Path=/`,
     },
   });
@@ -167,12 +198,7 @@ async function handleSessionCheck(
   request: Request,
   env: Env
 ): Promise<Response> {
-  const cookie = request.headers.get('Cookie') || '';
-  const sessionToken = cookie
-    .split(';')
-    .find((c) => c.trim().startsWith('session='))
-    ?.split('=')[1]
-    ?.trim();
+  const sessionToken = extractSessionToken(request);
 
   if (!sessionToken) {
     return Response.json({ authenticated: false }, { status: 401 });
@@ -192,12 +218,7 @@ async function handleSessionCheck(
 }
 
 async function handleLogout(request: Request, env: Env): Promise<Response> {
-  const cookie = request.headers.get('Cookie') || '';
-  const sessionToken = cookie
-    .split(';')
-    .find((c) => c.trim().startsWith('session='))
-    ?.split('=')[1]
-    ?.trim();
+  const sessionToken = extractSessionToken(request);
 
   if (sessionToken) {
     await env.SESSION_STORE.delete(`session:${sessionToken}`);
@@ -211,4 +232,13 @@ async function handleLogout(request: Request, env: Env): Promise<Response> {
         'session=; HttpOnly; Secure; SameSite=Lax; Max-Age=0; Path=/',
     },
   });
+}
+
+function extractSessionToken(request: Request): string | undefined {
+  const cookie = request.headers.get('Cookie') || '';
+  return cookie
+    .split(';')
+    .find((c) => c.trim().startsWith('session='))
+    ?.split('=')[1]
+    ?.trim();
 }

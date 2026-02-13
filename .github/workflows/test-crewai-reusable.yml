@@ -50,8 +50,13 @@ jobs:
             HEAD="${{ github.sha }}"
           fi
 
-          # Check for .crewai/ directory changes
-          CHANGED_FILES=$(git diff --name-only $BASE $HEAD | grep '^\.crewai/' || true)
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+            echo "✅ Initial push — running all tests"
+            echo "should_run=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          CHANGED_FILES=$(git diff --name-only "$BASE" "$HEAD" | grep '^\.crewai/' || true)
 
           if [ -z "$CHANGED_FILES" ]; then
             echo "⏭️  No CrewAI files changed - skipping tests"

@@ -372,13 +372,18 @@ run_phase_1() {
 
   # --- Commitlint ---
   if should_run "commitlint"; then
-    if git -C "${REPO_ROOT}" rev-parse HEAD &>/dev/null; then
+    if git -C "${REPO_ROOT}" rev-parse HEAD~1 &>/dev/null; then
       print_step "Commitlint" "checking last commit message..."
-      run_step "Commitlint" pnpm commitlint 2>/dev/null || {
-        print_result "Commitlint" "warn" "0" "commit message may not match convention"
-      }
+      local cl_start; cl_start=$(date +%s)
+      if pnpm commitlint 2>/dev/null; then
+        local cl_end; cl_end=$(date +%s)
+        print_result "Commitlint" "pass" "$((cl_end - cl_start))"
+      else
+        local cl_end; cl_end=$(date +%s)
+        print_result "Commitlint" "warn" "$((cl_end - cl_start))" "commit message style"
+      fi
     else
-      print_result "Commitlint" "skip" "0" "no git history"
+      print_result "Commitlint" "skip" "0" "not enough commit history"
     fi
   fi
 

@@ -167,26 +167,34 @@ jobs:
           PR_LABELS="${{ join(github.event.pull_request.labels.*.name, ',') }}"
           echo "🏷️ Labels: $PR_LABELS" | tee -a ../.crewai-job-output/current-job.log
 
-          # Create metadata JSON
+          FILE_LIST=$(git diff --name-only "origin/$BASE_REF...${{ inputs.commit_sha }}" 2>/dev/null || \
+                     git diff --name-only "$BASE_REF...${{ inputs.commit_sha }}" 2>/dev/null || \
+                     echo "")
+
+          FILE_LIST_JSON=$(echo "$FILE_LIST" | python3 -c "import json,sys; print(json.dumps([l for l in sys.stdin.read().strip().split('\n') if l]))")
+          LABELS_JSON=$(echo "$PR_LABELS" | python3 -c "import json,sys; print(json.dumps([l for l in sys.stdin.read().strip().split(',') if l]))")
+
           jq -n \
             --argjson pr_number "${{ inputs.pr_number }}" \
             --arg commit_sha "${{ inputs.commit_sha }}" \
             --arg base_ref "$BASE_REF" \
             --arg head_ref "$HEAD_REF" \
-            --arg labels "$PR_LABELS" \
+            --argjson labels "$LABELS_JSON" \
             --argjson files_changed "$FILES_CHANGED" \
             --argjson additions "$ADDITIONS" \
             --argjson deletions "$DELETIONS" \
+            --argjson file_list "$FILE_LIST_JSON" \
             '{
               "pr_number": $pr_number,
               "commit_sha": $commit_sha,
               "base_ref": $base_ref,
               "head_ref": $head_ref,
-              "labels": ($labels | split(",") | map(select(length > 0))),
+              "labels": $labels,
               "files_changed": $files_changed,
               "additions": $additions,
               "deletions": $deletions,
-              "total_changes": ($additions + $deletions)
+              "total_changes": ($additions + $deletions),
+              "file_list": $file_list
             }' > workspace/diff.json
 
           echo "✅ Metadata saved" | tee -a ../.crewai-job-output/current-job.log
@@ -296,6 +304,8 @@ jobs:
           echo "COMMIT_SHA=${{ inputs.commit_sha }}" >> $GITHUB_ENV
           echo "CORE_CI_RESULT=${{ inputs.core_ci_result }}" >> $GITHUB_ENV
           echo "OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}" >> $GITHUB_ENV
+          echo "GITHUB_REPOSITORY=${{ github.repository }}" >> $GITHUB_ENV
+          echo "GITHUB_WORKSPACE=${{ github.workspace }}" >> $GITHUB_ENV
           echo "" | tee -a .crewai-job-output/current-job.log
 
       # ========================================
