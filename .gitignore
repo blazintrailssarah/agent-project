@@ -1,0 +1,111 @@
+# ===========================
+# Node / pnpm
+# ===========================
+node_modules/
+.pnpm-store/
+.pnpm-debug.log
+
+# ===========================
+# Environment variables
+# ===========================
+.env
+.env.local
+.env.*.local
+
+# ===========================
+# OS files
+# ===========================
+.DS_Store
+Thumbs.db
+Desktop.ini
+._*
+
+# ===========================
+# IDE / Editor
+# ===========================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+
+# ===========================
+# Logs
+# ===========================
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ===========================
+# Build outputs
+# ===========================
+dist/
+build/
+.next/
+out/
+.wrangler/
+.mf/
+
+# ===========================
+# Python
+# ===========================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+.eggs/
+.ruff_cache/
+.mypy_cache/
+
+# ===========================
+# CrewAI runtime artifacts
+# ===========================
+# Workspace files generated during reviews
+.crewai/workspace/*.txt
+.crewai/workspace/*.json
+.crewai/workspace/*.md
+.crewai/workspace/trace/*.log
+.crewai/workspace/trace/*.txt
+.crewai/workspace/trace/*.json
+.crewai/*.log
+
+# Keep workspace directory structure
+!.crewai/workspace/.gitkeep
+!.crewai/workspace/trace/.gitkeep
+
+# Memory files ARE tracked (version-controlled review memory)
+# .crewai/memory/memory.json     — tracked
+# .crewai/memory/suppressions.json — tracked
+
+# ===========================
+# Test / Coverage
+# ===========================
+coverage/
+.nyc_output/
+junit.xml
+test-results/
+
+# ===========================
+# Misc
+# ===========================
+*.tgz
+*.tar.gz
+*.zip
+.cache/
+tmp/
+temp/

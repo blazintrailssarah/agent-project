@@ -1,0 +1,11 @@
+{
+  "$schema": "./memory-schema.json",
+  "version": "1.0.0",
+  "description": "Persistent review memory — learned patterns and observations across CI runs",
+  "learned_patterns": [],
+  "review_history": {
+    "total_reviews": 0,
+    "last_review": null,
+    "findings_trend": []
+  }
+}

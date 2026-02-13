@@ -1,0 +1,60 @@
+review_science:
+  description: |
+    Audit data science, ML, and research code for rigor and reproducibility.
+
+    STEP 1: Read the diff and context
+    - Call WorkspaceTool(operation="read", filename="diff.txt", content="")
+    - Call WorkspaceTool(operation="read", filename="diff_context.json", content="")
+      (if it exists)
+
+    STEP 2: Analyze scientific rigor
+    Focus on CHANGED code. Check for:
+    - Data leakage between train/test splits
+    - Missing random seeds or non-deterministic operations
+    - Biased sampling or selection effects
+    - P-hacking indicators (multiple comparisons without correction)
+    - Missing confidence intervals or uncertainty quantification
+    - Hardcoded thresholds without justification
+    - Dataset versioning or provenance gaps
+    - Missing experiment configuration logging
+    - Unreproducible notebook state (execution order issues)
+    - Metric calculation errors (wrong aggregation, missing weighting)
+    - Missing baseline comparisons
+    - Overfitting indicators (no regularization, no cross-validation)
+    - Feature engineering that uses future data
+    - Missing data validation or schema checks on inputs
+
+    For each finding, assess:
+    - Reproducibility: Can someone replicate these results?
+    - Validity: Are the conclusions actually supported?
+    - Transparency: Are assumptions clearly documented?
+
+    STEP 3: Write structured output
+    Call WorkspaceTool(operation="write", filename="science_review.json", content=<JSON>)
+
+    Output schema:
+    {
+      "summary": "1-3 sentences: what matters most and why.",
+      "severity_counts": {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0},
+      "findings": [
+        {
+          "id": "SCI-001",
+          "title": "Short title",
+          "severity": "critical|high|medium|low|info",
+          "file": "path/to/file",
+          "description": "What scientific concern was found and why it matters",
+          "recommendation": "Specific fix to improve rigor or reproducibility",
+          "verification": "How to verify the issue is resolved"
+        }
+      ]
+    }
+
+    RULES:
+    - Only flag issues in CHANGED code
+    - ID prefix must be SCI-
+    - severity_counts must match the actual findings list
+    - If no science/ML code detected, return empty findings with info summary
+    - Output must be valid JSON
+
+  expected_output: |
+    "Science review complete: science_review.json written with [N] findings"
