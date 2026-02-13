@@ -28,6 +28,8 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # Flags
 RUN_DEPLOY=false
 RUN_REVIEW=false
+RUN_FULL_REVIEW=false
+REVIEW_LABELS=""
 SINGLE_STEP=""
 VERBOSE=false
 
@@ -69,19 +71,36 @@ while [[ $# -gt 0 ]]; do
   case $1 in
     --deploy)   RUN_DEPLOY=true; shift ;;
     --review)   RUN_REVIEW=true; shift ;;
+    --full-review)
+      RUN_REVIEW=true
+      RUN_FULL_REVIEW=true
+      shift ;;
+    --crew)
+      RUN_REVIEW=true
+      REVIEW_LABELS="${REVIEW_LABELS:+$REVIEW_LABELS,}crewai:$2"
+      shift 2 ;;
     --verbose)  VERBOSE=true; shift ;;
     --step)     SINGLE_STEP="$2"; shift 2 ;;
     --help|-h)
-      echo "Usage: ./scripts/ci-local.sh [--review] [--deploy] [--step <name>] [--verbose]"
+      echo "Usage: ./scripts/ci-local.sh [--review] [--full-review] [--crew <name>] [--deploy] [--step <name>] [--verbose]"
       echo ""
       echo "Flags:"
-      echo "  --review   Run CrewAI code review (requires OPENROUTER_API_KEY)"
-      echo "  --deploy   Run Cloudflare deploy (requires CF credentials)"
-      echo "  --step     Run a single step by name"
-      echo "  --verbose  Show full command output"
+      echo "  --review        Run quick CrewAI code review (requires OPENROUTER_API_KEY)"
+      echo "  --full-review   Run ALL 9 specialist crews (security, legal, finance, etc.)"
+      echo "  --crew <name>   Run specific crew(s) — can be repeated (e.g. --crew security --crew legal)"
+      echo "  --deploy        Run Cloudflare deploy (requires CF credentials)"
+      echo "  --step <name>   Run a single step by name"
+      echo "  --verbose       Show full command output"
+      echo ""
+      echo "Crews: security, legal, finance, docs, agentic, marketing, science, government, strategy"
       echo ""
       echo "Steps: format, lint, lint-md, lint-css, typecheck, commitlint,"
       echo "       link-check, test-crewai, test-website, build-website, review"
+      echo ""
+      echo "Examples:"
+      echo "  ./scripts/ci-local.sh --review                   # Quick review only"
+      echo "  ./scripts/ci-local.sh --full-review              # All 9 specialist crews"
+      echo "  ./scripts/ci-local.sh --crew security --crew legal  # Specific crews"
       exit 0
       ;;
     *) echo "Unknown option: $1"; exit 1 ;;
@@ -601,13 +620,22 @@ run_phase_4() {
   fi
   file_count=$(echo "$changed_files" | grep -c . || echo "0")
 
+  local review_labels_json="[]"
+  if $RUN_FULL_REVIEW; then
+    review_labels_json='["crewai:full-review"]'
+    echo -e "  ${DIM}Labels: crewai:full-review (all 9 specialist crews)${NC}"
+  elif [[ -n "$REVIEW_LABELS" ]]; then
+    review_labels_json=$(echo "$REVIEW_LABELS" | python3 -c "import json,sys; print(json.dumps(sys.stdin.read().strip().split(',')))")
+    echo -e "  ${DIM}Labels: ${REVIEW_LABELS}${NC}"
+  fi
+
   python3 -c "
 import json, sys
 files = [f for f in '''${changed_files}'''.strip().split('\n') if f]
 data = {
     'pr_number': 'local',
     'commit_sha': '${commit_sha}',
-    'labels': [],
+    'labels': ${review_labels_json},
     'files_changed': ${file_count},
     'additions': ${additions},
     'deletions': ${deletions},
