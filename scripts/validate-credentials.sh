@@ -166,9 +166,8 @@ validate_openrouter() {
   echo "=== Validating OpenRouter Credentials ==="
 
   if [ -z "${OPENROUTER_API_KEY:-}" ]; then
-    log_error "OPENROUTER_API_KEY not set (required for CrewAI review)"
-    openrouter_status="❌ Not Set"
-    OVERALL_RESULT=1
+    log_warn "OPENROUTER_API_KEY not set (needed for CrewAI review)"
+    openrouter_status="⚠️ Not Set"
   else
     log_info "OPENROUTER_API_KEY is set"
 

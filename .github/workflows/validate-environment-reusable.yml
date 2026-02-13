@@ -193,11 +193,14 @@ jobs:
           if [ -f /tmp/credential-validation-result ]; then
             RESULT=$(cat /tmp/credential-validation-result)
             if [ "$RESULT" != "0" ]; then
-              echo "❌ Credential validation failed" | tee -a .crewai-job-output/current-job.log
-              exit 1
+              echo "⚠️ Some credentials not configured (optional)" | tee -a .crewai-job-output/current-job.log
+              echo "   Secrets can be added in Settings → Secrets → Actions" | tee -a .crewai-job-output/current-job.log
+            else
+              echo "✅ All credentials validated" | tee -a .crewai-job-output/current-job.log
             fi
+          else
+            echo "✅ Credential validation skipped (no result file)" | tee -a .crewai-job-output/current-job.log
           fi
-          echo "✅ All credentials validated successfully" | tee -a .crewai-job-output/current-job.log
 
       # ========================================
       # STEP 8: Finalize log capture

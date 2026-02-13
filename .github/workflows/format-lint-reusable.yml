@@ -158,8 +158,8 @@ jobs:
             git diff --name-only > /tmp/prettier_changes.txt
           else
             echo "status=❌ Failed" >> $GITHUB_OUTPUT
-            ERRORS=$(grep -c "Error" /tmp/prettier.log 2>/dev/null || echo 0)
-            echo "errors=$ERRORS" >> $GITHUB_OUTPUT
+            ERRORS=$(grep -c "Error" /tmp/prettier.log 2>/dev/null || true)
+            echo "errors=${ERRORS:-0}" >> $GITHUB_OUTPUT
             exit 1
           fi
 
@@ -185,8 +185,8 @@ jobs:
               git diff --name-only > /tmp/black_changes.txt
             else
               echo "status=❌ Failed" >> $GITHUB_OUTPUT
-              ERRORS=$(grep -c "error" /tmp/black.log 2>/dev/null || echo 0)
-              echo "errors=$ERRORS" >> $GITHUB_OUTPUT
+              ERRORS=$(grep -c "error" /tmp/black.log 2>/dev/null || true)
+              echo "errors=${ERRORS:-0}" >> $GITHUB_OUTPUT
               exit 1
             fi
           else
@@ -217,8 +217,8 @@ jobs:
               git diff --name-only > /tmp/isort_changes.txt
             else
               echo "status=❌ Failed" >> $GITHUB_OUTPUT
-              ERRORS=$(grep -c "ERROR" /tmp/isort.log 2>/dev/null || echo 0)
-              echo "errors=$ERRORS" >> $GITHUB_OUTPUT
+              ERRORS=$(grep -c "ERROR" /tmp/isort.log 2>/dev/null || true)
+              echo "errors=${ERRORS:-0}" >> $GITHUB_OUTPUT
               exit 1
             fi
           else
@@ -245,10 +245,10 @@ jobs:
             else
               echo "status=❌ Failed" >> $GITHUB_OUTPUT
               # Count actual violations, not just lines
-              ERRORS=$(grep -c "^L:" /tmp/sqlfluff.log 2>/dev/null || echo 0)
-              WARNINGS=$(grep -c "WARNING" /tmp/sqlfluff.log 2>/dev/null || echo 0)
-              echo "errors=$ERRORS" >> $GITHUB_OUTPUT
-              echo "warnings=$WARNINGS" >> $GITHUB_OUTPUT
+              ERRORS=$(grep -c "^L:" /tmp/sqlfluff.log 2>/dev/null || true)
+              WARNINGS=$(grep -c "WARNING" /tmp/sqlfluff.log 2>/dev/null || true)
+              echo "errors=${ERRORS:-0}" >> $GITHUB_OUTPUT
+              echo "warnings=${WARNINGS:-0}" >> $GITHUB_OUTPUT
               exit 1
             fi
           else
@@ -292,9 +292,9 @@ jobs:
               # Parse JSON output for detailed error counts
               if [ -f /tmp/eslint.json ]; then
                 ERROR_COUNT=$(jq '[.[].errorCount] | add // 0' \
-                  /tmp/eslint.json 2>/dev/null || echo 0)
+                  /tmp/eslint.json 2>/dev/null || true)
                 WARN_COUNT=$(jq '[.[].warningCount] | add // 0' \
-                  /tmp/eslint.json 2>/dev/null || echo 0)
+                  /tmp/eslint.json 2>/dev/null || true)
                 echo "errors=$ERROR_COUNT" >> $GITHUB_OUTPUT
                 echo "warnings=$WARN_COUNT" >> $GITHUB_OUTPUT
               else
@@ -325,8 +325,8 @@ jobs:
               git diff --name-only > /tmp/stylelint_changes.txt
             else
               echo "status=❌ Failed" >> $GITHUB_OUTPUT
-              ERRORS=$(grep -c "×" /tmp/stylelint.log 2>/dev/null || echo 0)
-              echo "errors=$ERRORS" >> $GITHUB_OUTPUT
+              ERRORS=$(grep -c "×" /tmp/stylelint.log 2>/dev/null || true)
+              echo "errors=${ERRORS:-0}" >> $GITHUB_OUTPUT
               exit 1
             fi
           else
@@ -353,8 +353,8 @@ jobs:
           else
             echo "status=❌ Failed" >> $GITHUB_OUTPUT
             # Count errors from output
-            ERRORS=$(grep -c "MD[0-9]\{3\}" /tmp/markdownlint.log 2>/dev/null || echo 0)
-            echo "errors=$ERRORS" >> $GITHUB_OUTPUT
+            ERRORS=$(grep -c "MD[0-9]\{3\}" /tmp/markdownlint.log 2>/dev/null || true)
+            echo "errors=${ERRORS:-0}" >> $GITHUB_OUTPUT
             exit 1
           fi
 
@@ -369,10 +369,10 @@ jobs:
               echo "status=✅ Passed" >> $GITHUB_OUTPUT
             else
               echo "status=❌ Failed" >> $GITHUB_OUTPUT
-              ERRORS=$(grep -c "error" /tmp/yamllint.log 2>/dev/null || echo 0)
-              WARNINGS=$(grep -c "warning" /tmp/yamllint.log 2>/dev/null || echo 0)
-              echo "errors=$ERRORS" >> $GITHUB_OUTPUT
-              echo "warnings=$WARNINGS" >> $GITHUB_OUTPUT
+              ERRORS=$(grep -c "error" /tmp/yamllint.log 2>/dev/null || true)
+              WARNINGS=$(grep -c "warning" /tmp/yamllint.log 2>/dev/null || true)
+              echo "errors=${ERRORS:-0}" >> $GITHUB_OUTPUT
+              echo "warnings=${WARNINGS:-0}" >> $GITHUB_OUTPUT
               exit 1
             fi
           else
@@ -393,12 +393,12 @@ jobs:
                 echo "status=✅ Passed" >> $GITHUB_OUTPUT
               else
                 echo "status=❌ Failed" >> $GITHUB_OUTPUT
-                ERRORS=$(grep -c "error:" /tmp/shellcheck.log 2>/dev/null || echo 0)
-                WARNINGS=$(grep -c "warning:" /tmp/shellcheck.log 2>/dev/null || echo 0)
-                INFO=$(grep -c "note:" /tmp/shellcheck.log 2>/dev/null || echo 0)
-                echo "errors=$ERRORS" >> $GITHUB_OUTPUT
-                echo "warnings=$WARNINGS" >> $GITHUB_OUTPUT
-                echo "info=$INFO" >> $GITHUB_OUTPUT
+                ERRORS=$(grep -c "error:" /tmp/shellcheck.log 2>/dev/null || true)
+                WARNINGS=$(grep -c "warning:" /tmp/shellcheck.log 2>/dev/null || true)
+                INFO=$(grep -c "note:" /tmp/shellcheck.log 2>/dev/null || true)
+                echo "errors=${ERRORS:-0}" >> $GITHUB_OUTPUT
+                echo "warnings=${WARNINGS:-0}" >> $GITHUB_OUTPUT
+                echo "info=${INFO:-0}" >> $GITHUB_OUTPUT
                 exit 1
               fi
             else
@@ -435,7 +435,7 @@ jobs:
             else
               # Count remaining violations
               if [ -f /tmp/ruff_final.json ]; then
-                ERROR_COUNT=$(jq 'length' /tmp/ruff_final.json 2>/dev/null || echo 0)
+                ERROR_COUNT=$(jq 'length' /tmp/ruff_final.json 2>/dev/null || true)
                 echo "status=❌ Failed ($ERROR_COUNT violations)" >> $GITHUB_OUTPUT
                 echo "errors=$ERROR_COUNT" >> $GITHUB_OUTPUT
               else
@@ -484,8 +484,8 @@ jobs:
                 git diff --name-only > /tmp/golangci_changes.txt
               else
                 echo "status=❌ Failed" >> $GITHUB_OUTPUT
-                ERRORS=$(grep -c "^Error:" /tmp/golangci.log 2>/dev/null || echo 0)
-                echo "errors=$ERRORS" >> $GITHUB_OUTPUT
+                ERRORS=$(grep -c "^Error:" /tmp/golangci.log 2>/dev/null || true)
+                echo "errors=${ERRORS:-0}" >> $GITHUB_OUTPUT
                 exit 1
               fi
             else
@@ -556,8 +556,8 @@ jobs:
             echo "status=✅ Passed" >> $GITHUB_OUTPUT
           else
             echo "status=❌ Failed" >> $GITHUB_OUTPUT
-            ERRORS=$(grep -c "❌" /tmp/commitlint.log 2>/dev/null || echo 0)
-            echo "errors=$ERRORS" >> $GITHUB_OUTPUT
+            ERRORS=$(grep -c "❌" /tmp/commitlint.log 2>/dev/null || true)
+            echo "errors=${ERRORS:-0}" >> $GITHUB_OUTPUT
             exit 1
           fi
 
@@ -593,8 +593,8 @@ jobs:
               echo "status=✅ Passed" >> $GITHUB_OUTPUT
             else
               echo "status=❌ Failed" >> $GITHUB_OUTPUT
-              ERRORS=$(grep -c "error TS" /tmp/typescript.log 2>/dev/null || echo 0)
-              echo "errors=$ERRORS" >> $GITHUB_OUTPUT
+              ERRORS=$(grep -c "error TS" /tmp/typescript.log 2>/dev/null || true)
+              echo "errors=${ERRORS:-0}" >> $GITHUB_OUTPUT
               exit 1
             fi
           else
@@ -623,7 +623,7 @@ jobs:
                 > "${tracking_file}.tmp" 2>/dev/null || touch "${tracking_file}.tmp"
               mv "${tracking_file}.tmp" "$tracking_file"
 
-              REMAINING=$(wc -l < "$tracking_file" 2>/dev/null || echo 0)
+              REMAINING=$(wc -l < "$tracking_file" 2>/dev/null || true)
               if [ "$REMAINING" -gt 0 ]; then
                 echo "✅ $(basename $tracking_file): $REMAINING file(s) remaining after cleanup"
               fi

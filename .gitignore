@@ -83,6 +83,8 @@ htmlcov/
 .crewai/workspace/trace/*.txt
 .crewai/workspace/trace/*.json
 .crewai/*.log
+.crewai/ci_summary.json
+.crewai/workspace/trace/
 
 # Keep workspace directory structure
 !.crewai/workspace/.gitkeep
