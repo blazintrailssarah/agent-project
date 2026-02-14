@@ -271,4 +271,5 @@ All 10 specialist crews write the same JSON schema:
 - `GITHUB_TOKEN` automatically provided by GitHub Actions with minimal permissions
 - No secrets logged or exposed in output
 - Local memory (`memory.json`) stays in repo, gitignored from workspace artifacts
+- Local/non-PR runs skip memory trend writes to keep `memory.json` focused on real PR history
 - mem0 cloud integration is completely off by default

@@ -64,6 +64,16 @@ Latest review-quality pass enforces non-simulated specialist behavior and strict
 
 Latest verification rerun confirms this end-to-end: `python3 -m pytest .crewai/tests/test_specialist_quality.py .crewai/tests/test_crew_integrity.py .crewai/tests/test_specialist_output.py -q` passed (`70 passed`), and `./scripts/ci-local.sh --full-review --step review` passed with all 13 workflows green and deterministic `no-relevant-changes` specialist artifacts for non-impacted domains.
 
+Latest summary-UX pass upgrades `final_summary.md` into an executive-first report format: strong top-of-report triage (`Executive summary`, `Priority action items`, `Severity rollup`, and `Workflow guide`), clearer per-step/per-specialist outcomes, strict `details` separators for readability, and a redesigned end-of-report cost section (`Cost and efficiency`) with crew-level totals plus collapsible per-call diagnostics.
+
+Latest signal-polish pass reduces low-value noise in quick-review synthesis: fallback non-JSON reviewer responses no longer inject synthetic pseudo-findings, truncated ellipsis-only titles are replaced with description-derived titles, duplicate recommendation/fix text is deduplicated, and priority action extraction now surfaces only high-severity signals (not speculative warning noise). Validation reporting now uses clearer source labels such as `parsed-result recovery` and `no relevant domain changes`.
+
+Latest final sweep fixes two remaining trust issues: specialist artifact sanitization now drops out-of-scope findings that reference files outside the changed-file set (preventing false criticals from parsed-result recovery), and local/non-PR runs no longer pollute persistent memory trend history. `.crewai/memory/memory.json` was reset to a clean baseline and now remains stable across local full-review executions.
+
+Licensing baseline is now explicitly codified for reuse/distribution: Apache-2.0 with a new top-level `NOTICE` file requiring preservation of attribution to Superior Byte Works, LLC / Clayton Young (Boreal Bytes) in redistributions.
+
+Final executive-summary polish pass removes workflow-step narration from top-of-report and reframes the section around immediate decision support (high-priority count, top risk, and merge-gating action window). Quick-review low-signal placeholders are further pruned from reviewer breakdowns so repeated "no additional details" artifacts do not crowd actionable findings.
+
 ### Impact classification
 
 | Dimension         | Level             | Notes                                                                                              |
@@ -425,6 +435,7 @@ All files render correctly on GitHub. Agents following the style guides produce 
 - [x] ~~Enable specialist selective repo exploration without whole-repo context dumps~~ — Done: specialist crews now run with selective retrieval tools + scope-aware task instructions
 - [x] ~~Eliminate simulated specialist findings~~ — Done: specialist runs now generate explicit not-applicable outputs when no domain-relevant changes are detected
 - [x] ~~Re-run full local verification after specialist-signal hardening~~ — Done: full-review path passes with all specialist workflows green and deterministic no-relevant artifacts where appropriate
+- [x] ~~Overhaul final summary readability and cost reporting~~ — Done: executive-first fallback summary structure + crew-level cost/efficiency table + terminal pricing panel alignment fix
 - [ ] Validate consistent successful quick-review findings on NVIDIA Kimi K2.5 (Issue #2 still open; latest run still showed intermittent quick-review error)
 - [ ] Commit and push current uncommitted changes
 - [x] ~~Add AGENTS.md entry pointing to the style guides~~ — Done: `AGENTS.md` created at repo root

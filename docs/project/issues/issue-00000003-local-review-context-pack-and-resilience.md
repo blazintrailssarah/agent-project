@@ -71,6 +71,12 @@ flowchart LR
 - Local specialist orchestration now executes the actual specialist crews first and persists parsed-result recovery when tool-side file writes are missing, preserving multi-turn/tool-driven analysis before structured fallback.
 - Specialist preflight relevance checks now prevent simulated domain output: if no domain-relevant changed files are detected, the specialist writes a deterministic not-applicable output with zero findings.
 - Latest verification rerun confirms this behavior in full local review: finance and data engineering both emitted `no-relevant-changes` artifacts in `validation_report.json` with zero findings, while all 13 review workflows completed successfully.
+- Final summary fallback formatting now prioritizes decision speed: executive summary + priority action list + specialist severity rollup + workflow guide + traceability, with a rebuilt end-of-report cost section that surfaces crew totals first and leaves per-call rows collapsed.
+- Quick-review normalization now suppresses low-signal parser artifacts: non-JSON reviewer fallback summaries do not create synthetic findings, duplicate recommendation/fix payloads are deduplicated, and priority action extraction only promotes high-severity items.
+- Specialist sanitization now enforces changed-file scope for file-linked findings, preventing parsed-result recovery artifacts from surfacing unrelated criticals in final summaries.
+- Local/non-PR runs now skip persistent review-history updates, so `memory.json` no longer accumulates noisy local trend data; memory baseline was reset.
+- Repository licensing/attribution policy clarified in source-of-truth docs: Apache-2.0 + top-level `NOTICE` preserved in redistributions with attribution to Superior Byte Works, LLC / Clayton Young (Boreal Bytes).
+- Executive summary now prioritizes actionability over workflow narration (high-priority count, top risk, and immediate action window), and quick-review breakdowns prune repeated low-signal placeholder findings.
 
 ---
 
@@ -82,4 +88,4 @@ flowchart LR
 
 ---
 
-_Last updated: 2026-02-14 17:27 EST_
+_Last updated: 2026-02-14 18:28 EST_

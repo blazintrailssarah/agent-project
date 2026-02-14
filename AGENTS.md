@@ -37,6 +37,8 @@ You **MUST** read and follow the style guides. These are not optional — they d
 
 - **Scoped Conventional Commits** for all commit messages — `type(scope): description` (e.g., `feat(auth): add OAuth2 flow`, `fix(api): handle timeout`). Scope is strongly recommended; see [contribute_standards.md](agentic/contribute_standards.md) for full format including body, footers, and breaking change conventions.
 - **Multi-line commit bodies are required** for non-trivial changes. The body must explain **why** the change was made, **what** key files were touched, and **how** behavior differs. The commit history is the authoritative record of the project — someone reading `git log` alone should fully understand every change.
+- **License and attribution are mandatory in redistributions** — this repo is Apache-2.0. Keep `LICENSE` and `NOTICE` when redistributing derivative works, and preserve attribution to Superior Byte Works, LLC / Clayton Young (Boreal Bytes).
+- **No warranty / no liability** — do not add language in docs or code comments that contradicts Apache-2.0 warranty and liability disclaimers.
 - **Run local CI before commit/push when possible** — run `./scripts/ci-local.sh` (or `./scripts/ci-local.sh --review` when review behavior changed) before committing/pushing unless the user explicitly says not to.
 - **If local CI cannot run in this environment** (missing local secrets/tools, hosted remote runner), document the skip reason in PR/issue records and proceed with available checks.
 - **Draft PR first** → design checkpoint → implement → code review → human marks Ready
@@ -69,6 +71,7 @@ You **MUST** read and follow the style guides. These are not optional — they d
 | Error recovery                        | [agentic/agent_error_recovery.md](agentic/agent_error_recovery.md)                                |
 | Idempotent script standards           | [agentic/idempotent_design_patterns.md](agentic/idempotent_design_patterns.md)                    |
 | Local CI runner                       | [`scripts/ci-local.sh`](scripts/ci-local.sh)                                                      |
+| License and attribution               | [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE)                                                       |
 | File locations                        | [agentic/file_organization.md](agentic/file_organization.md)                                      |
 | Architecture decisions                | [agentic/adr/](agentic/adr/) (global) + subsystem `adr/` directories (for example `.crewai/adr/`) |
 

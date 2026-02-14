@@ -1054,7 +1054,7 @@ lines.extend(['', '## Diff excerpt', '[DIFF BEGIN]', diff_excerpt, '[DIFF END]']
     echo -e "  ${DIM}Full review: .crewai/workspace/final_summary.md${NC}"
     echo -e "  ${DIM}All outputs: .crewai/workspace/*.json${NC}"
 
-    if grep -q "^## 💰" "$summary_file"; then
+    if grep -q "^## 💰 Cost" "$summary_file"; then
       echo ""
       echo -e "${CYAN}${BOLD}  ┌─ Pricing / Cost ───────────────────────────────────┐${NC}"
       local cost_panel
@@ -1086,7 +1086,7 @@ with open(summary_path, encoding="utf-8") as handle:
 
 start = None
 for idx, line in enumerate(lines):
-    if line.startswith("## 💰"):
+    if line.startswith("## 💰 Cost"):
         start = idx
         break
 
@@ -1095,7 +1095,7 @@ if start is None:
 
 section = []
 for line in lines[start + 1:]:
-    if line.startswith("## ") and not line.startswith("## 💰"):
+    if line.startswith("## ") and not line.startswith("## 💰 Cost"):
         break
     section.append(line.rstrip())
 

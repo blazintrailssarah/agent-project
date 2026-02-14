@@ -519,6 +519,15 @@ See your project's `.github/workflows/` for workflow definitions and [custom-ins
 
 ---
 
+## ⚖️ License and attribution
+
+- This repository is licensed under **Apache-2.0**.
+- For redistributions and derivative works, keep both `LICENSE` and `NOTICE`.
+- Preserve attribution to **Superior Byte Works, LLC** and **Clayton Young (Boreal Bytes)** where existing notices are present.
+- Do not add policy text that conflicts with Apache-2.0 warranty/liability disclaimers.
+
+---
+
 ## 🔗 References
 
 - [Conventional Commits](https://www.conventionalcommits.org/) — commit message specification

@@ -245,6 +245,7 @@ def _clean_summary_text(summary_text):
             "assumed changed files",
             "hypothetical findings",
             "cannot complete the task",
+            "non-json output; structured findings were not produced",
         ]
     ):
         return ""
@@ -353,6 +354,14 @@ def _sanitize_specialist_artifact(data: dict, crew_key: str) -> tuple[dict, bool
         changed = True
     sanitized["summary"] = cleaned_summary
 
+    changed_files = [
+        str(path).lower().lstrip("./")
+        for path in _get_changed_file_candidates()
+        if isinstance(path, str) and str(path).strip()
+    ]
+    changed_file_set = set(changed_files)
+    changed_basename_set = {Path(path).name for path in changed_file_set}
+
     findings = _normalize_findings_list(sanitized.get("findings"))
     kept = []
     for index, finding in enumerate(findings, start=1):
@@ -387,6 +396,17 @@ def _sanitize_specialist_artifact(data: dict, crew_key: str) -> tuple[dict, bool
             changed = True
             continue
 
+        qualified_file = _qualify_repo_file_path(item.get("file", ""))
+        normalized_file = qualified_file.lower().lstrip("./") if qualified_file else ""
+        if normalized_file:
+            file_matches_scope = (
+                normalized_file in changed_file_set
+                or Path(normalized_file).name in changed_basename_set
+            )
+            if not file_matches_scope:
+                changed = True
+                continue
+
         item["title"] = title or f"{crew_key.title()} finding {index}"
         item["description"] = description or "No additional details provided."
         item["recommendation"] = (
@@ -394,11 +414,24 @@ def _sanitize_specialist_artifact(data: dict, crew_key: str) -> tuple[dict, bool
         )
         if verification:
             item["verification"] = verification
-        item["file"] = _qualify_repo_file_path(item.get("file", ""))
+        item["file"] = qualified_file
         kept.append(item)
 
     if len(kept) != len(findings):
         changed = True
+
+    if (
+        not kept
+        and "did not detect relevant changed files" not in str(sanitized.get("summary", "")).lower()
+    ):
+        fallback_summary = (
+            f"{crew_key.replace('_', ' ').title()} review completed with no actionable findings "
+            "for this change set."
+        )
+        if sanitized.get("summary") != fallback_summary:
+            changed = True
+        sanitized["summary"] = fallback_summary
+
     sanitized["findings"] = kept
     sanitized["severity_counts"] = _compute_severity_counts(kept)
     return sanitized, changed
@@ -818,17 +851,17 @@ def run_quick_review():
                 fix_suggestion = str(
                     normalized.get("fix_suggestion", normalized.get("recommendation", ""))
                 ).strip()
+                recommendation_text = str(normalized.get("recommendation", "")).strip()
                 verification_text = str(normalized.get("verification", "")).strip()
 
                 description = _clean_summary_text(description)
 
                 if not description:
                     description = "No additional details were provided by this reviewer pass."
+                if title.endswith("..."):
+                    title = ""
                 if not title:
-                    title_seed = description.split(".")[0].strip()
-                    if len(title_seed) > 90:
-                        title_seed = title_seed[:87].rstrip() + "..."
-                    title = title_seed or f"{reviewer_name} finding"
+                    title = _derive_title_from_description(description, f"{reviewer_name} finding")
                 if not fix_suggestion:
                     if fallback_kind == "positive":
                         fix_suggestion = "No action required; preserve this behavior."
@@ -842,6 +875,10 @@ def run_quick_review():
                 normalized["title"] = title
                 normalized["description"] = description
                 normalized["fix_suggestion"] = fix_suggestion
+                if recommendation_text and recommendation_text != fix_suggestion:
+                    normalized["recommendation"] = recommendation_text
+                else:
+                    normalized.pop("recommendation", None)
                 if verification_text:
                     normalized["verification"] = verification_text
                 normalized["file"] = _qualify_repo_file_path(normalized.get("file", ""))
@@ -865,21 +902,13 @@ def run_quick_review():
 
                 if not isinstance(parsed_content, dict):
                     parsed_content = {
-                        "summary": "Review pass returned non-JSON output; normalized.",
+                        "summary": (
+                            "Review pass returned non-JSON output; structured findings were "
+                            "not produced for this reviewer."
+                        ),
                         "critical": [],
                         "warnings": [],
-                        "info": [
-                            {
-                                "title": "Model response normalization",
-                                "file": "",
-                                "line": "",
-                                "description": raw_content[:300],
-                                "fix_suggestion": (
-                                    "Return strict JSON for richer structured findings."
-                                ),
-                                "kind": "normalization",
-                            }
-                        ],
+                        "info": [],
                         "positives": [],
                     }
 
@@ -977,6 +1006,24 @@ def run_quick_review():
             pass_summaries = []
             pass_details = []
 
+            def prune_low_signal(items):
+                markers = (
+                    "no additional details were provided by this reviewer pass",
+                    "reviewer pass returned no actionable details",
+                )
+                pruned = []
+                for item in items or []:
+                    if not isinstance(item, dict):
+                        continue
+                    title = str(item.get("title", "")).lower()
+                    description = str(item.get("description", "")).lower()
+                    if any(marker in title for marker in markers) or any(
+                        marker in description for marker in markers
+                    ):
+                        continue
+                    pruned.append(item)
+                return pruned
+
             for review_pass in reviewer_passes:
                 tracker.set_current_task(
                     f"quick_code_review_{review_pass['name'].lower().replace(' ', '_')}"
@@ -1044,24 +1091,43 @@ def run_quick_review():
                         "info": [],
                         "positives": [],
                     }
-                pass_summaries.append(
-                    {
-                        "reviewer": review_pass["name"],
-                        "summary": parsed.get("summary") or "No summary provided.",
-                    }
+                parsed_summary = str(parsed.get("summary") or "No summary provided.")
+                parsed_total_findings = (
+                    len(parsed.get("critical", []))
+                    + len(parsed.get("warnings", []))
+                    + len(parsed.get("info", []))
+                    + len(parsed.get("positives", []))
                 )
-                pass_details.append(
-                    {
-                        "reviewer": review_pass["name"],
-                        "summary": parsed.get("summary") or "No summary provided.",
-                        "critical": parsed.get("critical", []),
-                        "warnings": parsed.get("warnings", []),
-                        "suggestions": parsed.get("info", []),
-                        "positives": parsed.get("positives", []),
-                    }
+                low_signal_summary = (
+                    "non-json output" in parsed_summary.lower() and parsed_total_findings == 0
                 )
-                for key in ("critical", "warnings", "info", "positives"):
-                    aggregated[key].extend(parsed.get(key, []))
+
+                if not low_signal_summary:
+                    filtered_critical = prune_low_signal(parsed.get("critical", []))
+                    filtered_warnings = prune_low_signal(parsed.get("warnings", []))
+                    filtered_info = prune_low_signal(parsed.get("info", []))
+                    filtered_positives = prune_low_signal(parsed.get("positives", []))
+
+                    pass_summaries.append(
+                        {
+                            "reviewer": review_pass["name"],
+                            "summary": parsed_summary,
+                        }
+                    )
+                    pass_details.append(
+                        {
+                            "reviewer": review_pass["name"],
+                            "summary": parsed_summary,
+                            "critical": filtered_critical,
+                            "warnings": filtered_warnings,
+                            "suggestions": filtered_info,
+                            "positives": filtered_positives,
+                        }
+                    )
+                    aggregated["critical"].extend(filtered_critical)
+                    aggregated["warnings"].extend(filtered_warnings)
+                    aggregated["info"].extend(filtered_info)
+                    aggregated["positives"].extend(filtered_positives)
 
             def dedupe_findings(items):
                 deduped = []
@@ -1081,10 +1147,28 @@ def run_quick_review():
                     deduped.append(item)
                 return deduped
 
-            critical_items = dedupe_findings(aggregated["critical"])
-            warning_items = dedupe_findings(aggregated["warnings"])
-            info_items = dedupe_findings(aggregated["info"])
-            positive_items = dedupe_findings(aggregated["positives"])
+            def filter_low_signal_findings(items):
+                low_signal_markers = (
+                    "no additional details were provided by this reviewer pass",
+                    "reviewer pass returned no actionable details",
+                )
+                filtered = []
+                for item in items:
+                    if not isinstance(item, dict):
+                        continue
+                    title = str(item.get("title", "")).strip().lower()
+                    description = str(item.get("description", "")).strip().lower()
+                    if any(marker in title for marker in low_signal_markers) or any(
+                        marker in description for marker in low_signal_markers
+                    ):
+                        continue
+                    filtered.append(item)
+                return filtered
+
+            critical_items = filter_low_signal_findings(dedupe_findings(aggregated["critical"]))
+            warning_items = filter_low_signal_findings(dedupe_findings(aggregated["warnings"]))
+            info_items = filter_low_signal_findings(dedupe_findings(aggregated["info"]))
+            positive_items = filter_low_signal_findings(dedupe_findings(aggregated["positives"]))
 
             provider_used = "openrouter"
             if provider_calls and not all(provider == "openrouter" for provider in provider_calls):
@@ -1102,7 +1186,7 @@ def run_quick_review():
                 "reviewer_summaries": pass_summaries,
                 "reviewer_pass_details": pass_details,
                 "provider_used": provider_used,
-                "calls_executed": len(reviewer_passes),
+                "calls_executed": len(pass_summaries),
             }
             workspace.write_json("quick_review.json", review_data)
             logger.info("✅ Local quick review shortcut completed")
@@ -2181,6 +2265,202 @@ def format_finding_item(finding, severity_emoji):
     return "\n".join(lines)
 
 
+def _severity_rank(level):
+    normalized = str(level or "").lower()
+    order = {"critical": 4, "high": 3, "medium": 2, "low": 1, "info": 0}
+    return order.get(normalized, 0)
+
+
+def _summarize_text(value, max_len=180):
+    cleaned = _clean_summary_text(value)
+    if not cleaned:
+        cleaned = " ".join(str(value or "").replace("```", " ").split())
+    if len(cleaned) <= max_len:
+        return cleaned
+    return cleaned[: max_len - 1].rstrip() + "…"
+
+
+def _derive_title_from_description(description, fallback):
+    text = " ".join(str(description or "").split()).strip()
+    if not text:
+        return fallback
+
+    sentence_break = len(text)
+    for separator in [".", ";", "\n"]:
+        index = text.find(separator)
+        if index != -1:
+            sentence_break = min(sentence_break, index)
+
+    title = text[:sentence_break].strip() or text
+    if len(title) > 120:
+        shortened = title[:120]
+        if " " in shortened:
+            shortened = shortened.rsplit(" ", 1)[0]
+        title = shortened.strip()
+
+    return title or fallback
+
+
+def _collect_priority_actions(workspace):
+    items = []
+
+    def push_item(source, severity, title, file_path, description, recommendation):
+        items.append(
+            {
+                "source": source,
+                "severity": str(severity or "info").lower(),
+                "title": title or "Review finding",
+                "file": _qualify_repo_file_path(file_path or ""),
+                "description": _summarize_text(description),
+                "recommendation": _summarize_text(recommendation),
+            }
+        )
+
+    if workspace.exists("quick_review.json"):
+        try:
+            quick_data = workspace.read_json("quick_review.json")
+            for issue in quick_data.get("critical", []) or []:
+                if isinstance(issue, dict):
+                    push_item(
+                        "Quick Review",
+                        issue.get("severity", "critical"),
+                        issue.get("title", "Critical quick-review issue"),
+                        issue.get("file", ""),
+                        issue.get("description") or issue.get("summary", ""),
+                        issue.get("fix_suggestion") or issue.get("recommendation", ""),
+                    )
+                else:
+                    push_item(
+                        "Quick Review",
+                        "critical",
+                        "Critical quick-review issue",
+                        "",
+                        str(issue),
+                        "Review the diff section and apply targeted remediation.",
+                    )
+
+            for warning in quick_data.get("warnings", []) or []:
+                if isinstance(warning, dict):
+                    warning_severity = str(warning.get("severity", "")).lower() or "medium"
+                    push_item(
+                        "Quick Review",
+                        warning_severity,
+                        warning.get("title", "Quick-review warning"),
+                        warning.get("file", ""),
+                        warning.get("description") or warning.get("summary", ""),
+                        warning.get("fix_suggestion") or warning.get("recommendation", ""),
+                    )
+                else:
+                    push_item(
+                        "Quick Review",
+                        "medium",
+                        "Quick-review warning",
+                        "",
+                        str(warning),
+                        "Review this warning and decide whether to address it now.",
+                    )
+        except Exception as error:
+            logger.warning(f"Could not extract quick-review priorities: {error}")
+
+    if workspace.exists("full_review.json"):
+        try:
+            full_data = workspace.read_json("full_review.json")
+            for section_name in ["architecture", "security", "performance", "testing"]:
+                for finding in full_data.get(section_name, []) or []:
+                    if not isinstance(finding, dict):
+                        continue
+                    severity = str(finding.get("severity", "info")).lower()
+                    if _severity_rank(severity) < _severity_rank("high"):
+                        continue
+                    push_item(
+                        "Full Review",
+                        severity,
+                        finding.get("title", f"{section_name.title()} finding"),
+                        finding.get("file", ""),
+                        finding.get("description", ""),
+                        finding.get("recommendation", ""),
+                    )
+        except Exception as error:
+            logger.warning(f"Could not extract full-review priorities: {error}")
+
+    for crew_key, crew_info in SPECIALIST_CREWS.items():
+        output_file = crew_info["output_file"]
+        if not workspace.exists(output_file):
+            continue
+        try:
+            data = workspace.read_json(output_file)
+            crew_name = crew_key.replace("_", " ").title()
+            for finding in data.get("findings", []) or []:
+                if not isinstance(finding, dict):
+                    continue
+                severity = str(finding.get("severity", "info")).lower()
+                if _severity_rank(severity) < _severity_rank("high"):
+                    continue
+                push_item(
+                    crew_name,
+                    severity,
+                    finding.get("title", f"{crew_name} finding"),
+                    finding.get("file", ""),
+                    finding.get("description", ""),
+                    finding.get("recommendation") or finding.get("fix_suggestion", ""),
+                )
+        except Exception as error:
+            logger.warning(f"Could not extract {crew_key} priorities: {error}")
+
+    unique_items = []
+    seen = set()
+    for item in items:
+        key = (
+            item["source"],
+            item["severity"],
+            item["title"],
+            item["file"],
+            item["description"],
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+        unique_items.append(item)
+
+    high_signal_items = [
+        item for item in unique_items if _severity_rank(item["severity"]) >= _severity_rank("high")
+    ]
+
+    high_signal_items.sort(
+        key=lambda item: (
+            -_severity_rank(item["severity"]),
+            item["source"],
+            item["title"],
+        )
+    )
+    return high_signal_items
+
+
+def _specialist_rollup_rows(workspace):
+    rows = []
+    for crew_key, crew_info in SPECIALIST_CREWS.items():
+        output_file = crew_info["output_file"]
+        if not workspace.exists(output_file):
+            continue
+        try:
+            data = workspace.read_json(output_file)
+            counts = data.get("severity_counts", {})
+            row = {
+                "crew": crew_key.replace("_", " ").title(),
+                "critical": int(counts.get("critical", 0) or 0),
+                "high": int(counts.get("high", 0) or 0),
+                "medium": int(counts.get("medium", 0) or 0),
+                "low": int(counts.get("low", 0) or 0),
+                "info": int(counts.get("info", 0) or 0),
+            }
+            rows.append(row)
+        except Exception as error:
+            logger.warning(f"Could not parse specialist rollup for {crew_key}: {error}")
+
+    rows.sort(key=lambda row: row["crew"])
+    return rows
+
+
 def create_fallback_summary(workspace_dir, env_vars, workflows_executed):
     """Create a comprehensive fallback summary extracting all available findings.
 
@@ -2193,55 +2473,110 @@ def create_fallback_summary(workspace_dir, env_vars, workflows_executed):
 
     workspace = WorkspaceTool()
 
-    # Collect what we can from workspace
     summary_parts = []
-    summary_parts.append("## ⚠️ Review Summary")
-    summary_parts.append("")
-    summary_parts.append(
-        f"Review completed for PR #{env_vars['pr_number']} - "
-        f"{len(workflows_executed)} workflows executed."
-    )
-    summary_parts.append("")
-    summary_parts.append(f"**Commit**: `{env_vars['commit_sha'][:7]}`")
-    summary_parts.append(f"**Repository**: {env_vars['repository']}")
-    summary_parts.append(f"**Workflows**: {', '.join(workflows_executed)}")
-    summary_parts.append(f"**Timestamp**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}")
-    summary_parts.append("")
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC")
 
-    deep_review_ran = "full-review" in workflows_executed or any(
-        workflow.startswith("specialist-") for workflow in workflows_executed
-    )
-    if deep_review_ran:
-        next_read_section = "Full Technical Review and specialist sections"
-    else:
-        next_read_section = "Quick Review findings and Reviewer Task Breakdown"
-
-    summary_parts.append("### 🧭 Executive Summary")
+    summary_parts.append("# CrewAI Review Summary")
+    summary_parts.append("")
     summary_parts.append(
-        "This run completed successfully and produced a fresh comprehensive review artifact "
-        "for the current working state."
-    )
-    summary_parts.append(
-        "Start with Critical Issues and Warnings first, then use Reviewer Task Breakdown "
-        "to see which reviewer surfaced each finding."
-    )
-    summary_parts.append(
-        f"Read next: {next_read_section}, then address highest-severity findings and rerun "
-        "`./scripts/ci-local.sh --step review` (or `--full-review --step review`) to confirm."
+        f"_PR #{env_vars['pr_number']} · `{env_vars['commit_sha'][:7]}` · "
+        f"{env_vars['repository']} · {timestamp}_"
     )
     summary_parts.append("")
-
     summary_parts.append("---")
     summary_parts.append("")
+
+    priority_items = _collect_priority_actions(workspace)
+
+    summary_parts.append("## 🧭 Executive summary")
+    if priority_items:
+        critical_count = sum(1 for item in priority_items if item.get("severity") == "critical")
+        high_count = sum(1 for item in priority_items if item.get("severity") == "high")
+        highest = priority_items[0]
+        top_location = f" `{highest['file']}`" if highest.get("file") else ""
+        actions_window = min(3, len(priority_items))
+        summary_parts.append(
+            f"Detected **{len(priority_items)}** high-priority finding(s) "
+            f"({critical_count} critical, {high_count} high)."
+        )
+        summary_parts.append(
+            f"Top risk: **{highest['source']} — {highest['title']}**{top_location}."
+        )
+        summary_parts.append(
+            f"Immediate focus: complete Priority action items **1-{actions_window}** before merge, "
+            "then rerun full review to confirm no critical/high regressions."
+        )
+    else:
+        summary_parts.append("No critical or high findings were detected across current artifacts.")
+        summary_parts.append(
+            "Focus on medium-priority improvements and preserve current reliability safeguards."
+        )
+        summary_parts.append(
+            "Rerun `./scripts/ci-local.sh --full-review --step review` after any substantive change."
+        )
+    summary_parts.append("")
+
+    summary_parts.append("## 🎯 Priority action items")
+    if priority_items:
+        for index, item in enumerate(priority_items[:7], start=1):
+            severity_emoji = "🔴" if item["severity"] == "critical" else "🟠"
+            location = f" `{item['file']}`" if item["file"] else ""
+            summary_parts.append(
+                f"{index}. {severity_emoji} **[{item['source']}] {item['title']}**{location}"
+            )
+            if item["description"]:
+                summary_parts.append(f"   - Why it matters: {item['description']}")
+            if item["recommendation"]:
+                summary_parts.append(f"   - Recommended action: {item['recommendation']}")
+    else:
+        summary_parts.append(
+            "1. ✅ No critical/high findings detected in available artifacts; continue with routine improvements and validation."
+        )
+    summary_parts.append("")
+
+    rollup_rows = _specialist_rollup_rows(workspace)
+    if rollup_rows:
+        summary_parts.append("## 📊 Severity rollup")
+        summary_parts.append("")
+        summary_parts.append("| Crew | Critical | High | Medium | Low | Info |")
+        summary_parts.append("| --- | ---: | ---: | ---: | ---: | ---: |")
+        totals = {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0}
+        for row in rollup_rows:
+            for key in totals:
+                totals[key] += row[key]
+            summary_parts.append(
+                f"| {row['crew']} | {row['critical']} | {row['high']} | "
+                f"{row['medium']} | {row['low']} | {row['info']} |"
+            )
+        summary_parts.append(
+            f"| **Total** | **{totals['critical']}** | **{totals['high']}** | "
+            f"**{totals['medium']}** | **{totals['low']}** | **{totals['info']}** |"
+        )
+        summary_parts.append("")
+
+    summary_parts.append("## 🗺️ Workflow guide")
+    summary_parts.append("")
+    summary_parts.append("| Step | Purpose | Outcome | Recommendation |")
+    summary_parts.append("| --- | --- | --- | --- |")
 
     # CI Analysis - Extract detailed findings
     if workspace.exists("ci_summary.json"):
         try:
             ci_data = workspace.read_json("ci_summary.json")
-            summary_parts.append("### ✅ CI Analysis")
             status = ci_data.get("status", "unknown")
             passed = ci_data.get("passed", status == "success")
             status_emoji = "✅" if passed else "❌"
+            summary_parts.append(
+                f"| CI analysis | Parse CI outcomes and failures | {status_emoji} {status} | "
+                + (
+                    "Fix failing CI checks before code-level optimization."
+                    if not passed
+                    else "CI baseline is green; move to code-quality findings."
+                )
+                + " |"
+            )
+            summary_parts.append("")
+            summary_parts.append("## ✅ CI analysis")
             summary_parts.append(f"**Status**: {status_emoji} {status}")
 
             # Get what was checked
@@ -2301,16 +2636,27 @@ def create_fallback_summary(workspace_dir, env_vars, workflows_executed):
                     summary_parts.append("")
 
                 summary_parts.append("</details>")
+                summary_parts.append("---")
 
             summary_parts.append("")
         except Exception as e:
             logger.warning(f"Could not parse ci_summary.json: {e}")
-            summary_parts.append("### ✅ CI Analysis")
+            summary_parts.append(
+                "| CI analysis | Parse CI outcomes and failures | ⚠️ parse error | "
+                "Review `ci_summary.json` generation and parsing path. |"
+            )
+            summary_parts.append("")
+            summary_parts.append("## ✅ CI analysis")
             summary_parts.append("Status: Error parsing results")
             summary_parts.append("")
     else:
         logger.warning("⚠️ ci_summary.json not found in workspace")
-        summary_parts.append("### ✅ CI Analysis")
+        summary_parts.append(
+            "| CI analysis | Parse CI outcomes and failures | ⚠️ unavailable | "
+            "Ensure `ci_summary.json` is produced in workflow execution. |"
+        )
+        summary_parts.append("")
+        summary_parts.append("## ✅ CI analysis")
         summary_parts.append("Status: Not available")
         summary_parts.append("")
 
@@ -2318,7 +2664,21 @@ def create_fallback_summary(workspace_dir, env_vars, workflows_executed):
     if workspace.exists("quick_review.json"):
         try:
             quick_data = workspace.read_json("quick_review.json")
-            summary_parts.append("### ⚡ Quick Review")
+            critical_count = len([i for i in quick_data.get("critical", []) if i])
+            warning_count = len([i for i in quick_data.get("warnings", []) if i])
+            suggestion_count = len([i for i in quick_data.get("info", []) if i])
+            summary_parts.append(
+                f"| Quick review | Fast multi-pass quality triage | "
+                f"critical={critical_count}, warnings={warning_count}, suggestions={suggestion_count} | "
+                + (
+                    "Resolve critical items first, then warnings, then suggestions."
+                    if critical_count or warning_count
+                    else "No major blockers detected; proceed with deeper specialist validation."
+                )
+                + " |"
+            )
+            summary_parts.append("")
+            summary_parts.append("## ⚡ Quick review")
             summary_parts.append(f"**Status**: {quick_data.get('status', 'completed')}")
             summary_parts.append(
                 f"**Summary**: {_clean_summary_text(quick_data.get('summary', '')) or 'No summary available'}"
@@ -2392,6 +2752,7 @@ def create_fallback_summary(workspace_dir, env_vars, workflows_executed):
                     summary_parts.append("")
 
                 summary_parts.append("</details>")
+                summary_parts.append("---")
 
             # Get all findings
             critical_issues = quick_data.get("critical", [])
@@ -2422,6 +2783,7 @@ def create_fallback_summary(workspace_dir, env_vars, workflows_executed):
                     summary_parts.append(format_finding_item(issue, "🔴"))
                     summary_parts.append("")
                 summary_parts.append("</details>")
+                summary_parts.append("---")
 
             # WARNINGS - collapsible
             if normalized_warnings:
@@ -2433,6 +2795,7 @@ def create_fallback_summary(workspace_dir, env_vars, workflows_executed):
                     summary_parts.append(format_finding_item(warning, "🟡"))
                     summary_parts.append("")
                 summary_parts.append("</details>")
+                summary_parts.append("---")
 
             # SUGGESTIONS - collapsible
             if normalized_suggestions:
@@ -2444,6 +2807,7 @@ def create_fallback_summary(workspace_dir, env_vars, workflows_executed):
                     summary_parts.append(format_finding_item(suggestion, "🔵"))
                     summary_parts.append("")
                 summary_parts.append("</details>")
+                summary_parts.append("---")
 
             if normalized_positives:
                 summary_parts.append("")
@@ -2454,16 +2818,27 @@ def create_fallback_summary(workspace_dir, env_vars, workflows_executed):
                     summary_parts.append(format_finding_item(positive, "🟢"))
                     summary_parts.append("")
                 summary_parts.append("</details>")
+                summary_parts.append("---")
 
             summary_parts.append("")
         except Exception as e:
             logger.warning(f"Could not parse quick_review.json: {e}")
-            summary_parts.append("### ⚡ Quick Review")
+            summary_parts.append(
+                "| Quick review | Fast multi-pass quality triage | ⚠️ parse error | "
+                "Review quick-review output serialization. |"
+            )
+            summary_parts.append("")
+            summary_parts.append("## ⚡ Quick review")
             summary_parts.append("Status: Error parsing results")
             summary_parts.append("")
     else:
         logger.warning("⚠️ quick_review.json not found in workspace")
-        summary_parts.append("### ⚡ Quick Review")
+        summary_parts.append(
+            "| Quick review | Fast multi-pass quality triage | ⚠️ unavailable | "
+            "Ensure quick-review output file is generated. |"
+        )
+        summary_parts.append("")
+        summary_parts.append("## ⚡ Quick review")
         summary_parts.append("Status: Not available")
         summary_parts.append("")
 
@@ -2471,7 +2846,25 @@ def create_fallback_summary(workspace_dir, env_vars, workflows_executed):
     if workspace.exists("full_review.json"):
         try:
             full_data = workspace.read_json("full_review.json")
-            summary_parts.append("### 🔍 Full Technical Review")
+            full_critical_high = 0
+            for section_name in ["architecture", "security", "performance", "testing"]:
+                for finding in full_data.get(section_name, []) or []:
+                    if not isinstance(finding, dict):
+                        continue
+                    if _severity_rank(finding.get("severity", "info")) >= _severity_rank("high"):
+                        full_critical_high += 1
+            summary_parts.append(
+                f"| Full technical review | Deep cross-domain architecture/security analysis | "
+                f"high+ findings={full_critical_high} | "
+                + (
+                    "Address top architecture/security risks before merge."
+                    if full_critical_high
+                    else "No high-severity deep-review blockers detected."
+                )
+                + " |"
+            )
+            summary_parts.append("")
+            summary_parts.append("## 🔍 Full technical review")
             summary_parts.append("")
 
             # Architecture issues
@@ -2501,15 +2894,67 @@ def create_fallback_summary(workspace_dir, env_vars, workflows_executed):
 
         except Exception as e:
             logger.warning(f"Could not parse full_review.json: {e}")
-            summary_parts.append("### 🔍 Full Technical Review")
+            summary_parts.append(
+                "| Full technical review | Deep cross-domain architecture/security analysis | "
+                "⚠️ parse error | Validate full-review output schema. |"
+            )
+            summary_parts.append("")
+            summary_parts.append("## 🔍 Full technical review")
             summary_parts.append("Status: Error parsing results")
             summary_parts.append("")
     else:
         if "full-review" in workflows_executed:
             logger.warning("⚠️ full_review.json not found but full-review was executed")
-        summary_parts.append("### 🔍 Full Technical Review")
+        summary_parts.append(
+            "| Full technical review | Deep cross-domain architecture/security analysis | Did not run | "
+            "Run full review when risk profile or scope requires deeper analysis. |"
+        )
+        summary_parts.append("")
+        summary_parts.append("## 🔍 Full technical review")
         summary_parts.append("Status: Did not run")
         summary_parts.append("")
+
+    for workflow in workflows_executed:
+        if workflow.startswith("specialist-"):
+            crew_key = workflow.replace("specialist-", "")
+            pretty = crew_key.replace("_", " ").title()
+            output_file = SPECIALIST_CREWS.get(crew_key, {}).get("output_file")
+            if output_file and workspace.exists(output_file):
+                try:
+                    specialist_data = workspace.read_json(output_file)
+                    counts = specialist_data.get("severity_counts", {})
+                    high_critical = int(counts.get("critical", 0) or 0) + int(
+                        counts.get("high", 0) or 0
+                    )
+                    total_findings = len(specialist_data.get("findings", []) or [])
+                    if total_findings == 0:
+                        outcome = "no findings"
+                        recommendation = "No action required; keep monitoring domain changes."
+                    else:
+                        outcome = f"{high_critical} high+ / {total_findings} total"
+                        first_recommendation = ""
+                        for finding in specialist_data.get("findings", []) or []:
+                            if isinstance(finding, dict):
+                                first_recommendation = finding.get("recommendation") or finding.get(
+                                    "fix_suggestion", ""
+                                )
+                                if first_recommendation:
+                                    break
+                        recommendation = _summarize_text(first_recommendation, max_len=120)
+                        if not recommendation:
+                            recommendation = "Address top domain findings before merge."
+                except Exception:
+                    outcome = "artifact read error"
+                    recommendation = "Review specialist artifact parsing and rerun."
+            else:
+                outcome = "not generated"
+                recommendation = "Confirm specialist workflow routing and output generation."
+            summary_parts.append(
+                f"| Specialist: {pretty} | Domain-focused risk and compliance review | {outcome} | "
+                f"{recommendation} |"
+            )
+
+    summary_parts.append("")
 
     crew_emoji = {
         "security": "🛡️",
@@ -2535,10 +2980,11 @@ def create_fallback_summary(workspace_dir, env_vars, workflows_executed):
                     for s in ["critical", "high", "medium"]
                     if counts.get(s, 0) > 0
                 )
-                header = f"{emoji} {crew_key.title()} Review"
+                pretty_crew_name = crew_key.replace("_", " ").title()
+                header = f"{emoji} {pretty_crew_name} review"
                 if count_str:
                     header += f" ({count_str})"
-                summary_parts.append(f"### {header}")
+                summary_parts.append(f"## {header}")
                 specialist_summary = _clean_summary_text(data.get("summary", ""))
                 if not specialist_summary:
                     specialist_summary = "No actionable specialist summary provided."
@@ -2559,6 +3005,7 @@ def create_fallback_summary(workspace_dir, env_vars, workflows_executed):
                         summary_parts.append(format_finding_item(finding, "🔴"))
                         summary_parts.append("")
                     summary_parts.append("</details>")
+                    summary_parts.append("---")
                     summary_parts.append("")
 
                 if rest:
@@ -2571,6 +3018,7 @@ def create_fallback_summary(workspace_dir, env_vars, workflows_executed):
                         summary_parts.append(format_finding_item(finding, sev_emoji))
                         summary_parts.append("")
                     summary_parts.append("</details>")
+                    summary_parts.append("---")
                     summary_parts.append("")
             except Exception as e:
                 logger.warning(f"Could not parse {output_file}: {e}")
@@ -2580,7 +3028,7 @@ def create_fallback_summary(workspace_dir, env_vars, workflows_executed):
             router_data = workspace.read_json("router_decision.json")
             suggestions = router_data.get("suggestions", [])
             if suggestions:
-                summary_parts.append("### 💡 Router Suggestions")
+                summary_parts.append("## 💡 Router suggestions")
                 summary_parts.append("")
                 for suggestion in suggestions:
                     summary_parts.append(f"- {suggestion}")
@@ -2598,23 +3046,53 @@ def create_fallback_summary(workspace_dir, env_vars, workflows_executed):
                     f"Validated {len(artifacts)} artifact(s): "
                     f"{len(artifacts) - len(invalid)} valid, {len(invalid)} invalid"
                 )
-                summary_parts.append("### ✅ Validation Report")
+                summary_parts.append("## ✅ Validation report")
                 summary_parts.append(summary_line)
                 summary_parts.append("")
+                source_labels = {
+                    "no-relevant-changes": "no relevant domain changes",
+                    "local-parsed-result-missing-output": "parsed-result recovery",
+                    "local-full-review": "local full review",
+                    "local-crew-output": "crew output",
+                }
                 for artifact in artifacts:
                     status = "✅" if artifact.get("valid") else "⚠️"
                     source = artifact.get("source", "unknown")
-                    summary_parts.append(f"- {status} `{artifact.get('artifact')}` ({source})")
+                    source_display = source_labels.get(source, source)
+                    summary_parts.append(
+                        f"- {status} `{artifact.get('artifact')}` ({source_display})"
+                    )
                 summary_parts.append("")
         except Exception as e:
             logger.warning(f"Could not parse validation_report.json: {e}")
 
+    summary_parts.append("## 🔗 Traceability")
+    summary_parts.append("")
+    for file_name in sorted(
+        [
+            "router_decision.json",
+            "ci_summary.json",
+            "quick_review.json",
+            "full_review.json",
+            "security_review.json",
+            "legal_review.json",
+            "finance_review.json",
+            "documentation_review.json",
+            "agentic_consistency_review.json",
+            "marketing_review.json",
+            "science_review.json",
+            "government_regulatory_review.json",
+            "strategic_review.json",
+            "data_engineering_review.json",
+            "validation_report.json",
+        ]
+    ):
+        if workspace.exists(file_name):
+            summary_parts.append(f"- `{file_name}`")
+    summary_parts.append("")
     summary_parts.append("---")
     summary_parts.append("")
-    summary_parts.append(
-        f"*🤖 Generated by CrewAI Router System | "
-        f"⏱️ {datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}*"
-    )
+    summary_parts.append(f"_Generated by CrewAI Router System · {timestamp}_")
 
     fallback_md = "\n".join(summary_parts)
     workspace.write("final_summary.md", fallback_md)
@@ -2635,17 +3113,67 @@ def generate_cost_breakdown():
         if summary["total_calls"] == 0:
             return "\n---\n\n## 💰 Cost Tracking\n\nNo API calls recorded.\n"
 
-        # Use tracker's built-in markdown table formatter
-        # It includes crew column, crew subtotals, and grand total
-        table = tracker.format_as_markdown_table()
+        crew_breakdown = summary["crew_breakdown"]
+        total_cost = summary["total_cost"]
+
+        crew_rows = sorted(
+            crew_breakdown.items(),
+            key=lambda item: item[1].get("cost", 0.0),
+            reverse=True,
+        )
+
+        crew_table = [
+            "| Crew | Calls | Input | Output | Total tokens | Cost | Cost share | Avg speed |",
+            "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+        ]
+
+        for crew_name, stats in crew_rows:
+            crew_duration = stats.get("duration", 0.0)
+            avg_speed = (
+                f"{stats.get('total_tokens', 0) / crew_duration:.1f} tok/s"
+                if crew_duration > 0
+                else "-"
+            )
+            share = (stats.get("cost", 0.0) / total_cost * 100.0) if total_cost > 0 else 0.0
+            crew_table.append(
+                f"| {crew_name} | {stats.get('calls', 0)} | {stats.get('tokens_in', 0):,} | "
+                f"{stats.get('tokens_out', 0):,} | {stats.get('total_tokens', 0):,} | "
+                f"${stats.get('cost', 0.0):.6f} | {share:.1f}% | {avg_speed} |"
+            )
+
+        most_expensive_crew = crew_rows[0][0] if crew_rows else "n/a"
+        most_expensive_call = max(tracker.calls, key=lambda call: call.cost, default=None)
+
+        call_table = tracker.format_as_markdown_table()
 
         lines = []
         lines.append("")
         lines.append("---")
         lines.append("")
-        lines.append("## 💰 Cost Breakdown by Crew")
+        lines.append("## 💰 Cost and efficiency")
         lines.append("")
-        lines.append(table)
+        lines.append("### Crew totals")
+        lines.extend(crew_table)
+        lines.append("")
+        lines.append(
+            f"- Highest total spend: **{most_expensive_crew}** ({crew_rows[0][1].get('cost', 0.0):.6f} USD)"
+            if crew_rows
+            else "- Highest total spend: n/a"
+        )
+        if most_expensive_call:
+            lines.append(
+                f"- Most expensive call: **#{most_expensive_call.call_number}** "
+                f"({most_expensive_call.crew_name}, {most_expensive_call.model}, "
+                f"${most_expensive_call.cost:.6f})"
+            )
+        lines.append("")
+        lines.append("<details>")
+        lines.append("<summary><b>Per-call breakdown</b></summary>")
+        lines.append("")
+        lines.append(call_table)
+        lines.append("")
+        lines.append("</details>")
+        lines.append("---")
         lines.append("")
         lines.append(
             f"**Summary**: {summary['total_calls']} calls across "
@@ -2832,11 +3360,13 @@ def _apply_memory_suppressions(memory, workspace_dir):
             except Exception:
                 pass
 
-    memory.record_review(
-        pr_number=os.getenv("PR_NUMBER", "unknown"),
-        findings_count=total_findings,
-    )
-    memory.save()
+    pr_number = os.getenv("PR_NUMBER", "unknown")
+    normalized_pr = str(pr_number).strip().lower()
+    if normalized_pr in {"local", "unknown", "", "n/a"}:
+        logger.info("🧠 Skipping persistent memory trend update for local/non-PR run")
+    else:
+        memory.record_review(pr_number=pr_number, findings_count=total_findings)
+        memory.save()
 
 
 def main():

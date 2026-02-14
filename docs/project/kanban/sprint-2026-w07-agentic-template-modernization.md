@@ -1,7 +1,7 @@
 # Sprint W07 2026 — Kanban Board
 
 _Sprint W07: Feb 10–14, 2026 · opencode repo_
-_Human · Last updated: 2026-02-14 17:27_
+_Human · Last updated: 2026-02-14 18:28_
 
 ---
 
@@ -65,6 +65,11 @@ kanban
         task40["📦 Full-review and specialist outputs now always materialize structured JSON artifacts"]
         task43["🧠 Specialists now run with selective repo tools + parsed-result recovery"]
         task44["🚫 Specialists now emit explicit not-applicable outputs instead of simulated findings"]
+        task45["🧾 Final summary UX overhaul: executive-first layout + optimized cost section"]
+        task46["🎯 Quick-review signal polish: remove low-value fallback noise"]
+        task47["🧠 Final sweep: scoped specialist findings + clean persistent memory baseline"]
+        task48["⚖️ License policy finalized: Apache-2.0 + NOTICE attribution baseline"]
+        task49["🧭 Executive summary rewrite: action-first, less workflow narration"]
 
     column5["🚫 Won't Do"]
         task41["⛔ Keep NVIDIA as default local provider"]
@@ -80,7 +85,7 @@ kanban
 | 📋 **Backlog**     | 2     | —         | Rendering check + pending commit    |
 | 🔄 **In Progress** | 1     | 3         | 🟢 Under limit                      |
 | 🔍 **In Review**   | 0     | —         | —                                   |
-| ✅ **Done**        | 40    | —         | Core docs + CI/review + scaffolding |
+| ✅ **Done**        | 45    | —         | Core docs + CI/review + scaffolding |
 | 🚫 **Won't Do**    | 2     | —         | Explicitly declined with rationale  |
 | 🚫 **Blocked**     | 0     | —         | Clear                               |
 
@@ -257,6 +262,11 @@ _Completed this sprint._
 - **Feb 14:** Enabled specialist selective repo exploration via `FileContentTool`/`RelatedFilesTool`/`CommitInfoTool`/`CommitDiffTool` and switched local specialist path to crew-first execution with parsed-result recovery
 - **Feb 14:** Added specialist domain relevance gates so no-relevant crews emit explicit not-applicable outputs instead of simulated findings
 - **Feb 14:** Re-ran `./scripts/ci-local.sh --full-review --step review` and confirmed all 13 workflows passed with deterministic `no-relevant-changes` outputs for unrelated specialist domains.
+- **Feb 14:** Reworked fallback `final_summary.md` into executive-first structure with workflow-level recommendations and rebuilt cost reporting (`Cost and efficiency` with crew totals first and collapsible per-call detail), plus fixed terminal pricing panel section targeting.
+- **Feb 14:** Polished quick-review signal quality by suppressing synthetic fallback findings for non-JSON reviewer responses, reducing speculative priority-action noise, and clarifying validation source labels in final summaries.
+- **Feb 14:** Final quality sweep added changed-file scope filtering for specialist recovered findings and prevented local/non-PR runs from polluting persistent memory trend history; revalidated with full local review pass.
+- **Feb 14:** Added top-level `NOTICE` and updated agent/contributor guidance to enforce Apache-2.0 redistribution attribution requirements.
+- **Feb 14:** Refined final summary executive section to focus on decision-critical actions and pruned repeated quick-review low-signal placeholders from reviewer breakdowns.
 
 ### Carryover from last period
 
