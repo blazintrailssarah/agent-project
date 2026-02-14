@@ -210,7 +210,7 @@ flowchart LR
 ## Node Naming & Labels
 
 | Rule                  | ✅ Good                    | ❌ Bad                              |
-| --------------------- | -------------------------- | ----------------------------------- | --- | ---- | ----------------------------- | --- |
+| --------------------- | -------------------------- | ----------------------------------- | --- | ----- | ----------------------------- | --- |
 | `snake_case` IDs      | `run_tests`, `deploy_prod` | `A`, `B`, `node1`                   |
 | IDs match labels      | `open_pr` → "Open PR"      | `x` → "Open PR"                     |
 | Specific names        | `check_unit_tests`         | `check`                             |
@@ -219,7 +219,7 @@ flowchart LR
 | 3–6 word labels       | `[📥 Fetch raw data]`      | `[Raw data is fetched from source]` |
 | Active voice          | `[🧪 Run tests]`           | `[Tests are run]`                   |
 | Sentence case         | `[Start pipeline]`         | `[Start Pipeline]`                  |
-| Edge labels 1–4 words | `-->                       | All green                           |   | `---> | All tests passed successfully |  |
+| Edge labels 1–4 words | `-->                       | All green                           |     |`---> | All tests passed successfully |     |
 
 ---
 
