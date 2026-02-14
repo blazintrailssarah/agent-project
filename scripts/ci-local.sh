@@ -85,8 +85,8 @@ while [[ $# -gt 0 ]]; do
       echo "Usage: ./scripts/ci-local.sh [--review] [--full-review] [--crew <name>] [--deploy] [--step <name>] [--verbose]"
       echo ""
       echo "Flags:"
-      echo "  --review        Run quick CrewAI code review (NVIDIA_API_KEY preferred, OPENROUTER_API_KEY fallback)"
-      echo "  --full-review   Run ALL 9 specialist crews (security, legal, finance, etc.)"
+      echo "  --review        Run quick CrewAI code review (OpenRouter default)"
+  echo "  --full-review   Run ALL 10 specialist crews (security, legal, finance, data, etc.)"
       echo "  --crew <name>   Run specific crew(s) — can be repeated (e.g. --crew security --crew legal)"
       echo "  --deploy        Run Cloudflare deploy (requires CF credentials)"
       echo "  --step <name>   Run a single step by name"
@@ -94,7 +94,6 @@ while [[ $# -gt 0 ]]; do
       echo ""
       echo "Environment overrides:"
       echo "  CREWAI_REVIEW_TIMEOUT_SECONDS   Timeout for review subprocess (default: 90)"
-      echo "  CREWAI_NVIDIA_TIMEOUT_SECONDS   Timeout for NVIDIA primary attempt (default: 45)"
       echo ""
       echo ""
       echo "Specialist crews (use with --crew <name> or --full-review for all):"
@@ -121,7 +120,7 @@ while [[ $# -gt 0 ]]; do
       echo "Examples:"
       echo "  ./scripts/ci-local.sh                                # Full CI (no review)"
       echo "  ./scripts/ci-local.sh --review                       # Quick review"
-      echo "  ./scripts/ci-local.sh --full-review                  # All 9 specialist crews"
+  echo "  ./scripts/ci-local.sh --full-review                  # All 10 specialist crews"
       echo "  ./scripts/ci-local.sh --crew security                # Just security crew"
       echo "  ./scripts/ci-local.sh --crew security --crew legal   # Multiple specific crews"
       echo "  ./scripts/ci-local.sh --step test-crewai             # Just run CrewAI tests"
@@ -175,30 +174,22 @@ prompt_env_var() {
 }
 
 check_env_for_review() {
-  if [[ -n "${NVIDIA_API_KEY:-}" || -n "${NVIDIA_NIM_API_KEY:-}" ]]; then
-    return 0
-  fi
-
-  if prompt_env_var "NVIDIA_API_KEY" \
-    "Preferred for AI code review (Kimi K2.5 on NVIDIA NIM). Get one at https://build.nvidia.com/moonshotai/kimi-k2.5" \
-    "true"; then
+  if [[ -n "${OPENROUTER_API_KEY:-}" ]]; then
     return 0
   fi
 
   if prompt_env_var "OPENROUTER_API_KEY" \
-    "Fallback for AI code review when NVIDIA_API_KEY is not available. Get one at https://openrouter.ai/keys" \
+    "Default provider for local AI code review. Get one at https://openrouter.ai/keys" \
     "true"; then
     return 0
   fi
 
-  echo -e "  ${DIM}Skipping review — set NVIDIA_API_KEY (preferred) or OPENROUTER_API_KEY.${NC}"
+  echo -e "  ${DIM}Skipping review — set OPENROUTER_API_KEY.${NC}"
   return 1
 }
 
 resolve_review_provider() {
-  if [[ -n "${NVIDIA_API_KEY:-}" || -n "${NVIDIA_NIM_API_KEY:-}" ]]; then
-    echo "nvidia"
-  elif [[ -n "${OPENROUTER_API_KEY:-}" ]]; then
+  if [[ -n "${OPENROUTER_API_KEY:-}" ]]; then
     echo "openrouter"
   else
     echo "none"
@@ -559,18 +550,15 @@ run_phase_4() {
   print_header "PHASE 4: AI Code Review"
 
   if ! check_env_for_review; then
-    print_result "CrewAI Review" "skip" "0" "NVIDIA_API_KEY/OPENROUTER_API_KEY not provided"
+    print_result "CrewAI Review" "skip" "0" "OPENROUTER_API_KEY not provided"
     return 0
   fi
 
   local provider
   provider=$(resolve_review_provider)
   case "$provider" in
-    nvidia)
-      echo -e "  ${DIM}LLM Provider: NVIDIA NIM (moonshotai/kimi-k2.5)${NC}"
-      ;;
     openrouter)
-      echo -e "  ${DIM}LLM Provider: OpenRouter (fallback)${NC}"
+      echo -e "  ${DIM}LLM Provider: OpenRouter (default)${NC}"
       ;;
   esac
 
@@ -598,7 +586,10 @@ run_phase_4() {
   print_step "Diff Generation" "creating diff for review..."
   local diff_file="${workspace_dir}/diff.txt"
   local diff_source="unknown"
+  local diff_strategy="unknown"
   local diff_size=0
+  local base_ref=""
+  local merge_base=""
 
   local has_working_changes=false
   local has_staged_changes=false
@@ -615,6 +606,9 @@ run_phase_4() {
     git -C "${REPO_ROOT}" diff HEAD > "${diff_file}" 2>/dev/null
     diff_size=$(wc -l < "${diff_file}")
     diff_source="working tree vs HEAD (uncommitted changes)"
+    diff_strategy="working-tree-vs-head"
+    base_ref="HEAD"
+    merge_base="HEAD"
 
   elif $has_commits; then
     local base_branch
@@ -624,24 +618,49 @@ run_phase_4() {
       default_base="HEAD~1"
     fi
 
-    if git -C "${REPO_ROOT}" diff "${default_base}"...HEAD > "${diff_file}" 2>/dev/null; then
+    base_ref="${default_base}"
+    if git -C "${REPO_ROOT}" show-ref --verify --quiet "refs/remotes/origin/${default_base}"; then
+      base_ref="origin/${default_base}"
+    fi
+
+    merge_base=$(git -C "${REPO_ROOT}" merge-base "${base_ref}" HEAD 2>/dev/null || echo "")
+
+    if git -C "${REPO_ROOT}" diff "${base_ref}"...HEAD > "${diff_file}" 2>/dev/null; then
       diff_size=$(wc -l < "${diff_file}")
+    fi
+
+    if [[ "$diff_size" -eq 0 ]]; then
+      if [[ -n "$merge_base" ]]; then
+        git -C "${REPO_ROOT}" diff "${merge_base}"...HEAD > "${diff_file}" 2>/dev/null || true
+        diff_size=$(wc -l < "${diff_file}")
+      fi
     fi
 
     if [[ "$diff_size" -eq 0 ]]; then
       git -C "${REPO_ROOT}" show HEAD > "${diff_file}" 2>/dev/null || true
       diff_size=$(wc -l < "${diff_file}")
       diff_source="last commit (git show HEAD)"
+      diff_strategy="last-commit-show"
     else
-      diff_source="branch diff (${default_base}...HEAD)"
+      diff_source="branch diff (${base_ref}...HEAD)"
+      diff_strategy="branch-merge-base-diff"
     fi
   else
     git -C "${REPO_ROOT}" diff --cached > "${diff_file}" 2>/dev/null || true
     diff_size=$(wc -l < "${diff_file}")
     diff_source="staged changes (initial commit)"
+    diff_strategy="staged-initial"
+    base_ref="(none)"
+    merge_base=""
   fi
 
   echo -e "  ${DIM}Source: ${diff_source}${NC}"
+  if [[ -n "$base_ref" ]]; then
+    echo -e "  ${DIM}Base ref: ${base_ref}${NC}"
+  fi
+  if [[ -n "$merge_base" ]]; then
+    echo -e "  ${DIM}Merge base: ${merge_base}${NC}"
+  fi
   echo -e "  ${DIM}Generated diff: ${diff_size} lines${NC}"
 
   if [[ "$diff_size" -eq 0 ]]; then
@@ -656,12 +675,20 @@ run_phase_4() {
   repo_name=$(basename "${REPO_ROOT}")
 
   local changed_files
+  local compare_ref=""
+  local snapshot_mode=""
   if $has_working_changes || $has_staged_changes; then
     changed_files=$(git -C "${REPO_ROOT}" diff --name-only HEAD 2>/dev/null || echo "")
+    compare_ref="HEAD"
+    snapshot_mode="working-tree"
   elif $has_commits; then
     changed_files=$(git -C "${REPO_ROOT}" diff --name-only "${default_base}"...HEAD 2>/dev/null || git -C "${REPO_ROOT}" diff --name-only HEAD 2>/dev/null || echo "")
+    compare_ref="${merge_base:-${base_ref}}"
+    snapshot_mode="branch"
   else
     changed_files=$(git -C "${REPO_ROOT}" diff --cached --name-only 2>/dev/null || echo "")
+    compare_ref=""
+    snapshot_mode="initial"
   fi
 
   local additions deletions file_count
@@ -680,7 +707,7 @@ run_phase_4() {
   local review_labels_json="[]"
   if $RUN_FULL_REVIEW; then
     review_labels_json='["crewai:full-review"]'
-    echo -e "  ${DIM}Labels: crewai:full-review (all 9 specialist crews)${NC}"
+    echo -e "  ${DIM}Labels: crewai:full-review (all 10 specialist crews)${NC}"
   elif [[ -n "$REVIEW_LABELS" ]]; then
     review_labels_json=$(echo "$REVIEW_LABELS" | python3 -c "import json,sys; print(json.dumps(sys.stdin.read().strip().split(',')))")
     echo -e "  ${DIM}Labels: ${REVIEW_LABELS}${NC}"
@@ -692,6 +719,9 @@ files = [f for f in '''${changed_files}'''.strip().split('\n') if f]
 data = {
     'pr_number': 'local',
     'commit_sha': '${commit_sha}',
+    'base_ref': '''${base_ref}''',
+    'merge_base': '''${merge_base}''',
+    'diff_strategy': '''${diff_strategy}''',
     'labels': ${review_labels_json},
     'files_changed': ${file_count},
     'additions': ${additions},
@@ -700,6 +730,21 @@ data = {
 }
 with open('${workspace_dir}/diff.json', 'w') as f:
     json.dump(data, f, indent=2)
+" 2>/dev/null || true
+
+  python3 -c "
+import json
+scope = {
+  'contract_version': '2026-02-14',
+  'tier': 'quick' if '''${RUN_FULL_REVIEW}''' != 'true' else 'branch',
+  'diff_strategy': '''${diff_strategy}''',
+  'base_ref': '''${base_ref}''',
+  'head_ref': 'HEAD',
+  'head_sha': '''${commit_sha}''',
+  'merge_base': '''${merge_base}''',
+}
+with open('${workspace_dir}/scope.json', 'w') as f:
+    json.dump(scope, f, indent=2)
 " 2>/dev/null || true
 
   local commit_messages
@@ -715,6 +760,214 @@ with open('${workspace_dir}/commits.json', 'w') as f:
   # Write commit_messages.txt for quick review agent (expects plain text)
   echo "${commit_messages}" > "${workspace_dir}/commit_messages.txt"
 
+  REPO_ROOT="${REPO_ROOT}" \
+  WORKSPACE_DIR="${workspace_dir}" \
+  COMPARE_REF="${compare_ref}" \
+  SNAPSHOT_MODE="${snapshot_mode}" \
+  CHANGED_FILES_RAW="${changed_files}" \
+  python3 - <<'PY'
+import json
+import os
+import re
+import subprocess
+from pathlib import Path
+
+repo_root = Path(os.environ["REPO_ROOT"])
+workspace_dir = Path(os.environ["WORKSPACE_DIR"])
+compare_ref = os.environ.get("COMPARE_REF", "").strip()
+snapshot_mode = os.environ.get("SNAPSHOT_MODE", "").strip() or "unknown"
+changed_files_raw = os.environ.get("CHANGED_FILES_RAW", "")
+
+changed_files = [line.strip() for line in changed_files_raw.splitlines() if line.strip()]
+max_files = 50
+max_chars = 18000
+target_dir = workspace_dir / "changed_files"
+target_dir.mkdir(parents=True, exist_ok=True)
+
+
+def read_truncated_file(path: Path):
+    if not path.exists() or not path.is_file():
+        return "", False, False
+    text = path.read_text(errors="replace")
+    truncated = len(text) > max_chars
+    if truncated:
+        text = text[: max_chars - 120] + "\n...\n[truncated local file snapshot]"
+    return text, True, truncated
+
+
+def git_show(ref: str, rel_path: str):
+    if not ref:
+        return "", False, False
+    proc = subprocess.run(
+        ["git", "-C", str(repo_root), "show", f"{ref}:{rel_path}"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if proc.returncode != 0:
+        return "", False, False
+    text = proc.stdout
+    truncated = len(text) > max_chars
+    if truncated:
+        text = text[: max_chars - 120] + "\n...\n[truncated baseline snapshot]"
+    return text, True, truncated
+
+
+def git_patch(ref: str, rel_path: str):
+    cmd = ["git", "-C", str(repo_root), "diff"]
+    if ref:
+        cmd.append(ref)
+    cmd.extend(["--", rel_path])
+    proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    text = proc.stdout if proc.returncode == 0 else ""
+    truncated = len(text) > max_chars
+    if truncated:
+        text = text[: max_chars - 120] + "\n...\n[truncated per-file patch]"
+    return text, bool(text), truncated
+
+
+manifest_items = []
+for idx, rel_path in enumerate(changed_files[:max_files], start=1):
+    safe_name = re.sub(r"[^A-Za-z0-9._-]", "_", rel_path)
+    prefix = f"{idx:03d}_{safe_name}"
+
+    after_text, after_exists, after_truncated = read_truncated_file(repo_root / rel_path)
+    before_text, before_exists, before_truncated = git_show(compare_ref, rel_path)
+    patch_text, patch_exists, patch_truncated = git_patch(compare_ref, rel_path)
+
+    after_file = f"changed_files/{prefix}.after.txt"
+    before_file = f"changed_files/{prefix}.before.txt"
+    patch_file = f"changed_files/{prefix}.patch.diff"
+
+    (workspace_dir / after_file).write_text(after_text)
+    (workspace_dir / before_file).write_text(before_text)
+    (workspace_dir / patch_file).write_text(patch_text)
+
+    manifest_items.append(
+        {
+            "path": rel_path,
+            "mode": snapshot_mode,
+            "compare_ref": compare_ref,
+            "after_file": after_file,
+            "before_file": before_file,
+            "patch_file": patch_file,
+            "after_exists": after_exists,
+            "before_exists": before_exists,
+            "patch_exists": patch_exists,
+            "after_truncated": after_truncated,
+            "before_truncated": before_truncated,
+            "patch_truncated": patch_truncated,
+        }
+    )
+
+manifest = {
+    "contract_version": "2026-02-14",
+    "mode": snapshot_mode,
+    "compare_ref": compare_ref,
+    "total_changed_files": len(changed_files),
+    "captured_files": len(manifest_items),
+    "capture_limit": max_files,
+    "items": manifest_items,
+}
+
+(workspace_dir / "changed_files_index.json").write_text(json.dumps(manifest, indent=2))
+
+lines = [
+    "# Changed file snapshots",
+    "",
+    f"- Mode: {snapshot_mode}",
+    f"- Compare ref: {compare_ref or '(none)'}",
+    f"- Captured files: {len(manifest_items)}/{len(changed_files)}",
+    "",
+    "Read `changed_files_index.json` first, then load only needed per-file artifacts.",
+    "",
+]
+for item in manifest_items:
+    lines.append(f"- `{item['path']}`")
+    lines.append(f"  - before: `{item['before_file']}`")
+    lines.append(f"  - after: `{item['after_file']}`")
+    lines.append(f"  - patch: `{item['patch_file']}`")
+
+(workspace_dir / "changed_files_manifest.md").write_text("\n".join(lines))
+PY
+
+  python3 -c "
+import json
+from pathlib import Path
+
+workspace = Path('${workspace_dir}')
+diff_path = workspace / 'diff.txt'
+scope_path = workspace / 'scope.json'
+quick_path = workspace / 'quick_review.json'
+ci_path = workspace / 'ci_summary.json'
+commits_path = workspace / 'commits.json'
+
+def load_json(path):
+    if not path.exists():
+        return {}
+    try:
+        return json.loads(path.read_text())
+    except Exception:
+        return {}
+
+diff_text = diff_path.read_text() if diff_path.exists() else ''
+if len(diff_text) > 12000:
+    diff_excerpt = diff_text[:7000] + '\n...\n' + diff_text[-5000:]
+else:
+    diff_excerpt = diff_text
+
+scope = load_json(scope_path)
+commits = load_json(commits_path)
+ci = load_json(ci_path)
+quick = load_json(quick_path)
+
+pack = {
+    'contract_version': '2026-02-14',
+    'purpose': 'compact_review_context',
+    'scope': scope,
+    'commit_messages': commits.get('commit_messages', []),
+    'ci_summary': ci.get('summary', ''),
+    'quick_summary': quick.get('summary', ''),
+    'changed_files_index': load_json(workspace / 'changed_files_index.json'),
+    'diff_excerpt': diff_excerpt,
+}
+
+(workspace / 'context_pack.json').write_text(json.dumps(pack, indent=2))
+
+lines = [
+    '# Context Pack',
+    '',
+    '## Scope',
+    '- Tier: ' + str(scope.get('tier', 'unknown')),
+    '- Diff strategy: ' + str(scope.get('diff_strategy', 'unknown')),
+    '- Base ref: ' + str(scope.get('base_ref', 'unknown')),
+    '- Merge base: ' + str(scope.get('merge_base', '')),
+    '',
+    '## Recent commits',
+]
+for msg in commits.get('commit_messages', [])[:8]:
+    lines.append('- ' + str(msg))
+
+if ci.get('summary'):
+    lines.extend(['', '## CI summary', ci.get('summary', '')])
+
+if quick.get('summary'):
+    lines.extend(['', '## Quick review summary', quick.get('summary', '')])
+
+changed_index = load_json(workspace / 'changed_files_index.json')
+if changed_index:
+    lines.extend([
+        '',
+        '## Changed file snapshots',
+        '- Read changed_files_index.json for full mapping',
+        '- Read only the specific file snapshots you need from changed_files/',
+        '- This avoids loading all code/diffs into context at once',
+    ])
+
+lines.extend(['', '## Diff excerpt', '[DIFF BEGIN]', diff_excerpt, '[DIFF END]'])
+(workspace / 'context_pack.md').write_text('\n'.join(lines))
+" 2>/dev/null || true
+
   export PR_NUMBER="local"
   export COMMIT_SHA="${commit_sha}"
   export GITHUB_REPOSITORY="local/${repo_name}"
@@ -725,26 +978,21 @@ with open('${workspace_dir}/commits.json', 'w') as f:
   print_step "CrewAI Review" "running AI code review..."
   local start
   start=$(date +%s)
-  local review_timeout_seconds="${CREWAI_REVIEW_TIMEOUT_SECONDS:-90}"
-  local nvidia_timeout_seconds="${CREWAI_NVIDIA_TIMEOUT_SECONDS:-45}"
-  local summary_file="${workspace_dir}/final_summary.md"
-  local provider
-  provider=$(resolve_review_provider)
-  if [[ "$provider" == "nvidia" ]]; then
-    echo -e "  ${DIM}Review timeout: NVIDIA primary ${nvidia_timeout_seconds}s, fallback ${review_timeout_seconds}s${NC}"
-  else
-    echo -e "  ${DIM}Review timeout: ${review_timeout_seconds}s${NC}"
+  local review_timeout_seconds="${CREWAI_REVIEW_TIMEOUT_SECONDS:-}"
+  if [[ -z "$review_timeout_seconds" ]]; then
+    if [[ "$RUN_FULL_REVIEW" == "true" ]]; then
+      review_timeout_seconds="240"
+    else
+      review_timeout_seconds="90"
+    fi
   fi
+  local summary_file="${workspace_dir}/final_summary.md"
+  echo -e "  ${DIM}Review timeout: ${review_timeout_seconds}s${NC}"
 
   local review_success=false
   local primary_exit=0
 
-  local primary_timeout_seconds="$review_timeout_seconds"
-  if [[ "$provider" == "nvidia" ]]; then
-    primary_timeout_seconds="$nvidia_timeout_seconds"
-  fi
-
-  if (cd "${crewai_dir}" && timeout "${primary_timeout_seconds}" python3 main.py) 2>&1 | {
+  if (cd "${crewai_dir}" && timeout "${review_timeout_seconds}" python3 main.py) 2>&1 | {
     if $VERBOSE; then
       cat
     else
@@ -760,54 +1008,15 @@ with open('${workspace_dir}/commits.json', 'w') as f:
     review_success=true
   else
     primary_exit=$?
-
-    local nvidia_error_line=""
-    if [[ -f "$summary_file" ]]; then
-      nvidia_error_line=$(awk '/^- Error:/{print; exit}' "$summary_file")
-    fi
-
-    if [[ "$provider" == "nvidia" && -n "${OPENROUTER_API_KEY:-}" ]]; then
-      echo -e "  ${YELLOW}${WARN}${NC} NVIDIA primary failed — falling back to OpenRouter"
-      if [[ -n "$nvidia_error_line" ]]; then
-        echo -e "  ${YELLOW}${WARN}${NC} NVIDIA error: ${nvidia_error_line#- Error: }"
-      elif [[ $primary_exit -eq 124 ]]; then
-        echo -e "  ${YELLOW}${WARN}${NC} NVIDIA error: Timed out after ${primary_timeout_seconds}s"
-      fi
-
-      rm -f "${workspace_dir}/router_decision.json" "${workspace_dir}/ci_summary.json" \
-        "${workspace_dir}/quick_review.json" "${workspace_dir}/full_review.json" \
-        "${workspace_dir}/final_summary.md"
-
-      if (cd "${crewai_dir}" && env -u NVIDIA_API_KEY -u NVIDIA_NIM_API_KEY timeout "${review_timeout_seconds}" python3 main.py) 2>&1 | {
-        if $VERBOSE; then
-          cat
-        else
-          while IFS= read -r line; do
-            case "$line" in
-              *"STEP"*|*"✅"*|*"❌"*|*"⚠️"*|*"🔬"*|*"complete"*)
-                echo -e "     ${DIM}${line}${NC}"
-                ;;
-            esac
-          done
-        fi
-      }; then
-        review_success=true
-        echo -e "  ${GREEN}${PASS}${NC} OpenRouter fallback succeeded"
-      else
-        local fallback_exit=$?
-        if [[ $fallback_exit -eq 124 ]]; then
-          echo -e "  ${YELLOW}${WARN}${NC} OpenRouter fallback timed out after ${review_timeout_seconds}s"
-        fi
-      fi
-    elif [[ $primary_exit -eq 124 ]]; then
-      echo -e "  ${YELLOW}${WARN}${NC} CrewAI review timed out after ${primary_timeout_seconds}s"
+    if [[ $primary_exit -eq 124 ]]; then
+      echo -e "  ${YELLOW}${WARN}${NC} CrewAI review timed out after ${review_timeout_seconds}s"
       if [[ ! -f "$summary_file" ]]; then
         printf '%s\n' \
           "## ❌ Review Aborted" \
           "" \
           "The review timed out before completion." \
           "" \
-          "- Error: Timed out after ${primary_timeout_seconds}s" \
+          "- Error: Timed out after ${review_timeout_seconds}s" \
           "- Behavior: fail-fast timeout guard triggered" \
           "- Action: reduce diff scope or switch provider, then rerun." \
           "" \

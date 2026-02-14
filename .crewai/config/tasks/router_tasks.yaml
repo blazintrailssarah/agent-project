@@ -57,10 +57,11 @@ analyze_pr_and_route:
     - "crewai:science"   → "science"
     - "crewai:government" → "government"
     - "crewai:strategy"  → "strategy"
+    - "crewai:data-engineering" → "data_engineering"
 
     FULL REVIEW EXPANSION:
     If "crewai:full-review" label is present, set specialist_crews to ALL:
-    ["security", "legal", "finance", "documentation", "agentic", "marketing", "science", "government", "strategy"]
+    ["security", "legal", "finance", "documentation", "agentic", "marketing", "science", "government", "strategy", "data_engineering"]
 
     AUTODETECT RULES (add to suggestions AND autodetect_triggers):
     Scan file_list for path patterns. If matched, suggest the label:
@@ -71,6 +72,7 @@ analyze_pr_and_route:
     - Files matching AGENTS.md|agentic/**|.crewai/** → suggest "crewai:agentic"
     - Files matching *.ipynb|notebooks/**|experiments/** → suggest "crewai:science"
     - UI files (*.tsx|*.jsx|*.vue|*.html|*.css) → suggest "crewai:government" (accessibility)
+    - Files matching *.sql|migrations/**|dbt/**|data/sql/**|etl|elt|pipeline|warehouse → suggest "crewai:data-engineering"
     - If complexity HIGH → suggest "crewai:full-review"
     - If files match *secret*|*key*|*.env*|auth* → "Security-sensitive files — manual review recommended"
 

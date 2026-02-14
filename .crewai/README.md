@@ -12,14 +12,14 @@ This directory contains a CrewAI-powered code review system that runs automatica
 
 **System at a glance:**
 
-| Metric                    | Value                                                                                                 |
-| ------------------------- | ----------------------------------------------------------------------------------------------------- |
-| **Agents**                | 27 specialized agents                                                                                 |
-| **Crews**                 | 14 review crews                                                                                       |
-| **Tasks**                 | 29 sequential tasks                                                                                   |
-| **Specialist domains**    | 9 (security, legal, finance, docs, agentic, marketing, science, government, strategy)                 |
-| **Multi-agent pipelines** | Legal (4 agents), Marketing (3), Strategy (3), Full Review (3), Quick Review (3), CI Log Analysis (3) |
-| **Output**                | Structured JSON per crew + markdown summary                                                           |
+| Metric                    | Value                                                                                                    |
+| ------------------------- | -------------------------------------------------------------------------------------------------------- |
+| **Agents**                | 27 specialized agents                                                                                    |
+| **Crews**                 | 14 review crews                                                                                          |
+| **Tasks**                 | 29 sequential tasks                                                                                      |
+| **Specialist domains**    | 10 (security, legal, finance, docs, agentic, marketing, science, government, strategy, data engineering) |
+| **Multi-agent pipelines** | Legal (4 agents), Marketing (3), Strategy (3), Full Review (3), Quick Review (3), CI Log Analysis (3)    |
+| **Output**                | Structured JSON per crew + markdown summary                                                              |
 
 ---
 
@@ -36,23 +36,24 @@ Router → CI Log Analysis → Quick Review → [Full Review] → [Specialist Cr
 
 **Always-run crews:** Router, CI Log Analysis, Quick Review, Final Summary
 
-**Label-triggered crews:** Full Review, and any of the 9 specialist crews
+**Label-triggered crews:** Full Review, and any of the 10 specialist crews
 
 **`crewai:full-review` label:** Runs ALL specialist crews
 
 ### Specialist crews
 
-| Crew          | Agents                                             | Label               | Domain                                                                                        |
-| ------------- | -------------------------------------------------- | ------------------- | --------------------------------------------------------------------------------------------- |
-| Security      | 1 (owasp_sentinel)                                 | `crewai:security`   | OWASP-grade vulnerability analysis                                                            |
-| Legal         | 4 (license → US regulatory → intl trade → privacy) | `crewai:legal`      | OSS licenses, 50-state US law, export controls, global privacy (GDPR, CCPA, LGPD, PIPL, etc.) |
-| Finance       | 1 (revenue_auditor)                                | `crewai:finance`    | Billing logic, payment flows, SOX, PCI-DSS                                                    |
-| Documentation | 1 (docs_curator)                                   | `crewai:docs`       | README accuracy, API docs, code examples                                                      |
-| Agentic       | 1 (agentic_steward)                                | `crewai:agentic`    | AGENTS.md compliance, convention enforcement                                                  |
-| Marketing     | 3 (brand → global GTM → compliance)                | `crewai:marketing`  | Copy quality, i18n, regional advertising law, dark patterns                                   |
-| Science       | 1 (repro_scientist)                                | `crewai:science`    | Reproducibility, statistical rigor, data leakage                                              |
-| Government    | 1 (public_sector_compliance)                       | `crewai:government` | WCAG 2.1 AA, Section 508, audit trails                                                        |
-| Strategy      | 3 (impact → expansion → competitive)               | `crewai:strategy`   | Business impact, global expansion readiness, competitive positioning                          |
+| Crew             | Agents                                             | Label                     | Domain                                                                                        |
+| ---------------- | -------------------------------------------------- | ------------------------- | --------------------------------------------------------------------------------------------- |
+| Security         | 1 (owasp_sentinel)                                 | `crewai:security`         | OWASP-grade vulnerability analysis                                                            |
+| Legal            | 4 (license → US regulatory → intl trade → privacy) | `crewai:legal`            | OSS licenses, 50-state US law, export controls, global privacy (GDPR, CCPA, LGPD, PIPL, etc.) |
+| Finance          | 1 (revenue_auditor)                                | `crewai:finance`          | Billing logic, payment flows, SOX, PCI-DSS                                                    |
+| Documentation    | 1 (docs_curator)                                   | `crewai:docs`             | README accuracy, API docs, code examples                                                      |
+| Agentic          | 1 (agentic_steward)                                | `crewai:agentic`          | AGENTS.md compliance, convention enforcement                                                  |
+| Marketing        | 3 (brand → global GTM → compliance)                | `crewai:marketing`        | Copy quality, i18n, regional advertising law, dark patterns                                   |
+| Science          | 1 (repro_scientist)                                | `crewai:science`          | Reproducibility, statistical rigor, data leakage                                              |
+| Government       | 1 (public_sector_compliance)                       | `crewai:government`       | WCAG 2.1 AA, Section 508, audit trails                                                        |
+| Strategy         | 3 (impact → expansion → competitive)               | `crewai:strategy`         | Business impact, global expansion readiness, competitive positioning                          |
+| Data Engineering | 1 (data_engineering_reviewer)                      | `crewai:data-engineering` | SQL/schema/migrations, ETL/ELT reliability, data contracts                                    |
 
 ---
 
@@ -79,6 +80,7 @@ Router → CI Log Analysis → Quick Review → [Full Review] → [Specialist Cr
 │       ├── science_review_tasks.yaml
 │       ├── government_review_tasks.yaml
 │       ├── strategy_review_tasks.yaml   # 3 tasks (3 agents)
+│       ├── data_engineering_review_tasks.yaml
 │       └── final_summary_tasks.yaml
 ├── crews/
 │   ├── __init__.py
@@ -95,6 +97,7 @@ Router → CI Log Analysis → Quick Review → [Full Review] → [Specialist Cr
 │   ├── science_review_crew.py
 │   ├── government_review_crew.py
 │   ├── strategy_review_crew.py
+│   ├── data_engineering_review_crew.py
 │   └── final_summary_crew.py
 ├── tools/
 │   ├── workspace_tool.py            # File I/O for crew workspace
@@ -114,7 +117,9 @@ Router → CI Log Analysis → Quick Review → [Full Review] → [Specialist Cr
 │   ├── README.md                    # CrewAI subsystem decision index
 │   ├── ADR-001-crewai-decision-log-scope.md
 │   ├── ADR-002-provider-priority-and-failover.md
-│   └── ADR-003-local-quick-review-multipass.md
+│   ├── ADR-003-local-quick-review-multipass.md
+│   ├── ADR-004-review-scope-contract-and-tiering.md
+│   └── ADR-005-output-validation-and-data-engineering-specialist.md
 ├── workspace/                       # Runtime workspace (created per run, gitignored)
 └── tests/
     ├── conftest.py
@@ -165,17 +170,16 @@ See `.crewai/adr/README.md` for the local index.
 
 Copy `.env.example` to `.env` and set:
 
-| Variable             | Required  | Description                                                                                         |
-| -------------------- | --------- | --------------------------------------------------------------------------------------------------- |
-| `NVIDIA_API_KEY`     | Preferred | API key from [build.nvidia.com/moonshotai/kimi-k2.5](https://build.nvidia.com/moonshotai/kimi-k2.5) |
-| `OPENROUTER_API_KEY` | Fallback  | Used only when NVIDIA key is unavailable                                                            |
-| `CREWAI_MODEL`       | No        | Override default model (default: configured in `model_config.py`)                                   |
-| `USE_MEM0_CLOUD`     | No        | Set to `true` to enable mem0 cloud memory (default: off, uses local JSON)                           |
-| `MEM0_API_KEY`       | No        | Only needed if `USE_MEM0_CLOUD=true`                                                                |
+| Variable             | Required | Description                                                               |
+| -------------------- | -------- | ------------------------------------------------------------------------- |
+| `OPENROUTER_API_KEY` | Required | API key for CrewAI runtime calls (OpenRouter primary path)                |
+| `CREWAI_MODEL`       | No       | Override default model (default: configured in `model_config.py`)         |
+| `USE_MEM0_CLOUD`     | No       | Set to `true` to enable mem0 cloud memory (default: off, uses local JSON) |
+| `MEM0_API_KEY`       | No       | Only needed if `USE_MEM0_CLOUD=true`                                      |
 
 ### Model selection
 
-Edit `utils/model_config.py` to change model behavior. Current provider priority is NVIDIA NIM first (`moonshotai/kimi-k2-5`), then OpenRouter fallback when no NVIDIA key is available.
+Edit `utils/model_config.py` to change model behavior. CrewAI runtime defaults to OpenRouter and can be overridden with explicit model configuration.
 
 ### Customizing agents
 
@@ -194,13 +198,13 @@ cd .crewai
 python3 -m pytest tests/ -v
 ```
 
-97 tests covering:
+104 tests covering:
 
 - Workspace tool operations
 - Cost tracker functionality
 - GitHub tools and PR metadata
 - CI output parsing
-- Specialist crew registry (9 crews, labels, prefixes, output files)
+- Specialist crew registry (10 crews, labels, prefixes, output files)
 - Output schema validation (severity counts, findings format, ID prefixes)
 - Autodetect heuristics (file pattern matching for crew suggestions)
 - Crew integrity (all 14 crew files compile, reference valid agents and tasks)
@@ -212,26 +216,33 @@ python3 -m pytest tests/ -v
 
 Each crew writes structured JSON to the workspace directory. The final summary crew reads all outputs and produces `final_summary.md`.
 
-| File                                | Written by      | Schema                                                |
-| ----------------------------------- | --------------- | ----------------------------------------------------- |
-| `router_decision.json`              | Router          | Workflows, specialist crews, autodetect suggestions   |
-| `ci_summary.json`                   | CI Log Analysis | Failed jobs, error evidence, fix recommendations      |
-| `quick_review.json`                 | Quick Review    | Critical issues, warnings, suggestions                |
-| `full_review.json`                  | Full Review     | Architecture, security, performance, testing findings |
-| `security_review.json`              | Security        | OWASP findings with SEC- prefixed IDs                 |
-| `legal_review.json`                 | Legal           | Multi-jurisdiction findings with LEGAL- prefixed IDs  |
-| `finance_review.json`               | Finance         | Financial control findings with FIN- prefixed IDs     |
-| `documentation_review.json`         | Documentation   | Doc quality findings with DOC- prefixed IDs           |
-| `agentic_consistency_review.json`   | Agentic         | Convention findings with AGENT- prefixed IDs          |
-| `marketing_review.json`             | Marketing       | Copy and GTM findings with MKT- prefixed IDs          |
-| `science_review.json`               | Science         | Reproducibility findings with SCI- prefixed IDs       |
-| `government_regulatory_review.json` | Government      | Accessibility findings with GOV- prefixed IDs         |
-| `strategic_review.json`             | Strategy        | Business impact findings with STRAT- prefixed IDs     |
-| `final_summary.md`                  | Final Summary   | Markdown rollup of all crew outputs                   |
+Specialist behavior is explicitly non-simulated:
+
+- Specialists must review real branch changes only.
+- If no relevant changed files are detected for a specialist domain, that specialist writes a valid "not applicable" result with zero findings.
+- Simulated/hypothetical findings are treated as low-signal and suppressed by quality filters.
+
+| File                                | Written by       | Schema                                                |
+| ----------------------------------- | ---------------- | ----------------------------------------------------- |
+| `router_decision.json`              | Router           | Workflows, specialist crews, autodetect suggestions   |
+| `ci_summary.json`                   | CI Log Analysis  | Failed jobs, error evidence, fix recommendations      |
+| `quick_review.json`                 | Quick Review     | Critical issues, warnings, suggestions                |
+| `full_review.json`                  | Full Review      | Architecture, security, performance, testing findings |
+| `security_review.json`              | Security         | OWASP findings with SEC- prefixed IDs                 |
+| `legal_review.json`                 | Legal            | Multi-jurisdiction findings with LEGAL- prefixed IDs  |
+| `finance_review.json`               | Finance          | Financial control findings with FIN- prefixed IDs     |
+| `documentation_review.json`         | Documentation    | Doc quality findings with DOC- prefixed IDs           |
+| `agentic_consistency_review.json`   | Agentic          | Convention findings with AGENT- prefixed IDs          |
+| `marketing_review.json`             | Marketing        | Copy and GTM findings with MKT- prefixed IDs          |
+| `science_review.json`               | Science          | Reproducibility findings with SCI- prefixed IDs       |
+| `government_regulatory_review.json` | Government       | Accessibility findings with GOV- prefixed IDs         |
+| `strategic_review.json`             | Strategy         | Business impact findings with STRAT- prefixed IDs     |
+| `data_engineering_review.json`      | Data Engineering | Data platform findings with DATA- prefixed IDs        |
+| `final_summary.md`                  | Final Summary    | Markdown rollup of all crew outputs                   |
 
 ### Standardized specialist output schema
 
-All 9 specialist crews write the same JSON schema:
+All 10 specialist crews write the same JSON schema:
 
 ```json
 {
@@ -256,6 +267,7 @@ All 9 specialist crews write the same JSON schema:
 ## 🔒 Security
 
 - `NVIDIA_API_KEY` preferred for CrewAI runs; `OPENROUTER_API_KEY` supported as fallback
+- `OPENROUTER_API_KEY` is required for CrewAI runtime calls
 - `GITHUB_TOKEN` automatically provided by GitHub Actions with minimal permissions
 - No secrets logged or exposed in output
 - Local memory (`memory.json`) stays in repo, gitignored from workspace artifacts

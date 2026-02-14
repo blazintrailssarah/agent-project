@@ -1,4 +1,4 @@
-"""Documentation review crew."""
+"""Data engineering review crew."""
 
 import logging
 
@@ -14,20 +14,20 @@ logger = logging.getLogger(__name__)
 
 
 @CrewBase
-class DocumentationReviewCrew:
-    """Documentation quality and completeness review."""
+class DataEngineeringReviewCrew:
+    """Data modeling, SQL, and pipeline reliability review."""
 
     agents_config = "../config/agents.yaml"
-    tasks_config = "../config/tasks/documentation_review_tasks.yaml"
+    tasks_config = "../config/tasks/data_engineering_review_tasks.yaml"
 
     def __init__(self):
         self.llm = get_llm()
-        logger.info(f"DocumentationReview using model: {self.llm.model}")
+        logger.info(f"DataEngineeringReview using model: {self.llm.model}")
 
     @agent
-    def docs_curator(self) -> Agent:
+    def data_engineering_reviewer(self) -> Agent:
         return Agent(
-            config=self.agents_config["docs_curator"],
+            config=self.agents_config["data_engineering_reviewer"],
             tools=[
                 WorkspaceTool(),
                 FileContentTool,
@@ -43,18 +43,18 @@ class DocumentationReviewCrew:
         )
 
     @task
-    def review_documentation(self) -> Task:
+    def review_data_engineering(self) -> Task:
         return Task(
-            config=self.tasks_config["review_documentation"],
-            agent=self.docs_curator(),
-            output_file="documentation_review.json",
+            config=self.tasks_config["review_data_engineering"],
+            agent=self.data_engineering_reviewer(),
+            output_file="data_engineering_review.json",
         )
 
     @crew
     def crew(self) -> Crew:
         return Crew(
-            agents=[self.docs_curator()],
-            tasks=[self.review_documentation()],
+            agents=[self.data_engineering_reviewer()],
+            tasks=[self.review_data_engineering()],
             process=Process.sequential,
             verbose=True,
             max_rpm=get_rate_limiter().current_limit,

@@ -1,14 +1,14 @@
 # PR-00000001: Add Agentic Documentation System and Repo Cleanup
 
-| Field               | Value                                                                                                                                                |
-| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **PR**              | [#1](https://github.com/borealBytes/agent-project/pull/1)                                                                                            |
-| **Author**          | Clayton Young ([@borealBytes](https://github.com/borealBytes))                                                                                       |
-| **Date**            | 2026-02-13                                                                                                                                           |
-| **Status**          | Open                                                                                                                                                 |
-| **Branch**          | `feat/agentic-pr-doc-url-policy` → `main`                                                                                                            |
-| **Related issues**  | [#1](../issues/issue-00000001-agentic-documentation-system.md), [#2](../issues/issue-00000002-provider-priority-fail-fast-review-cost-visibility.md) |
-| **Deploy strategy** | Standard (docs + local CI tooling updates, no production deploy path changes)                                                                        |
+| Field               | Value                                                                                                                                                                                                                            |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **PR**              | [#1](https://github.com/borealBytes/agent-project/pull/1)                                                                                                                                                                        |
+| **Author**          | Clayton Young ([@borealBytes](https://github.com/borealBytes))                                                                                                                                                                   |
+| **Date**            | 2026-02-13                                                                                                                                                                                                                       |
+| **Status**          | Open                                                                                                                                                                                                                             |
+| **Branch**          | `feat/agentic-pr-doc-url-policy` → `main`                                                                                                                                                                                        |
+| **Related issues**  | [#1](../issues/issue-00000001-agentic-documentation-system.md), [#2](../issues/issue-00000002-provider-priority-fail-fast-review-cost-visibility.md), [#3](../issues/issue-00000003-local-review-context-pack-and-resilience.md) |
+| **Deploy strategy** | Standard (docs + local CI tooling updates, no production deploy path changes)                                                                                                                                                    |
 
 ---
 
@@ -49,6 +49,20 @@ Phase-1 local CI polish is now applied: commitlint execution in `./scripts/ci-lo
 Latest verification rerun after that Phase-1 polish completed successfully with `./scripts/ci-local.sh --review` (all phase gates green, local deploy skips preserved, and NVIDIA-primary timeout still safely failing over to OpenRouter without blocking the pipeline).
 
 Latest governance update requires GitHub PR descriptions to contain only the full branch URL to the in-repo PR record file, and this rule is now propagated across AGENTS-linked documentation for future PR consistency.
+
+Latest reliability update re-baselines local CrewAI runtime for speed and deterministic output completeness: OpenRouter is now the default local provider (`gemini-2.5-flash-lite`), NVIDIA is opt-in (`--nvidia-nim`), quick-review disables NVIDIA after first failure within a run, and full/specialist review paths synthesize required JSON artifacts when crews return non-persisted text so final summary generation remains complete and readable.
+
+Latest architecture update adds tiered review-scope contracts and validation-ledger governance: local and CI prep now persist `scope.json` (merge-base aware), specialist/full artifacts are tracked in `validation_report.json`, and a new `data_engineering` specialist crew (`crewai:data-engineering`) expands review coverage for SQL/schema/ETL/ELT risks.
+
+Latest hardening pass improves structured-output reliability by safely extracting JSON from CrewAI task/raw payloads (without triggering CrewOutput `.json` accessor exceptions) and tightening specialist/full task contracts to require JSON-only final responses.
+
+Latest parity pass aligns local and GitHub Actions review context contracts so crews in both environments receive the same core artifacts (`diff.txt`, `diff.json`, `commits.json`, `commit_messages.txt`, `scope.json`, `context_pack.json`, `context_pack.md`).
+
+Latest specialist-resilience pass shifts specialist execution toward tool-driven branch analysis: all specialist crews now include selective repo tools (`FileContentTool`, `RelatedFilesTool`, `CommitInfoTool`, `CommitDiffTool`) alongside `WorkspaceTool`, specialist task contracts now instruct selective investigation via `changed_files_index.json` + scope-aware reads, and local specialist runs execute full crews first with parsed-result recovery before structured fallback.
+
+Latest review-quality pass enforces non-simulated specialist behavior and stricter summary hygiene: specialists now perform deterministic domain relevance checks against changed files, emit explicit not-applicable zero-finding outputs when no domain changes are detected, and suppress instruction-echo/JSON-blob/simulation text before artifact validation and final-summary rendering.
+
+Latest verification rerun confirms this end-to-end: `python3 -m pytest .crewai/tests/test_specialist_quality.py .crewai/tests/test_crew_integrity.py .crewai/tests/test_specialist_output.py -q` passed (`70 passed`), and `./scripts/ci-local.sh --full-review --step review` passed with all 13 workflows green and deterministic `no-relevant-changes` specialist artifacts for non-impacted domains.
 
 ### Impact classification
 
@@ -94,8 +108,11 @@ Latest governance update requires GitHub PR descriptions to contain only the ful
 | `AGENTS.md`                                                                                                                                     | Added       | Root-level agent entry point — routes to style guides before any doc/diagram work                                            |
 | `scripts/ci-local.sh`                                                                                                                           | Modified    | Added deterministic NVIDIA primary timeout window, explicit NVIDIA timeout error output, and preserved OpenRouter fallback   |
 | `.crewai/main.py`                                                                                                                               | Modified    | Added multi-pass local quick-review aggregation, reviewer-pass summaries, and deduplicated finding output                    |
+| `.crewai/main.py`                                                                                                                               | Modified    | Added one-failure NVIDIA disable for remaining quick-review passes and synthesized full/specialist JSON outputs when missing |
 | `.crewai/adr/README.md`, `.crewai/adr/ADR-001-*.md`, `.crewai/adr/ADR-002-*.md`, `.crewai/adr/ADR-003-*.md`                                     | Added       | Added CrewAI-local decision log and initial subsystem ADR set                                                                |
-| `.crewai/utils/model_config.py`, `scripts/ci-local.sh`, `SECRETS.md`, `.env.example`, `.crewai/.env.example`, `scripts/validate-credentials.sh` | Modified    | Realigned CrewAI provider chain to NVIDIA primary with OpenRouter fallback only                                              |
+| `.crewai/utils/model_config.py`, `scripts/ci-local.sh`, `SECRETS.md`, `.env.example`, `.crewai/.env.example`, `scripts/validate-credentials.sh` | Modified    | Local provider path updated to OpenRouter default + explicit NVIDIA opt-in, while preserving model override flexibility      |
+| `docs/project/issues/issue-00000003-local-review-context-pack-and-resilience.md`                                                                | Added       | Added dedicated issue record for local review context-pack and specialist resilience work                                    |
+| `.crewai/main.py`, `scripts/ci-local.sh`                                                                                                        | Modified    | Added local context-pack flow and structured local full/specialist synthesis with validation-aware retry                     |
 | `website/` → `apps/web/`                                                                                                                        | Moved       | Relocated frontend app to monorepo-standard app workspace path                                                               |
 | `pnpm-workspace.yaml`, `pnpm-lock.yaml`                                                                                                         | Modified    | Updated workspace importer paths to monorepo pattern (`apps/*`, `packages/*`)                                                |
 | `apps/README.md`                                                                                                                                | Added       | Added deployable app workspace guide for generic monorepo startup                                                            |
@@ -105,9 +122,22 @@ Latest governance update requires GitHub PR descriptions to contain only the ful
 | `data/README.md`, `data/sql/README.md`                                                                                                          | Added       | Added SQL/data workspace scaffold for schemas, migrations, and seeds                                                         |
 | `AGENTS.md`, `agentic/file_organization.md`, `agentic/instructions.md`, `src/README.md`                                                         | Modified    | Updated directory maps and workspace entrypoints for polyglot monorepo layout                                                |
 | `.crewai/config/tasks/final_summary_tasks.yaml`                                                                                                 | Modified    | Replaced mismatched template vars and removed unsafe brace placeholders                                                      |
+| `.crewai/main.py`                                                                                                                               | Modified    | Added artifact validation ledger recording (`validation_report.json`) and stricter full/specialist output validation         |
+| `.crewai/utils/specialist_output.py`                                                                                                            | Modified    | Added `data_engineering` specialist registry/autodetect entries and schema wiring                                            |
+| `.crewai/crews/data_engineering_review_crew.py`                                                                                                 | Added       | Added dedicated data engineering specialist crew                                                                             |
+| `.crewai/config/tasks/data_engineering_review_tasks.yaml`                                                                                       | Added       | Added data engineering review task contract and output schema                                                                |
+| `.crewai/config/agents.yaml`                                                                                                                    | Modified    | Added `data_engineering_reviewer` agent                                                                                      |
+| `.crewai/config/tasks/router_tasks.yaml`                                                                                                        | Modified    | Added `crewai:data-engineering` label routing and full-review specialist expansion update                                    |
+| `scripts/ci-local.sh`, `.github/workflows/crewai-review-reusable.yml`                                                                           | Modified    | Added `scope.json` contract generation with merge-base metadata for local/CI parity                                          |
+| `.crewai/adr/ADR-004-review-scope-contract-and-tiering.md`, `.crewai/adr/ADR-005-output-validation-and-data-engineering-specialist.md`          | Added       | Captured subsystem decisions for tiered review scope and artifact validation + specialist expansion                          |
+| `.crewai/adr/README.md`                                                                                                                         | Modified    | Added ADR-004 and ADR-005 to subsystem index                                                                                 |
 | `.crewai/config/tasks/quick_review_tasks.yaml`                                                                                                  | Modified    | Added commit message fallback source guidance (`commits.json` if text file is empty)                                         |
 | `.crewai/crews/router_crew.py`                                                                                                                  | Modified    | Local router shortcut and reduced iteration depth for faster failure paths                                                   |
 | `.crewai/crews/quick_review_crew.py`                                                                                                            | Modified    | Reduced agent iteration limits to enforce fail-fast review behavior                                                          |
+| `.crewai/crews/*_review_crew.py` (all specialist crews)                                                                                         | Modified    | Added selective repo inspection tools (`FileContentTool`, `RelatedFilesTool`, `CommitInfoTool`, `CommitDiffTool`)            |
+| `.crewai/config/tasks/*_review_tasks.yaml` (specialist tasks)                                                                                   | Modified    | Added selective-investigation steps and changed-files index/scope-aware context guidance                                     |
+| `.crewai/main.py`                                                                                                                               | Modified    | Added specialist relevance gating, no-relevant deterministic outputs, and summary-signal sanitization                        |
+| `.crewai/tests/test_specialist_quality.py`                                                                                                      | Added       | Added quality tests for simulated/echoed text suppression and domain relevance checks                                        |
 | `scripts/validate-credentials.sh`                                                                                                               | Modified    | Added NVIDIA key validation and AI provider section updates                                                                  |
 | `SECRETS.md`                                                                                                                                    | Modified    | Added NVIDIA key as primary provider and OpenRouter fallback guidance                                                        |
 | `.env.example`                                                                                                                                  | Modified    | Added NVIDIA_API_KEY primary, OpenRouter fallback                                                                            |
@@ -133,7 +163,8 @@ Latest governance update requires GitHub PR descriptions to contain only the ful
 
 ### Architecture impact
 
-This PR doesn't change runtime architecture. It establishes a documentation architecture:
+This PR does not change product runtime architecture for deployed apps/services.
+It establishes a documentation architecture and hardens local review runtime architecture.
 
 ```mermaid
 flowchart LR
@@ -148,6 +179,25 @@ flowchart LR
     human[👤 Human] -->|reviews on| gh[🌐 GitHub]
     gh -->|points to| docs
     docs -->|tracked in| git[(🗄️ Git History)]
+```
+
+```mermaid
+flowchart LR
+    accTitle: Local Review Runtime Architecture
+    accDescr: Local review flow now uses context packing, structured full/specialist synthesis, and validation-ledger tracking before final summary output.
+
+    diff[📥 Diff + scope] --> pack[📦 Context pack]
+    pack --> quick[⚡ Quick review]
+    quick --> full[🔍 Full review synthesis]
+    full --> specialists[🧠 Specialist synthesis]
+    specialists --> validate[✅ validation_report.json]
+    validate --> final[📋 final_summary.md]
+
+    classDef primary fill:#dbeafe,stroke:#2563eb,stroke-width:2px,color:#1e3a5f
+    classDef success fill:#dcfce7,stroke:#16a34a,stroke-width:2px,color:#14532d
+
+    class diff,pack,quick,full,specialists primary
+    class validate,final success
 ```
 
 <details>
@@ -217,13 +267,15 @@ grep -r "](../" docs/ | head -20
 
 ### Test coverage
 
-| Test type         | Status     | Notes                                                                                                                                                                                                            |
-| ----------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Unit tests        | ⬜ N/A     | Documentation-only PR                                                                                                                                                                                            |
-| Integration tests | ⬜ N/A     | No runtime code                                                                                                                                                                                                  |
-| Manual testing    | 🟡 Partial | Cross-links verified, GitHub rendering pending                                                                                                                                                                   |
-| Local CI review   | 🟢 Pass    | `./scripts/ci-local.sh --review` passes; commitlint no longer emits `ELIFECYCLE` noise, NVIDIA failures surface quickly (45s window), fallback executes 3 reviewer passes, and pricing table columns are aligned |
-| Performance       | ⬜ N/A     | No runtime impact                                                                                                                                                                                                |
+| Test type              | Status     | Notes                                                                                                                                                                                                            |
+| ---------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Unit tests             | ⬜ N/A     | Documentation-only PR                                                                                                                                                                                            |
+| Integration tests      | ⬜ N/A     | No runtime code                                                                                                                                                                                                  |
+| Manual testing         | 🟡 Partial | Cross-links verified, GitHub rendering pending                                                                                                                                                                   |
+| Local CI review        | 🟢 Pass    | `./scripts/ci-local.sh --review` passes; commitlint no longer emits `ELIFECYCLE` noise, NVIDIA failures surface quickly (45s window), fallback executes 3 reviewer passes, and pricing table columns are aligned |
+| Local full review      | 🟢 Pass    | `./scripts/ci-local.sh --full-review` passes with all specialist/full-review JSON outputs present and detailed `final_summary.md` generated                                                                      |
+| CrewAI integrity tests | 🟢 Pass    | `python3 -m pytest .crewai/tests/test_specialist_quality.py .crewai/tests/test_crew_integrity.py .crewai/tests/test_specialist_output.py -q` (70 passed)                                                         |
+| Performance            | ⬜ N/A     | No runtime impact                                                                                                                                                                                                |
 
 ### Edge cases considered
 
@@ -368,6 +420,11 @@ All files render correctly on GitHub. Agents following the style guides produce 
 - [x] ~~Run local CI parity check after CI regrouping~~ — Done: `./scripts/ci-local.sh --review` passed in local mode with expected deploy skips
 - [x] ~~Fix README architecture mermaid render error~~ — Done: quoted problematic node label and re-aligned phase titles
 - [x] ~~Resolve CI concurrency risks and provider parity drift~~ — Done: added concurrency guards and NVIDIA/OpenRouter secret parity in GitHub workflow path
+- [x] ~~Rebaseline local provider defaults for speed/cost reliability~~ — Done: OpenRouter default + `--nvidia-nim` opt-in and single-failure NVIDIA disable in quick-review
+- [x] ~~Guarantee full-review/specialist artifact completeness for summary synthesis~~ — Done: missing per-crew JSON artifacts are synthesized from crew responses
+- [x] ~~Enable specialist selective repo exploration without whole-repo context dumps~~ — Done: specialist crews now run with selective retrieval tools + scope-aware task instructions
+- [x] ~~Eliminate simulated specialist findings~~ — Done: specialist runs now generate explicit not-applicable outputs when no domain-relevant changes are detected
+- [x] ~~Re-run full local verification after specialist-signal hardening~~ — Done: full-review path passes with all specialist workflows green and deterministic no-relevant artifacts where appropriate
 - [ ] Validate consistent successful quick-review findings on NVIDIA Kimi K2.5 (Issue #2 still open; latest run still showed intermittent quick-review error)
 - [ ] Commit and push current uncommitted changes
 - [x] ~~Add AGENTS.md entry pointing to the style guides~~ — Done: `AGENTS.md` created at repo root
@@ -379,6 +436,7 @@ All files render correctly on GitHub. Agents following the style guides produce 
 
 - [Issue-#1: Create agent-optimized documentation system](../issues/issue-00000001-agentic-documentation-system.md)
 - [Issue-#2: Provider priority + fail-fast + local pricing visibility](../issues/issue-00000002-provider-priority-fail-fast-review-cost-visibility.md)
+- [Issue-#3: Local review context pack and resilience](../issues/issue-00000003-local-review-context-pack-and-resilience.md)
 - [Mermaid Style Guide](../../agentic/mermaid_style_guide.md)
 - [Markdown Style Guide](../../agentic/markdown_style_guide.md)
 - [Idempotent script design patterns](../../agentic/idempotent_design_patterns.md)
@@ -394,4 +452,4 @@ All files render correctly on GitHub. Agents following the style guides produce 
 
 ---
 
-_Last updated: 2026-02-14 18:23 EST_
+_Last updated: 2026-02-14 17:22 EST_

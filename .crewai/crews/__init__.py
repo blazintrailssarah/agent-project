@@ -8,6 +8,7 @@ register_trinity_model()
 
 from crews.agentic_review_crew import AgenticReviewCrew  # noqa: E402
 from crews.ci_log_analysis_crew import CILogAnalysisCrew  # noqa: E402
+from crews.data_engineering_review_crew import DataEngineeringReviewCrew  # noqa: E402
 from crews.documentation_review_crew import DocumentationReviewCrew  # noqa: E402
 from crews.final_summary_crew import FinalSummaryCrew  # noqa: E402
 from crews.finance_review_crew import FinanceReviewCrew  # noqa: E402
@@ -24,6 +25,7 @@ from crews.strategy_review_crew import StrategyReviewCrew  # noqa: E402
 __all__ = [
     "AgenticReviewCrew",
     "CILogAnalysisCrew",
+    "DataEngineeringReviewCrew",
     "DocumentationReviewCrew",
     "FinanceReviewCrew",
     "FinalSummaryCrew",

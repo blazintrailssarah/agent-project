@@ -5,6 +5,8 @@ import logging
 from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 
+from tools.github_tools import CommitDiffTool, CommitInfoTool, FileContentTool
+from tools.related_files_tool import RelatedFilesTool
 from tools.workspace_tool import WorkspaceTool
 from utils.model_config import get_llm, get_rate_limiter
 
@@ -26,7 +28,13 @@ class GovernmentReviewCrew:
     def public_sector_compliance(self) -> Agent:
         return Agent(
             config=self.agents_config["public_sector_compliance"],
-            tools=[WorkspaceTool()],
+            tools=[
+                WorkspaceTool(),
+                FileContentTool,
+                RelatedFilesTool,
+                CommitInfoTool,
+                CommitDiffTool,
+            ],
             llm=self.llm,
             function_calling_llm=self.llm,
             max_iter=10,
@@ -39,6 +47,7 @@ class GovernmentReviewCrew:
         return Task(
             config=self.tasks_config["review_government_compliance"],
             agent=self.public_sector_compliance(),
+            output_file="government_regulatory_review.json",
         )
 
     @crew

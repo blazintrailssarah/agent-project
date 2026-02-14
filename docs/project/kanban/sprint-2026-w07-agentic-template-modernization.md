@@ -1,7 +1,7 @@
 # Sprint W07 2026 — Kanban Board
 
 _Sprint W07: Feb 10–14, 2026 · opencode repo_
-_Human · Last updated: 2026-02-14 20:08_
+_Human · Last updated: 2026-02-14 17:27_
 
 ---
 
@@ -13,7 +13,7 @@ _Human · Last updated: 2026-02-14 20:08_
 
 ### Visual board
 
-_Kanban board showing Sprint W07 work distribution across four workflow columns:_
+_Kanban board showing Sprint W07 work distribution across workflow columns, including explicit Won't Do transparency:_
 
 ```mermaid
 kanban
@@ -22,7 +22,7 @@ kanban
         task14["✅ Commit and push current uncommitted work"]
 
     column2["🔧 In Progress"]
-        task10["🤖 Stabilize NVIDIA Kimi quick-review success path"]
+        task10["🧾 Finalize source-of-truth records and publish branch updates"]
 
     column3["🔍 In Review"]
 
@@ -61,6 +61,14 @@ kanban
         task36["🧪 Post-hardening local CI parity rerun completed; quick-review instability remains tracked"]
         task37["🧼 Phase-1 commitlint ELIFECYCLE lifecycle noise removed in local CI"]
         task38["🧪 Full local CI rerun passed after commitlint UX polish"]
+        task39["⚡ Local provider baseline switched to OpenRouter default with explicit NVIDIA opt-in"]
+        task40["📦 Full-review and specialist outputs now always materialize structured JSON artifacts"]
+        task43["🧠 Specialists now run with selective repo tools + parsed-result recovery"]
+        task44["🚫 Specialists now emit explicit not-applicable outputs instead of simulated findings"]
+
+    column5["🚫 Won't Do"]
+        task41["⛔ Keep NVIDIA as default local provider"]
+        task42["⛔ Depend only on CrewAI tool-write side effects for local artifacts"]
 ```
 
 ---
@@ -72,7 +80,8 @@ kanban
 | 📋 **Backlog**     | 2     | —         | Rendering check + pending commit    |
 | 🔄 **In Progress** | 1     | 3         | 🟢 Under limit                      |
 | 🔍 **In Review**   | 0     | —         | —                                   |
-| ✅ **Done**        | 34    | —         | Core docs + CI/review + scaffolding |
+| ✅ **Done**        | 40    | —         | Core docs + CI/review + scaffolding |
+| 🚫 **Won't Do**    | 2     | —         | Explicitly declined with rationale  |
 | 🚫 **Blocked**     | 0     | —         | Clear                               |
 
 ---
@@ -90,9 +99,9 @@ _Prioritized top-to-bottom. Top items are next to be pulled._
 
 ## 🔄 In Progress
 
-| Item                                            | Assignee | Started | Expected | Days in column | Aging | Status                                                           |
-| ----------------------------------------------- | -------- | ------- | -------- | -------------- | ----- | ---------------------------------------------------------------- |
-| Stabilize NVIDIA Kimi quick-review success path | Human    | Feb 13  | Feb 14   | 0              | 🟡    | 🟡 Fail-fast and timeout guards done; quality still inconsistent |
+| Item                                                 | Assignee | Started | Expected | Days in column | Aging | Status                                                               |
+| ---------------------------------------------------- | -------- | ------- | -------- | -------------- | ----- | -------------------------------------------------------------------- |
+| Finalize source-of-truth records and publish updates | Human    | Feb 14  | Feb 14   | 0              | 🟢    | 🟢 Local verification complete; PR/issue/kanban/ADR sync in progress |
 
 > ⚠️ **WIP limit:** 1 / 3. Under limit.
 
@@ -139,6 +148,13 @@ _Completed this sprint._
 | Post-hardening local parity rerun validated CI phase behavior; quick-review NVIDIA instability remains non-fatal and tracked | Human + AI | Feb 14    | 1 day      | [#1](../pr/pr-00000001-agentic-docs-and-monorepo-modernization.md) |
 | Removed local Phase-1 commitlint `ELIFECYCLE` lifecycle noise while preserving warning semantics                             | Human + AI | Feb 14    | 1 day      | [#1](../pr/pr-00000001-agentic-docs-and-monorepo-modernization.md) |
 | Full local `./scripts/ci-local.sh --review` rerun passed after commitlint UX polish; fallback behavior remains deterministic | Human + AI | Feb 14    | 1 day      | [#1](../pr/pr-00000001-agentic-docs-and-monorepo-modernization.md) |
+| Local provider baseline switched to OpenRouter default (`gemini-2.5-flash-lite`) with explicit `--nvidia-nim` opt-in path    | Human + AI | Feb 14    | 1 day      | [#1](../pr/pr-00000001-agentic-docs-and-monorepo-modernization.md) |
+| Full-review and specialist runs now synthesize missing JSON artifacts to keep final summary generation complete and readable | Human + AI | Feb 14    | 1 day      | [#1](../pr/pr-00000001-agentic-docs-and-monorepo-modernization.md) |
+| Added review-scope contract artifact (`scope.json`) in local + CI prep for merge-base-aware tiered analysis                  | Human + AI | Feb 14    | 1 day      | [#1](../pr/pr-00000001-agentic-docs-and-monorepo-modernization.md) |
+| Added output validation ledger and new data-engineering specialist crew with full-router coverage                            | Human + AI | Feb 14    | 1 day      | [#1](../pr/pr-00000001-agentic-docs-and-monorepo-modernization.md) |
+| Added local context-pack generation plus resilient structured local full/specialist review path                              | Human + AI | Feb 14    | 1 day      | [#1](../pr/pr-00000001-agentic-docs-and-monorepo-modernization.md) |
+| Enabled selective-retrieval specialist execution (repo tools per specialist + parsed-result recovery before local fallback)  | Human + AI | Feb 14    | 1 day      | [#1](../pr/pr-00000001-agentic-docs-and-monorepo-modernization.md) |
+| Eliminated simulated specialist findings with deterministic no-relevant domain outputs                                       | Human + AI | Feb 14    | 1 day      | [#1](../pr/pr-00000001-agentic-docs-and-monorepo-modernization.md) |
 
 ---
 
@@ -150,13 +166,28 @@ _Completed this sprint._
 
 ---
 
+## 🚫 Won't Do
+
+| Item                                                        | Decision date | Reason                                                                                       | Linked issue                                                                         |
+| ----------------------------------------------------------- | ------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Keep NVIDIA as default local provider                       | 2026-02-14    | Default-path speed/reliability was better with OpenRouter baseline; NVIDIA remains opt-in.   | [#2](../issues/issue-00000002-provider-priority-fail-fast-review-cost-visibility.md) |
+| Depend only on CrewAI tool-write side effects for artifacts | 2026-02-14    | Local reliability required resilient structured persistence plus validation-ledger tracking. | [#3](../issues/issue-00000003-local-review-context-pack-and-resilience.md)           |
+
+### Why these were declined
+
+- The template repo optimizes for first-run reliability and clear operational behavior for new adopters.
+- The declined items increased variance in local outcomes and made troubleshooting harder for students and maintainers.
+- Equivalent capability is preserved with safer alternatives (explicit NVIDIA opt-in, validation-aware structured persistence).
+
+---
+
 ## 📊 Metrics
 
 ### This period
 
 | Metric                             | Value   | Target | Trend |
 | ---------------------------------- | ------- | ------ | ----- |
-| **Throughput** (items completed)   | 21      | 4      | ↑     |
+| **Throughput** (items completed)   | 23      | 4      | ↑     |
 | **Avg cycle time** (start → done)  | 1.0 day | —      | —     |
 | **Avg lead time** (created → done) | 1.0 day | —      | —     |
 | **Avg review time**                | —       | —      | —     |
@@ -214,6 +245,18 @@ _Completed this sprint._
 - **Feb 14:** Re-ran `./scripts/ci-local.sh --review` after concurrency/provider hardening; all CI phases passed with expected local deploy skips, while quick-review still showed intermittent NVIDIA response issues and remained tracked in Issue #2
 - **Feb 14:** Cleaned local commitlint execution path to remove `ELIFECYCLE` lifecycle failure noise from Phase 1 output while keeping commit-style warnings
 - **Feb 14:** Re-ran full local CI after commitlint UX polish; all phase gates passed and NVIDIA timeout still failed over cleanly to OpenRouter
+- **Feb 14:** Switched local provider baseline to OpenRouter default and moved NVIDIA to explicit `--nvidia-nim` opt-in to remove default-path latency from repeated NVIDIA failures
+- **Feb 14:** Added synthesis path for full-review/specialist outputs so missing per-crew JSON files no longer degrade final summary completeness
+- **Feb 14:** Added `scope.json` review-scope contract and merge-base metadata to local and CI review preparation
+- **Feb 14:** Added `validation_report.json` artifact-validation ledger and introduced data-engineering specialist routing/coverage
+- **Feb 14:** Hardened CrewAI result parsing to avoid `.json` accessor exceptions and safely persist parsed task/raw payloads
+- **Feb 14:** Tightened full/specialist task prompts to require JSON-only final responses for stronger structured-output consistency
+- **Feb 14:** Added context-pack resilience path and targeted specialist repair logic for local quick/full reliability
+- **Feb 14:** Aligned GitHub Actions review prep with local context artifacts (`context_pack.*`, `commit_messages.txt`, `scope.json`) for crew parity
+- **Feb 14:** Added explicit Won't Do column and rationale logging for board transparency
+- **Feb 14:** Enabled specialist selective repo exploration via `FileContentTool`/`RelatedFilesTool`/`CommitInfoTool`/`CommitDiffTool` and switched local specialist path to crew-first execution with parsed-result recovery
+- **Feb 14:** Added specialist domain relevance gates so no-relevant crews emit explicit not-applicable outputs instead of simulated findings
+- **Feb 14:** Re-ran `./scripts/ci-local.sh --full-review --step review` and confirmed all 13 workflows passed with deterministic `no-relevant-changes` outputs for unrelated specialist domains.
 
 ### Carryover from last period
 
@@ -223,8 +266,7 @@ _Completed this sprint._
 
 - **Feb 14:** GitHub rendering verification needed before merge — architecture, requirement, C4, radar, treemap diagrams are most fragile
 - **Post-commit:** Push branch and validate Mermaid rendering in GitHub UI
-- **Feb 14:** Investigate NVIDIA Kimi quick-review instability (timeouts/empty responses) while preserving fail-fast guarantees
-- **Feb 14:** Validate a durable NVIDIA-primary success path for [Issue #2](../issues/issue-00000002-provider-priority-fail-fast-review-cost-visibility.md) beyond fallback reliability
+- **Feb 14:** Validate NVIDIA opt-in path quality/reliability separately from default OpenRouter baseline for [Issue #2](../issues/issue-00000002-provider-priority-fail-fast-review-cost-visibility.md)
 - **Before merge:** Commit and push latest local reliability/output updates so humans can verify GitHub rendering and final linked records
 - ~~**Post-merge:** AGENTS.md needs an entry pointing agents to the style guides~~ — Done: `AGENTS.md` created at repo root
 
@@ -234,6 +276,7 @@ _Completed this sprint._
 
 - [Issue-#1: Create agent-optimized documentation system](../issues/issue-00000001-agentic-documentation-system.md)
 - [Issue-#2: Provider priority + fail-fast + local pricing visibility](../issues/issue-00000002-provider-priority-fail-fast-review-cost-visibility.md)
+- [Issue-#3: Local review context pack and resilience](../issues/issue-00000003-local-review-context-pack-and-resilience.md)
 - [PR-#1: Agentic documentation system + repo cleanup](../pr/pr-00000001-agentic-docs-and-monorepo-modernization.md)
 - [ADR-001: Documentation system decision](../../agentic/adr/ADR-001-agent-optimized-documentation-system.md)
 - [ADR-002: Mermaid standards decision](../../agentic/adr/ADR-002-mermaid-diagram-standards.md)
@@ -243,8 +286,10 @@ _Completed this sprint._
 - [ADR-006: Federated ADR governance](../../agentic/adr/ADR-006-federated-adr-governance.md)
 - [ADR-007: Monorepo foundation and decision baseline](../../agentic/adr/ADR-007-monorepo-foundation-and-decision-baseline.md)
 - [CrewAI ADR index](../../.crewai/adr/README.md)
+- [CrewAI ADR-004: Review scope contract and tiered diff strategy](../../.crewai/adr/ADR-004-review-scope-contract-and-tiering.md)
+- [CrewAI ADR-005: Output validation and data engineering specialist](../../.crewai/adr/ADR-005-output-validation-and-data-engineering-specialist.md)
 - [Idempotent script design patterns](../../agentic/idempotent_design_patterns.md)
 
 ---
 
-_Next update: 2026-02-14 14:00 EST · Board owner: Human_
+_Next update: 2026-02-14 14:30 EST · Board owner: Human_

@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   ensure-required-labels:
-    name: Ensure Required Labels Exist
+    name: Validate / Ensure Required Labels
     runs-on: ubuntu-latest
 
     steps:
@@ -96,7 +96,7 @@ jobs:
           echo "- Status: Ready for Review" >> $GITHUB_STEP_SUMMARY
 
   validate-credentials:
-    name: Validate Credentials
+    name: Validate / Credentials
     runs-on: ubuntu-latest
 
     steps:
@@ -228,7 +228,7 @@ jobs:
           include-hidden-files: true
 
   check-preview-label-conflicts:
-    name: Check Preview Label Conflicts
+    name: Validate / Preview Label Conflicts
     runs-on: ubuntu-latest
     if: |
       github.event_name == 'pull_request' &&

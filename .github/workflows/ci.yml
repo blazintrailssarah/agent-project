@@ -18,12 +18,12 @@ permissions:
 
 jobs:
   validate-environment:
-    name: Validate Environment
+    name: Validate / Environment
     uses: ./.github/workflows/validate-environment-reusable.yml
     secrets: inherit
 
   core-ci:
-    name: Core CI
+    name: Validate / Core CI
     uses: ./.github/workflows/format-lint-reusable.yml
     secrets: inherit
 
@@ -53,7 +53,7 @@ jobs:
           echo "- final commit sha: ${{ needs.core-ci.outputs.final-commit-sha }}" >> "$GITHUB_STEP_SUMMARY"
 
   test-docs-links:
-    name: Test Docs Links
+    name: Test-Build / Docs Links
     needs: [validate]
     if: |
       always() &&
@@ -64,7 +64,7 @@ jobs:
     secrets: inherit
 
   test-crewai:
-    name: Test CrewAI
+    name: Test-Build / CrewAI
     needs: [validate]
     if: |
       always() &&
@@ -75,7 +75,7 @@ jobs:
     secrets: inherit
 
   test-website:
-    name: Test & Build Website
+    name: Test-Build / Website
     needs: [validate]
     if: |
       always() &&
@@ -86,7 +86,7 @@ jobs:
     secrets: inherit
 
   test-build:
-    name: Test/Build
+    name: Test-Build
     needs: [validate, test-docs-links, test-crewai, test-website]
     if: |
       always() &&
@@ -105,7 +105,7 @@ jobs:
           echo "- test-website: ${{ needs.test-website.result }}" >> "$GITHUB_STEP_SUMMARY"
 
   deploy-preview:
-    name: Deploy to Preview
+    name: Deploy / Preview
     needs: [test-build]
     if: |
       github.event_name == 'pull_request' &&
@@ -120,7 +120,7 @@ jobs:
     secrets: inherit
 
   deploy-production:
-    name: Deploy to Production
+    name: Deploy / Production
     needs: [test-build]
     if: |
       github.event_name == 'push' &&
@@ -151,22 +151,33 @@ jobs:
           echo "- deploy-production: ${{ needs.deploy-production.result }}" >> "$GITHUB_STEP_SUMMARY"
 
   crewai-review:
-    name: CrewAI Code Review
-    needs: [validate, test-build, deploy]
+    name: CrewAI / Review
+    needs:
+      [
+        validate-environment,
+        core-ci,
+        validate,
+        test-docs-links,
+        test-crewai,
+        test-website,
+        test-build,
+        deploy-preview,
+        deploy-production,
+        deploy,
+      ]
     if: |
       always() &&
       github.event_name == 'pull_request' &&
-      !github.event.pull_request.draft &&
-      github.actor != 'dependabot[bot]' &&
-      github.actor != 'renovate[bot]' &&
-      needs.validate.result == 'success' &&
-      needs.test-build.result == 'success' &&
-      needs.deploy.result == 'success'
+      !github.event.pull_request.draft
     uses: ./.github/workflows/crewai-review-reusable.yml
     with:
       pr_number: ${{ github.event.pull_request.number }}
-      commit_sha: ${{ needs.validate.outputs.final-commit-sha }}
-      core_ci_result: ${{ needs.validate.outputs.core_ci_result }}
+      commit_sha:
+        ${{ needs.validate.outputs.final-commit-sha ||
+        github.event.pull_request.head.sha || github.sha }}
+      core_ci_result:
+        ${{ needs.validate.outputs.core_ci_result || needs.core-ci.result ||
+        'unknown' }}
     secrets:
       NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
       NVIDIA_NIM_API_KEY: ${{ secrets.NVIDIA_NIM_API_KEY }}

@@ -34,6 +34,7 @@ SPECIALIST_CREW_FILES = [
     ("security_review_crew.py", "security_review_tasks.yaml"),
     ("legal_review_crew.py", "legal_review_tasks.yaml"),
     ("finance_review_crew.py", "finance_review_tasks.yaml"),
+    ("data_engineering_review_crew.py", "data_engineering_review_tasks.yaml"),
     ("documentation_review_crew.py", "documentation_review_tasks.yaml"),
     ("agentic_review_crew.py", "agentic_review_tasks.yaml"),
     ("marketing_review_crew.py", "marketing_review_tasks.yaml"),
@@ -73,6 +74,7 @@ class TestAgentsYaml:
             "intl_trade_counsel",
             "global_privacy_counsel",
             "revenue_auditor",
+            "data_engineering_reviewer",
             "docs_curator",
             "agentic_steward",
             "brand_editor",
@@ -218,6 +220,13 @@ class TestCrewPythonStructure:
         for crew_file, _ in ALL_CREW_FILES:
             content = _read_crew_file(crew_file)
             assert "WorkspaceTool" in content, f"{crew_file} doesn't use WorkspaceTool"
+
+    def test_specialist_crews_use_selective_repo_tools(self):
+        for crew_file, _ in SPECIALIST_CREW_FILES:
+            content = _read_crew_file(crew_file)
+            assert "FileContentTool" in content, f"{crew_file} doesn't use FileContentTool"
+            assert "RelatedFilesTool" in content, f"{crew_file} doesn't use RelatedFilesTool"
+            assert "CommitInfoTool" in content, f"{crew_file} doesn't use CommitInfoTool"
 
     def test_all_crew_files_use_get_llm(self):
         for crew_file, _ in ALL_CREW_FILES:

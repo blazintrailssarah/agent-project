@@ -1,4 +1,4 @@
-name: Test & Build Website
+name: Test-Build / Website
 
 on:
   workflow_call:
@@ -10,17 +10,18 @@ on:
     outputs:
       build_artifact:
         description: 'Name of the build artifact'
-        value: ${{ jobs.test-build.outputs.artifact_name }}
+        value: ${{ jobs.website-test-build.outputs.artifact_name }}
       should_deploy:
         description: 'Whether deployment should proceed'
-        value: ${{ jobs.test-build.outputs.should_deploy }}
+        value: ${{ jobs.website-test-build.outputs.should_deploy }}
 
 permissions:
   contents: read
   pull-requests: write
 
 jobs:
-  test-build:
+  website-test-build:
+    name: Execute Website Test-Build
     runs-on: ubuntu-latest
     timeout-minutes: 15
 

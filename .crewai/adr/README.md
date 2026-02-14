@@ -10,11 +10,13 @@ If a local decision affects other subsystems or repo governance, mirror it in `a
 
 ## ADRs
 
-| ADR                                                    | Title                                                     | Status   |
-| ------------------------------------------------------ | --------------------------------------------------------- | -------- |
-| [ADR-001](./ADR-001-crewai-decision-log-scope.md)      | CrewAI local ADR log scope and ownership                  | Accepted |
-| [ADR-002](./ADR-002-provider-priority-and-failover.md) | LLM provider priority and failover behavior               | Accepted |
-| [ADR-003](./ADR-003-local-quick-review-multipass.md)   | Local quick-review multi-pass synthesis and output schema | Accepted |
+| ADR                                                                       | Title                                                         | Status   |
+| ------------------------------------------------------------------------- | ------------------------------------------------------------- | -------- |
+| [ADR-001](./ADR-001-crewai-decision-log-scope.md)                         | CrewAI local ADR log scope and ownership                      | Accepted |
+| [ADR-002](./ADR-002-provider-priority-and-failover.md)                    | Local provider defaults, opt-in NVIDIA, and failover behavior | Accepted |
+| [ADR-003](./ADR-003-local-quick-review-multipass.md)                      | Local quick-review multi-pass synthesis and output schema     | Accepted |
+| [ADR-004](./ADR-004-review-scope-contract-and-tiering.md)                 | Review scope contract and tiered diff strategy                | Accepted |
+| [ADR-005](./ADR-005-output-validation-and-data-engineering-specialist.md) | Output validation ledger and data engineering specialist      | Accepted |
 
 ---
 

@@ -1,4 +1,4 @@
-name: CrewAI Review
+name: CrewAI / Review
 
 on:
   workflow_call:
@@ -28,7 +28,8 @@ permissions:
   pull-requests: read
 
 jobs:
-  run:
+  crewai-review:
+    name: Execute CrewAI Review
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -98,14 +99,16 @@ jobs:
           git diff "origin/$BASE_REF...${{ inputs.commit_sha }}" > workspace/diff.txt 2>/dev/null || \
             git diff "$BASE_REF...${{ inputs.commit_sha }}" > workspace/diff.txt
 
+          MERGE_BASE=$(git merge-base "origin/$BASE_REF" "${{ inputs.commit_sha }}" 2>/dev/null || \
+                      git merge-base "$BASE_REF" "${{ inputs.commit_sha }}" 2>/dev/null || \
+                      echo "")
+
           DIFF_SIZE=$(wc -c < workspace/diff.txt)
           echo "✅ PR diff saved: $DIFF_SIZE bytes" | tee -a ../.crewai-job-output/current-job.log
 
           # Fallback for small diffs
           if [ "$DIFF_SIZE" -lt 100 ]; then
             echo "⚠️ Diff suspiciously small, trying merge-base..." | tee -a ../.crewai-job-output/current-job.log
-            MERGE_BASE=$(git merge-base "origin/$BASE_REF" "${{ inputs.commit_sha }}" 2>/dev/null || \
-                        git merge-base "$BASE_REF" "${{ inputs.commit_sha }}")
             if [ -n "$MERGE_BASE" ]; then
               git diff "$MERGE_BASE...${{ inputs.commit_sha }}" > workspace/diff.txt
               DIFF_SIZE=$(wc -c < workspace/diff.txt)
@@ -167,6 +170,10 @@ jobs:
           COMMIT_COUNT=$(jq '. | length' workspace/commits.json)
           echo "✅ Saved $COMMIT_COUNT commits" | tee -a ../.crewai-job-output/current-job.log
 
+          git log --oneline -5 "origin/$BASE_REF..${{ inputs.commit_sha }}" > workspace/commit_messages.txt 2>/dev/null || \
+            git log --oneline -5 "$BASE_REF..${{ inputs.commit_sha }}" > workspace/commit_messages.txt 2>/dev/null || \
+            echo "${{ inputs.commit_sha }} local review context" > workspace/commit_messages.txt
+
           # Get labels from context
           PR_LABELS="${{ join(github.event.pull_request.labels.*.name, ',') }}"
           echo "🏷️ Labels: $PR_LABELS" | tee -a ../.crewai-job-output/current-job.log
@@ -201,12 +208,98 @@ jobs:
               "file_list": $file_list
             }' > workspace/diff.json
 
+          jq -n \
+            --arg contract_version "2026-02-14" \
+            --arg tier "branch" \
+            --arg diff_strategy "origin-base-merge-base" \
+            --arg base_ref "origin/$BASE_REF" \
+            --arg head_ref "$HEAD_REF" \
+            --arg head_sha "${{ inputs.commit_sha }}" \
+            --arg merge_base "$MERGE_BASE" \
+            '{
+              "contract_version": $contract_version,
+              "tier": $tier,
+              "diff_strategy": $diff_strategy,
+              "base_ref": $base_ref,
+              "head_ref": $head_ref,
+              "head_sha": $head_sha,
+              "merge_base": $merge_base
+            }' > workspace/scope.json
+
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          workspace = Path("workspace")
+
+          def load_json(path: Path):
+              if not path.exists():
+                  return {}
+              try:
+                  return json.loads(path.read_text())
+              except Exception:
+                  return {}
+
+          diff_text = (workspace / "diff.txt").read_text() if (workspace / "diff.txt").exists() else ""
+          if len(diff_text) > 12000:
+              diff_excerpt = diff_text[:7000] + "\n...\n" + diff_text[-5000:]
+          else:
+              diff_excerpt = diff_text
+
+          scope = load_json(workspace / "scope.json")
+          commits = load_json(workspace / "commits.json")
+          diff_meta = load_json(workspace / "diff.json")
+
+          pack = {
+              "contract_version": "2026-02-14",
+              "purpose": "compact_review_context",
+              "scope": scope,
+              "commit_messages": commits.get("commit_messages", []),
+              "diff_meta": {
+                  "files_changed": diff_meta.get("files_changed", 0),
+                  "additions": diff_meta.get("additions", 0),
+                  "deletions": diff_meta.get("deletions", 0),
+                  "labels": diff_meta.get("labels", []),
+              },
+              "diff_excerpt": diff_excerpt,
+          }
+
+          (workspace / "context_pack.json").write_text(json.dumps(pack, indent=2))
+
+          lines = [
+              "# Context Pack",
+              "",
+              "## Scope",
+              "- Tier: " + str(scope.get("tier", "unknown")),
+              "- Diff strategy: " + str(scope.get("diff_strategy", "unknown")),
+              "- Base ref: " + str(scope.get("base_ref", "unknown")),
+              "- Merge base: " + str(scope.get("merge_base", "")),
+              "",
+              "## Commit messages",
+          ]
+          for msg in commits.get("commit_messages", [])[:8]:
+              lines.append("- " + str(msg))
+
+          lines.extend([
+              "",
+              "## Diff excerpt",
+              "[DIFF BEGIN]",
+              diff_excerpt,
+              "[DIFF END]",
+          ])
+
+          (workspace / "context_pack.md").write_text("\n".join(lines))
+          PY
+
           echo "✅ Metadata saved" | tee -a ../.crewai-job-output/current-job.log
           echo "" | tee -a ../.crewai-job-output/current-job.log
           echo "📋 Summary (LOCAL GIT - NO API):" | tee -a ../.crewai-job-output/current-job.log
           echo "  - diff.txt: $DIFF_SIZE bytes" | tee -a ../.crewai-job-output/current-job.log
           echo "  - commits.json: $COMMIT_COUNT commits" | tee -a ../.crewai-job-output/current-job.log
           echo "  - diff.json: metadata" | tee -a ../.crewai-job-output/current-job.log
+          echo "  - scope.json: review scope contract" | tee -a ../.crewai-job-output/current-job.log
+          echo "  - context_pack.json/context_pack.md: compact shared context" | tee -a ../.crewai-job-output/current-job.log
+          echo "  - commit_messages.txt: quick-review commit context" | tee -a ../.crewai-job-output/current-job.log
           echo "  - Stats: $FILES_CHANGED files, +$ADDITIONS/-$DELETIONS" | tee -a ../.crewai-job-output/current-job.log
           echo "" | tee -a ../.crewai-job-output/current-job.log
 

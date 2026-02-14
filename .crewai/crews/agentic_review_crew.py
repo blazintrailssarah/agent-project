@@ -5,6 +5,8 @@ import logging
 from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 
+from tools.github_tools import CommitDiffTool, CommitInfoTool, FileContentTool
+from tools.related_files_tool import RelatedFilesTool
 from tools.workspace_tool import WorkspaceTool
 from utils.model_config import get_llm, get_rate_limiter
 
@@ -26,7 +28,13 @@ class AgenticReviewCrew:
     def agentic_steward(self) -> Agent:
         return Agent(
             config=self.agents_config["agentic_steward"],
-            tools=[WorkspaceTool()],
+            tools=[
+                WorkspaceTool(),
+                FileContentTool,
+                RelatedFilesTool,
+                CommitInfoTool,
+                CommitDiffTool,
+            ],
             llm=self.llm,
             function_calling_llm=self.llm,
             max_iter=10,
@@ -39,6 +47,7 @@ class AgenticReviewCrew:
         return Task(
             config=self.tasks_config["review_agentic_consistency"],
             agent=self.agentic_steward(),
+            output_file="agentic_consistency_review.json",
         )
 
     @crew

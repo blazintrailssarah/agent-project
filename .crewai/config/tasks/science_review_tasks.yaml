@@ -4,8 +4,17 @@ review_science:
 
     STEP 1: Read the diff and context
     - Call WorkspaceTool(operation="read", filename="diff.txt", content="")
+    - Call WorkspaceTool(operation="read", filename="context_pack.md", content="")
+      (if it exists)
     - Call WorkspaceTool(operation="read", filename="diff_context.json", content="")
       (if it exists)
+    - Call WorkspaceTool(operation="read", filename="changed_files_index.json", content="")
+      (if it exists)
+
+    STEP 1b: Selective model/data exploration
+    - Use RelatedFilesTool(changed_files=[...], repository=<workspace path>) to find related model/data pipelines
+    - Use FileContentTool(file_path=<target>, repository=<repo>, ref="HEAD") for focused inspection
+    - Use CommitDiffTool(commit_sha=<recent commit>, repository=<repo>) for experiment-impact context when needed
 
     STEP 2: Analyze scientific rigor
     Focus on CHANGED code. Check for:
@@ -50,11 +59,12 @@ review_science:
     }
 
     RULES:
-    - Only flag issues in CHANGED code
+    - Prioritize CHANGED code and directly related data/model files; include unchanged files only if they affect validity
     - ID prefix must be SCI-
     - severity_counts must match the actual findings list
     - If no science/ML code detected, return empty findings with info summary
     - Output must be valid JSON
+    - Final response must be JSON only (no markdown, no prose, no code fences)
 
   expected_output: |
     "Science review complete: science_review.json written with [N] findings"

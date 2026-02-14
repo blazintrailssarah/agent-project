@@ -4,8 +4,20 @@ review_security:
 
     STEP 1: Read the diff and context
     - Call WorkspaceTool(operation="read", filename="diff.txt", content="")
+    - Call WorkspaceTool(operation="read", filename="context_pack.md", content="")
+      (if it exists)
     - Call WorkspaceTool(operation="read", filename="diff_context.json", content="")
       (if it exists — may have been written by quick review)
+    - Call WorkspaceTool(operation="read", filename="changed_files_index.json", content="")
+      (if it exists)
+    - Call WorkspaceTool(operation="read", filename="scope.json", content="")
+      (if it exists)
+
+    STEP 1b: Perform selective repo exploration (do NOT load entire repo)
+    - Use CommitInfoTool(commit_sha=<head sha>, repository=<repo>) to anchor recent branch intent
+    - Use RelatedFilesTool(changed_files=[...], repository=<workspace path>) to discover impacted files
+    - Use FileContentTool(file_path=<target>, repository=<repo>, ref="HEAD") for targeted deep reads
+    - If baseline comparison is required, use FileContentTool(..., ref=<merge_base>) for only critical files
 
     STEP 2: Analyze for security vulnerabilities
     Focus on CHANGED code only. Check for:
@@ -46,11 +58,12 @@ review_security:
     }
 
     RULES:
-    - Only flag issues in CHANGED code (not pre-existing)
+    - Prioritize CHANGED code and recent commits; include non-changed files only when they materially alter risk
     - ID prefix must be SEC-
     - severity_counts must match the actual findings list
     - If no issues found, return empty findings with info-level summary
     - Output must be valid JSON
+    - Final response must be JSON only (no markdown, no prose, no code fences)
 
   expected_output: |
     "Security review complete: security_review.json written with [N] findings"

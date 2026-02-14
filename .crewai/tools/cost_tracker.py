@@ -3,6 +3,7 @@
 import atexit
 import logging
 import os
+import re
 import time
 from collections import defaultdict
 from dataclasses import dataclass
@@ -78,10 +79,22 @@ class CostTracker:
     def _infer_crew_from_task(self, task_name: str) -> str:
         """Infer crew name from task name."""
         task_lower = task_name.lower()
+
+        specialist_match = re.search(r"specialist[-_](?P<name>[a-z0-9_]+)", task_lower)
+        if specialist_match:
+            raw_name = specialist_match.group("name")
+            cleaned = raw_name
+            while True:
+                stripped = re.sub(r"(?:_local|_attempt_\d+)$", "", cleaned)
+                if stripped == cleaned:
+                    break
+                cleaned = stripped
+            cleaned = cleaned.replace("_", " ").replace("-", " ")
+            pretty = " ".join(part.capitalize() for part in cleaned.split())
+            return f"Specialist: {pretty}" if pretty else "Specialist"
+
         if "route" in task_lower or "router" in task_lower:
             return "Router"
-        elif "ci" in task_lower or "log" in task_lower:
-            return "CI Analysis"
         elif "quick" in task_lower:
             return "Quick Review"
         elif "full" in task_lower:
@@ -90,6 +103,8 @@ class CostTracker:
             return "Legal Review"
         elif "summary" in task_lower or "synthesize" in task_lower:
             return "Final Summary"
+        elif re.search(r"\bci\b", task_lower) or "parse_ci" in task_lower or "log" in task_lower:
+            return "CI Analysis"
         return "Unknown"
 
     def set_current_task(self, task_name: str):

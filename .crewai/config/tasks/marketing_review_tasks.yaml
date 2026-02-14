@@ -7,7 +7,16 @@ analyze_brand_copy:
 
     STEP 1: Read inputs
     - WorkspaceTool(operation="read", filename="diff.txt", content="")
+    - WorkspaceTool(operation="read", filename="context_pack.md", content="")
+      (if it exists)
     - WorkspaceTool(operation="read", filename="diff_context.json", content="")
+    - WorkspaceTool(operation="read", filename="changed_files_index.json", content="")
+      (if it exists)
+
+    STEP 1b: Selective GTM context gathering
+    - Use CommitInfoTool(commit_sha=<head sha>, repository=<repo>) to understand latest branch messaging intent
+    - Use RelatedFilesTool(changed_files=[...], repository=<workspace path>) to locate impacted user-facing flows
+    - Use FileContentTool(file_path=<target>, repository=<repo>, ref="HEAD") for targeted copy and UX validation
 
     STEP 2: Analyze brand and copy quality
     Focus on CHANGED user-facing text. Check for:
@@ -49,6 +58,8 @@ analyze_global_market:
 
     STEP 1: Read inputs
     - WorkspaceTool(operation="read", filename="diff.txt", content="")
+    - WorkspaceTool(operation="read", filename="context_pack.md", content="")
+      (if it exists)
     - WorkspaceTool(operation="read", filename="brand_analysis.json", content="")
 
     STEP 2: Analyze global market readiness
@@ -145,7 +156,9 @@ synthesize_marketing_review:
     - severity_counts MUST match actual findings list
     - Deduplicate across upstream analyses
     - Include affected regions in description
+    - Prioritize changed content and recent commits; include unchanged files only when needed to validate cross-page consistency
     - Output must be valid JSON
+    - Final response must be JSON only (no markdown, no prose, no code fences)
 
   expected_output: |
     "Marketing review synthesis complete: marketing_review.json written with [N] findings"

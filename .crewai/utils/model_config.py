@@ -32,28 +32,28 @@ class ModelConfig:
 
 # Available models - crews select from this list
 MODEL_REGISTRY = {
-    # Gemini 3 Flash Preview (User Requested)
+    # Gemini 3 Flash Preview
     "gemini-3-flash": ModelConfig(
         name="openrouter/google/gemini-2.0-flash-001",  # Maps to 2.0 Flash (closest equivalent)
         rpm_limit=60,
         context_window=1000000,
         rate_limit_delay=0,
     ),
-    # MiMo V2 Flash (NEW DEFAULT - testing for reliable function calling)
+    # MiMo V2 Flash
     "mimo-v2-flash": ModelConfig(
         name="openrouter/xiaomi/mimo-v2-flash",
         rpm_limit=60,
         context_window=1000000,
         rate_limit_delay=0,  # Paid tier - no delay needed
     ),
-    # Gemini 2.0 Flash (fallback - has intermittent MALFORMED_FUNCTION_CALL issues)
+    # Gemini 2.0 Flash
     "gemini-flash": ModelConfig(
         name="openrouter/google/gemini-2.0-flash-001",
         rpm_limit=60,
         context_window=1000000,
         rate_limit_delay=0,  # Paid tier - no delay needed
     ),
-    # Gemini 2.5 Flash Lite (fallback option)
+    # Gemini 2.5 Flash Lite (ultra-cheap default)
     "gemini-flash-lite": ModelConfig(
         name="openrouter/google/gemini-2.5-flash-lite",
         rpm_limit=60,
@@ -92,16 +92,8 @@ MODEL_REGISTRY = {
     ),
 }
 
-DEFAULT_MODEL_KEY = "gemini-3-flash"
+DEFAULT_MODEL_KEY = "gemini-flash-lite"
 FALLBACK_MODEL_KEY = "gemini-flash"
-
-NVIDIA_PRIMARY_MODEL_KEY = "kimi-k2-5-nvidia"
-MODEL_REGISTRY[NVIDIA_PRIMARY_MODEL_KEY] = ModelConfig(
-    name="nvidia_nim/moonshotai/kimi-k2.5",
-    rpm_limit=60,
-    context_window=262144,
-    rate_limit_delay=0,
-)
 
 
 class GlobalRateLimiter:
@@ -159,22 +151,8 @@ def get_rate_limiter() -> GlobalRateLimiter:
     return _rate_limiter
 
 
-def _get_nvidia_api_key() -> Optional[str]:
-    """Return NVIDIA API key from supported env var names."""
-    return os.getenv("NVIDIA_API_KEY") or os.getenv("NVIDIA_NIM_API_KEY")
-
-
 def _resolve_model_key(model_key: Optional[str] = None) -> str:
-    """Resolve effective model key with provider priority.
-
-    Priority:
-    1. NVIDIA_API_KEY / NVIDIA_NIM_API_KEY present -> force Kimi K2.5 on NVIDIA NIM
-    2. Explicit model_key argument
-    3. MODEL_KEY env var
-    4. DEFAULT_MODEL_KEY
-    """
-    if _get_nvidia_api_key():
-        return NVIDIA_PRIMARY_MODEL_KEY
+    """Resolve effective model key from explicit argument, env, or default."""
     return model_key or os.getenv("MODEL_KEY", DEFAULT_MODEL_KEY)
 
 
@@ -195,25 +173,9 @@ def get_llm(model_key: Optional[str] = None) -> LLM:
     config = MODEL_REGISTRY[model_key]
     get_rate_limiter().set_limit(config.rpm_limit)
 
-    nvidia_api_key = _get_nvidia_api_key()
-    if model_key == NVIDIA_PRIMARY_MODEL_KEY:
-        if not nvidia_api_key:
-            raise ValueError("NVIDIA_API_KEY (or NVIDIA_NIM_API_KEY) required for NVIDIA Kimi")
-
-        return LLM(
-            model=config.name,
-            api_key=nvidia_api_key,
-            base_url="https://integrate.api.nvidia.com/v1",
-            timeout=30,
-            num_retries=0,
-            extra_body={"enable_thinking": False},
-        )
-
     openrouter_api_key = os.getenv("OPENROUTER_API_KEY")
     if not openrouter_api_key:
-        raise ValueError(
-            "No LLM provider key found. Set NVIDIA_API_KEY (preferred) or OPENROUTER_API_KEY."
-        )
+        raise ValueError("OPENROUTER_API_KEY is required for CrewAI review runs.")
 
     return LLM(
         model=config.name,

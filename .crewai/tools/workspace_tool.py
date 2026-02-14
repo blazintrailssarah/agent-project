@@ -32,7 +32,7 @@ class WorkspaceToolInput(BaseModel):
 class WorkspaceTool(BaseTool):
     """Read/write shared workspace to minimize duplicate API calls."""
 
-    name: str = "Workspace Tool"
+    name: str = "WorkspaceTool"
     description: str = (
         "Read and write files to shared workspace. "
         "Use this to cache data fetched by other agents and avoid duplicate API calls. "
@@ -54,7 +54,6 @@ class WorkspaceTool(BaseTool):
         self.workspace_dir = self.workspace_dir.resolve()
         self.workspace_dir.mkdir(parents=True, exist_ok=True)
         self.trace_dir = self.workspace_dir / "trace"
-        self.trace_dir.mkdir(exist_ok=True)
         logger.info(f"📁 WorkspaceTool initialized: {self.workspace_dir}")
 
     def _run(self, operation: str, filename: str, content: Any = None) -> Any:

@@ -19,6 +19,8 @@ synthesize_summary:
     12. WorkspaceTool(operation="read", filename="science_review.json", content="")
     13. WorkspaceTool(operation="read", filename="government_regulatory_review.json", content="")
     14. WorkspaceTool(operation="read", filename="strategic_review.json", content="")
+    15. WorkspaceTool(operation="read", filename="data_engineering_review.json", content="")
+    16. WorkspaceTool(operation="read", filename="validation_report.json", content="")
 
     MARKDOWN STYLE RULES (from AGENTS.md / agentic/markdown_style_guide.md):
     You MUST follow these formatting rules in the output markdown:
@@ -42,6 +44,14 @@ synthesize_summary:
     _PR #{pr_number} · {sha} · {repository} · {time}_
 
     ---
+
+    EXECUTIVE SUMMARY (top-level, 2-4 sentences):
+    ## 🧭 Executive summary
+    Provide 2-4 actionable sentences that tell the reader:
+    - what happened in this run,
+    - what to read first next,
+    - what to do next.
+    Keep it concise and decision-oriented.
 
     PRIORITY ACTION ITEMS (always visible, top of document):
     ## 🎯 Priority action items
@@ -67,7 +77,7 @@ synthesize_summary:
 
     For each specialist crew that ran, add a section with its corresponding emoji:
     - 🛡️ Security | ⚖️ Legal | 💰 Finance | 📚 Documentation
-    - 🤖 Agentic | 📢 Marketing | 🔬 Science | 🏛️ Government | 📊 Strategy
+    - 🤖 Agentic | 📢 Marketing | 🔬 Science | 🏛️ Government | 📊 Strategy | 🗄️ Data engineering
 
     For each specialist section include:
     ### Summary

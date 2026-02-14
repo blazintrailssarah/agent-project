@@ -5,6 +5,8 @@ import logging
 from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 
+from tools.github_tools import CommitDiffTool, CommitInfoTool, FileContentTool
+from tools.related_files_tool import RelatedFilesTool
 from tools.workspace_tool import WorkspaceTool
 from utils.model_config import get_llm, get_rate_limiter
 
@@ -26,7 +28,13 @@ class LegalReviewCrew:
     def license_counsel(self) -> Agent:
         return Agent(
             config=self.agents_config["license_counsel"],
-            tools=[WorkspaceTool()],
+            tools=[
+                WorkspaceTool(),
+                FileContentTool,
+                RelatedFilesTool,
+                CommitInfoTool,
+                CommitDiffTool,
+            ],
             llm=self.llm,
             function_calling_llm=self.llm,
             max_iter=10,
@@ -38,7 +46,13 @@ class LegalReviewCrew:
     def us_regulatory_analyst(self) -> Agent:
         return Agent(
             config=self.agents_config["us_regulatory_analyst"],
-            tools=[WorkspaceTool()],
+            tools=[
+                WorkspaceTool(),
+                FileContentTool,
+                RelatedFilesTool,
+                CommitInfoTool,
+                CommitDiffTool,
+            ],
             llm=self.llm,
             function_calling_llm=self.llm,
             max_iter=12,
@@ -50,7 +64,13 @@ class LegalReviewCrew:
     def intl_trade_counsel(self) -> Agent:
         return Agent(
             config=self.agents_config["intl_trade_counsel"],
-            tools=[WorkspaceTool()],
+            tools=[
+                WorkspaceTool(),
+                FileContentTool,
+                RelatedFilesTool,
+                CommitInfoTool,
+                CommitDiffTool,
+            ],
             llm=self.llm,
             function_calling_llm=self.llm,
             max_iter=12,
@@ -62,7 +82,13 @@ class LegalReviewCrew:
     def global_privacy_counsel(self) -> Agent:
         return Agent(
             config=self.agents_config["global_privacy_counsel"],
-            tools=[WorkspaceTool()],
+            tools=[
+                WorkspaceTool(),
+                FileContentTool,
+                RelatedFilesTool,
+                CommitInfoTool,
+                CommitDiffTool,
+            ],
             llm=self.llm,
             function_calling_llm=self.llm,
             max_iter=10,
@@ -96,6 +122,7 @@ class LegalReviewCrew:
         return Task(
             config=self.tasks_config["synthesize_legal_review"],
             agent=self.global_privacy_counsel(),
+            output_file="legal_review.json",
         )
 
     @crew

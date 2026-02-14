@@ -1,4 +1,4 @@
-name: Check Documentation Links
+name: Test-Build / Docs Links
 
 on:
   workflow_call:
@@ -12,7 +12,8 @@ permissions:
   contents: read
 
 jobs:
-  run:
+  docs-links:
+    name: Execute Docs Link Checks
     runs-on: ubuntu-latest
     timeout-minutes: 10
 

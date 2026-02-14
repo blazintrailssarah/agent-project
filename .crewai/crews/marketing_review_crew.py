@@ -5,6 +5,8 @@ import logging
 from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 
+from tools.github_tools import CommitDiffTool, CommitInfoTool, FileContentTool
+from tools.related_files_tool import RelatedFilesTool
 from tools.workspace_tool import WorkspaceTool
 from utils.model_config import get_llm, get_rate_limiter
 
@@ -26,7 +28,13 @@ class MarketingReviewCrew:
     def brand_editor(self) -> Agent:
         return Agent(
             config=self.agents_config["brand_editor"],
-            tools=[WorkspaceTool()],
+            tools=[
+                WorkspaceTool(),
+                FileContentTool,
+                RelatedFilesTool,
+                CommitInfoTool,
+                CommitDiffTool,
+            ],
             llm=self.llm,
             function_calling_llm=self.llm,
             max_iter=10,
@@ -38,7 +46,13 @@ class MarketingReviewCrew:
     def global_market_strategist(self) -> Agent:
         return Agent(
             config=self.agents_config["global_market_strategist"],
-            tools=[WorkspaceTool()],
+            tools=[
+                WorkspaceTool(),
+                FileContentTool,
+                RelatedFilesTool,
+                CommitInfoTool,
+                CommitDiffTool,
+            ],
             llm=self.llm,
             function_calling_llm=self.llm,
             max_iter=12,
@@ -50,7 +64,13 @@ class MarketingReviewCrew:
     def growth_compliance_reviewer(self) -> Agent:
         return Agent(
             config=self.agents_config["growth_compliance_reviewer"],
-            tools=[WorkspaceTool()],
+            tools=[
+                WorkspaceTool(),
+                FileContentTool,
+                RelatedFilesTool,
+                CommitInfoTool,
+                CommitDiffTool,
+            ],
             llm=self.llm,
             function_calling_llm=self.llm,
             max_iter=10,
@@ -77,6 +97,7 @@ class MarketingReviewCrew:
         return Task(
             config=self.tasks_config["synthesize_marketing_review"],
             agent=self.growth_compliance_reviewer(),
+            output_file="marketing_review.json",
         )
 
     @crew

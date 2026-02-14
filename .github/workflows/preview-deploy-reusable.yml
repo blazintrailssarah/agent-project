@@ -1,4 +1,4 @@
-name: Deploy to Preview
+name: Deploy / Preview
 
 on:
   workflow_call:
@@ -22,10 +22,10 @@ on:
     outputs:
       deployment_url:
         description: 'URL of the preview deployment'
-        value: ${{ jobs.deploy.outputs.url }}
+        value: ${{ jobs.preview-deploy.outputs.url }}
       custom_domain_url:
         description: 'Custom domain URL for the preview'
-        value: ${{ jobs.deploy.outputs.custom_url }}
+        value: ${{ jobs.preview-deploy.outputs.custom_url }}
 
 permissions:
   contents: read
@@ -33,8 +33,8 @@ permissions:
   pull-requests: write
 
 jobs:
-  deploy:
-    name: Deploy Preview
+  preview-deploy:
+    name: Execute Preview Deployment
     runs-on: ubuntu-latest
     timeout-minutes: 10
     concurrency:

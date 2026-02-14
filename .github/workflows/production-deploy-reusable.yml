@@ -1,4 +1,4 @@
-name: Deploy to Production
+name: Deploy / Production
 
 on:
   workflow_call:
@@ -14,7 +14,7 @@ on:
     outputs:
       deployment_url:
         description: 'URL of the production deployment'
-        value: ${{ jobs.deploy.outputs.url }}
+        value: ${{ jobs.production-deploy.outputs.url }}
 
 permissions:
   contents: read
@@ -22,8 +22,8 @@ permissions:
   pull-requests: write
 
 jobs:
-  deploy:
-    name: Deploy Production
+  production-deploy:
+    name: Execute Production Deployment
     runs-on: ubuntu-latest
     timeout-minutes: 10
     concurrency:

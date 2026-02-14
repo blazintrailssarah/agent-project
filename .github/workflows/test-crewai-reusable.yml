@@ -1,4 +1,4 @@
-name: Test CrewAI
+name: Test-Build / CrewAI
 
 on:
   workflow_call:
@@ -13,7 +13,8 @@ permissions:
   pull-requests: write
 
 jobs:
-  run:
+  crewai-tests:
+    name: Execute CrewAI Tests
     runs-on: ubuntu-latest
     timeout-minutes: 10
 

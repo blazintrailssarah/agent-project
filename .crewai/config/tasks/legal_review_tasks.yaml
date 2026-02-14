@@ -7,7 +7,18 @@ analyze_oss_licenses:
 
     STEP 1: Read inputs
     - WorkspaceTool(operation="read", filename="diff.txt", content="")
+    - WorkspaceTool(operation="read", filename="context_pack.md", content="")
+      (if it exists)
+    - WorkspaceTool(operation="read", filename="scope.json", content="")
     - WorkspaceTool(operation="read", filename="diff_context.json", content="")
+    - WorkspaceTool(operation="read", filename="changed_files_index.json", content="")
+      (if it exists)
+
+    STEP 1b: Selective legal context gathering
+    - Use CommitInfoTool(commit_sha=<head sha>, repository=<repo>) to ground recent branch intent
+    - Use RelatedFilesTool(changed_files=[...], repository=<workspace path>) to find impacted policy/config/legal surfaces
+    - Use FileContentTool(file_path=<target>, repository=<repo>, ref="HEAD") for targeted evidence reads
+    - Use FileContentTool(file_path=<target>, repository=<repo>, ref=<merge_base>) only when baseline comparison changes legal risk
 
     STEP 2: Analyze OSS license compliance
     Focus on CHANGED files and dependency changes. Check for:
@@ -45,6 +56,9 @@ analyze_us_regulatory:
 
     STEP 1: Read inputs
     - WorkspaceTool(operation="read", filename="diff.txt", content="")
+    - WorkspaceTool(operation="read", filename="context_pack.md", content="")
+      (if it exists)
+    - WorkspaceTool(operation="read", filename="scope.json", content="")
     - WorkspaceTool(operation="read", filename="license_analysis.json", content="")
 
     STEP 2: Analyze US regulatory exposure
@@ -104,6 +118,9 @@ analyze_intl_trade:
 
     STEP 1: Read inputs
     - WorkspaceTool(operation="read", filename="diff.txt", content="")
+    - WorkspaceTool(operation="read", filename="context_pack.md", content="")
+      (if it exists)
+    - WorkspaceTool(operation="read", filename="scope.json", content="")
     - WorkspaceTool(operation="read", filename="license_analysis.json", content="")
     - WorkspaceTool(operation="read", filename="us_regulatory_analysis.json", content="")
 
@@ -211,8 +228,10 @@ synthesize_legal_review:
     - severity_counts MUST match actual findings list
     - Deduplicate: if same issue appears in OSS + privacy, merge into one finding
     - Include jurisdiction tags in description (e.g. "Affects: CA, EU, Brazil")
+    - Prioritize changed code and recent commits; include unchanged files only when needed for legal risk proof
     - Output must be valid JSON
     - If no legal issues found, return empty findings with info summary
+    - Final response must be JSON only (no markdown, no prose, no code fences)
 
   expected_output: |
     "Legal review synthesis complete: legal_review.json written with [N] findings"

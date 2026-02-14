@@ -3,7 +3,11 @@ parse_and_contextualize:
     YOU MUST READ THE DIFF AND COMMIT MESSAGES:
 
     STEP 1: Call WorkspaceTool(operation="read", filename="diff.txt", content="")
+    STEP 1b: Call WorkspaceTool(operation="read", filename="context_pack.md", content="")
+    (if it exists)
     STEP 2: Call WorkspaceTool(operation="read", filename="commit_messages.txt", content="")
+    STEP 3: Call WorkspaceTool(operation="read", filename="scope.json", content="")
+    (if it exists, use it to prioritize recent/near-HEAD changes)
     If commit_messages.txt is empty, try: WorkspaceTool(operation="read", filename="commits.json", content="")
 
     Apply smart diff sampling strategy:
