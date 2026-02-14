@@ -16,6 +16,10 @@ on:
         required: true
         type: string
     secrets:
+      NVIDIA_API_KEY:
+        required: false
+      NVIDIA_NIM_API_KEY:
+        required: false
       OPENROUTER_API_KEY:
         required: true
 
@@ -303,6 +307,8 @@ jobs:
           echo "PR_NUMBER=${{ inputs.pr_number }}" >> $GITHUB_ENV
           echo "COMMIT_SHA=${{ inputs.commit_sha }}" >> $GITHUB_ENV
           echo "CORE_CI_RESULT=${{ inputs.core_ci_result }}" >> $GITHUB_ENV
+          echo "NVIDIA_API_KEY=${{ secrets.NVIDIA_API_KEY }}" >> $GITHUB_ENV
+          echo "NVIDIA_NIM_API_KEY=${{ secrets.NVIDIA_NIM_API_KEY }}" >> $GITHUB_ENV
           echo "OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}" >> $GITHUB_ENV
           echo "GITHUB_REPOSITORY=${{ github.repository }}" >> $GITHUB_ENV
           echo "GITHUB_WORKSPACE=${{ github.workspace }}" >> $GITHUB_ENV

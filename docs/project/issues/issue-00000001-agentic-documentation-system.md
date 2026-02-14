@@ -1,16 +1,16 @@
 # Issue-00000001: Create Agent-Optimized Documentation System
 
-| Field              | Value                                                  |
-| ------------------ | ------------------------------------------------------ |
-| **Issue**          | [#1](https://github.com/borealBytes/opencode/issues/1) |
-| **Type**           | ✨ Feature request                                     |
-| **Priority**       | P1                                                     |
-| **Requester**      | Human                                                  |
-| **Assignee**       | Human + AI agents                                      |
-| **Date requested** | 2026-02-13                                             |
-| **Status**         | In progress                                            |
-| **Target release** | Sprint W07 2026                                        |
-| **Shipped in**     | [PR-#1](../pr/pr-00000001.md) (in progress)            |
+| Field              | Value                                                                               |
+| ------------------ | ----------------------------------------------------------------------------------- |
+| **Issue**          | [#1](https://github.com/borealBytes/opencode/issues/1)                              |
+| **Type**           | ✨ Feature request                                                                  |
+| **Priority**       | P1                                                                                  |
+| **Requester**      | Human                                                                               |
+| **Assignee**       | Human + AI agents                                                                   |
+| **Date requested** | 2026-02-13                                                                          |
+| **Status**         | In progress                                                                         |
+| **Target release** | Sprint W07 2026                                                                     |
+| **Shipped in**     | [PR-#1](../pr/pr-00000001-agentic-docs-and-monorepo-modernization.md) (in progress) |
 
 ---
 
@@ -51,7 +51,7 @@ The feature is complete when:
 - [x] Kanban template includes aging indicators, flow efficiency, and lead time metrics
 - [x] "Everything is Code" philosophy section added to markdown style guide
 - [x] Philosophy woven into PR, issue, and kanban template introductions
-- [x] Filled example files in `docs/pr/`, `docs/issues/`, `docs/kanban/` using real project data
+- [x] Filled example files in `docs/project/pr/`, `docs/project/issues/`, `docs/project/kanban/` using real project data
 - [ ] All Mermaid diagrams verified rendering on GitHub (light + dark mode)
 - [ ] Files merged to main branch
 - [x] All 10 legacy agentic files rewritten/cleaned (no Merge/Perplexity/Cloudflare references)
@@ -64,8 +64,23 @@ The feature is complete when:
 - [x] Root scaffolding added for `notebooks/` and `src/` with README files
 - [x] Idempotent script guide added at `agentic/idempotent_design_patterns.md`
 - [x] Read-in paths updated to include idempotent standards and new directories
-- [x] End-to-end `./scripts/ci-local.sh --review` rerun captured as successful after latest fixes (CI passes; LLM output limited by external OpenRouter credit availability)
+- [x] End-to-end `./scripts/ci-local.sh --review` rerun captured as successful after latest fixes (CI passes with NVIDIA error surfacing and OpenRouter fallback)
+- [x] Full local `./scripts/ci-local.sh --review` pipeline passes after markdownlint workspace exclusion fix
+- [x] Local pricing/cost audit now shows non-empty per-call breakdown when LLM call succeeds
+- [x] `AGENTS.md` now includes mandatory task-completion gate for PR/issue/kanban sync and ADR evaluation
+- [x] ADR-004 created to formalize source-of-truth synchronization at task completion
+- [x] `AGENTS.md` now enforces a live progress sync loop (before implementation, per milestone, and before/after verification)
+- [x] `agentic/workflow_guide.md` and `agentic/agentic_coding.md` updated to require continuous PR/issue/kanban updates during execution
+- [x] AGENTS-referenced docs now require local `./scripts/ci-local.sh` before commit/push when environment supports it
+- [x] Added explicit exception path: if local CI cannot run (hosted/missing env), skip reason must be documented in PR/issue files
+- [x] NVIDIA timeout path now surfaces explicit error text and faster primary timeout window before fallback
+- [x] Full `./scripts/ci-local.sh --review` remains green after NVIDIA handling updates
+- [x] Local quick-review now runs three reviewer passes with per-pass summaries in the final output
+- [x] Local terminal pricing/cost panel now renders an aligned fixed-width table for readability
+- [x] Frontend app moved from `website/` to `apps/web/` and CI/deploy paths updated to match
+- [x] Monorepo scaffold expanded with `apps/`, `services/`, `packages/`, and `data/sql/` workspaces
 - [ ] Latest uncommitted work committed and pushed
+- [ ] NVIDIA-first review path produces consistently successful quick-review findings without timeout fallback
 
 ---
 
@@ -95,15 +110,15 @@ flowchart TB
         mdsg -->|links to| msg
     end
 
-    subgraph docs["📂 docs/"]
+    subgraph docs["📂 docs/project/"]
         subgraph pr_dir["📂 pr/"]
-            pr_ex["pr-00000001.md"]
+        pr_ex["pr-00000001-agentic-docs-and-monorepo-modernization.md"]
         end
         subgraph iss_dir["📂 issues/"]
-            iss_ex["issue-00000001.md"]
+            iss_ex["issue-00000001-agentic-documentation-system.md"]
         end
         subgraph kan_dir["📂 kanban/"]
-            kan_ex["sprint-2026-w07.md"]
+            kan_ex["sprint-2026-w07-agentic-template-modernization.md"]
         end
     end
 
@@ -165,11 +180,20 @@ flowchart TB
 | **Effort estimate** | L — 36+ new files across two style guides, 9 templates, 23 diagram types, 3 examples       |
 | **Dependencies**    | None — self-contained documentation system                                                 |
 
-### Current execution status (2026-02-13)
+### Current execution status (2026-02-14)
 
-- **Completed now:** review pipeline fixes, root scaffolding (`notebooks/`, `src/`), idempotent design standards, and read-in wiring updates
-- **Remaining now:** commit/push and merge
-- **Risk level:** low; review path executes end-to-end, with external-credit dependency for full model output
+- **Completed now:** review pipeline fixes, root scaffolding (`notebooks/`, `src/`), idempotent design standards, AGENTS live-sync governance, and markdownlint workspace-lint exclusion
+- **Completed now:** quick-review depth/output improvements (3-pass local quick-review, reviewer pass summaries, and aligned local pricing table)
+- **Completed now:** monorepo workspace modernization for polyglot development (`apps/web`, backend/service/package/sql scaffold)
+- **Completed now:** CI workflow regrouped into stage-gated orchestration (`validate` -> `test-build` -> `deploy` -> `crewai-review` last)
+- **Completed now:** local parity check rerun after CI regrouping (`./scripts/ci-local.sh --review`) with expected local deploy skips and preserved review behavior
+- **Completed now:** CI architecture README render issue resolved (quoted Mermaid node label), and phase names normalized to Validate/Test/Build/Deploy/CrewAI Review terminology
+- **Completed now:** CI concurrency and phase-gate clarity hardening (explicit gate dependency arrows in architecture docs + workflow/job concurrency controls for CI and deploy paths)
+- **Completed now:** post-hardening local parity rerun (`./scripts/ci-local.sh --review`) confirmed phase behavior and deploy skips still match local policy
+- **Completed now:** local Phase-1 commitlint UX fix removed `ELIFECYCLE` lifecycle noise while preserving commit-message-style warnings
+- **Completed now:** full local parity rerun after the commitlint UX fix still passes all phase gates (`./scripts/ci-local.sh --review`) with deterministic NVIDIA timeout failover to OpenRouter
+- **Remaining now:** commit/push, GitHub Mermaid rendering verification, and NVIDIA primary quick-review stability hardening (timeouts still intermittent)
+- **Risk level:** low; end-to-end review path is stable with deterministic failover, but NVIDIA primary success remains intermittent
 
 ### Success metrics
 
@@ -184,9 +208,15 @@ flowchart TB
 - [Mermaid Style Guide](../../agentic/mermaid_style_guide.md)
 - [Markdown Style Guide](../../agentic/markdown_style_guide.md)
 - [Idempotent script design patterns](../../agentic/idempotent_design_patterns.md)
-- [PR-#1: Agentic documentation system + repo cleanup](../pr/pr-00000001.md)
-- [Sprint board](../kanban/sprint-2026-w07.md)
+- [ADR-004: Mandatory source-of-truth sync at task completion](../../agentic/adr/ADR-004-task-completion-source-of-truth-sync.md)
+- [ADR-005: Polyglot monorepo workspace layout](../../agentic/adr/ADR-005-polyglot-monorepo-workspace-layout.md)
+- [ADR-006: Federated ADR governance](../../agentic/adr/ADR-006-federated-adr-governance.md)
+- [ADR-007: Monorepo foundation and decision baseline](../../agentic/adr/ADR-007-monorepo-foundation-and-decision-baseline.md)
+- [CrewAI ADR index](../../.crewai/adr/README.md)
+- [PR-#1: Agentic documentation system + repo cleanup](../pr/pr-00000001-agentic-docs-and-monorepo-modernization.md)
+- [Sprint board](../kanban/sprint-2026-w07-agentic-template-modernization.md)
+- [Issue-#2: Provider priority + fail-fast + local pricing visibility](issue-00000002-provider-priority-fail-fast-review-cost-visibility.md)
 
 ---
 
-_Last updated: 2026-02-13 18:50_
+_Last updated: 2026-02-14 13:08 EST_

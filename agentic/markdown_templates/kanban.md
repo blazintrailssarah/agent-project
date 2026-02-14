@@ -17,13 +17,13 @@ When archived, the board becomes the historical record of what was worked on, wh
 ## File Convention
 
 ```
-docs/kanban/sprint-2026-w07.md       # Sprint-based boards
-docs/kanban/release-v2.3.0.md        # Release-based boards
-docs/kanban/project-auth-migration.md # Project-based boards
+docs/project/kanban/sprint-2026-w07-agentic-template-modernization.md
+docs/project/kanban/release-v2.3.0-launch-readiness.md
+docs/project/kanban/project-auth-migration-phase-1.md
 ```
 
-- **Directory:** `docs/kanban/`
-- **Naming:** Prefix with the board scope (`sprint-`, `release-`, `project-`) + identifier
+- **Directory:** `docs/project/kanban/`
+- **Naming:** Prefix with board scope (`sprint-`, `release-`, `project-`) + identifier + short lowercase hyphenated description
 - **Archiving:** When a board is complete, keep it in place — it becomes the historical record
 
 ---
@@ -109,9 +109,9 @@ _Prioritized top-to-bottom. Top items are next to be pulled._
 
 ## 🔍 In Review
 
-| Item        | Author   | Reviewer | PR                           | Days in review | Aging | Status                                           |
-| ----------- | -------- | -------- | ---------------------------- | -------------- | ----- | ------------------------------------------------ |
-| [Work item] | [Person] | [Person] | [#NNN](../pr/pr-00000000.md) | [N]            | 🟢    | [Awaiting review / Changes requested / Approved] |
+| Item        | Author   | Reviewer | PR                                             | Days in review | Aging | Status                                           |
+| ----------- | -------- | -------- | ---------------------------------------------- | -------------- | ----- | ------------------------------------------------ |
+| [Work item] | [Person] | [Person] | [#NNN](../pr/pr-00000000-short-description.md) | [N]            | 🟢    | [Awaiting review / Changes requested / Approved] |
 
 ---
 
@@ -119,10 +119,10 @@ _Prioritized top-to-bottom. Top items are next to be pulled._
 
 _Completed this period._
 
-| Item        | Assignee | Completed | Cycle time | PR                           |
-| ----------- | -------- | --------- | ---------- | ---------------------------- |
-| [Work item] | [Person] | [Date]    | [N days]   | [#NNN](../pr/pr-00000000.md) |
-| [Work item] | [Person] | [Date]    | [N days]   | [#NNN](../pr/pr-00000000.md) |
+| Item        | Assignee | Completed | Cycle time | PR                                             |
+| ----------- | -------- | --------- | ---------- | ---------------------------------------------- |
+| [Work item] | [Person] | [Date]    | [N days]   | [#NNN](../pr/pr-00000000-short-description.md) |
+| [Work item] | [Person] | [Date]    | [N days]   | [#NNN](../pr/pr-00000000-short-description.md) |
 
 ---
 

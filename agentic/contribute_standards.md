@@ -325,25 +325,26 @@ For comprehensive formatting rules, see [markdown_style_guide.md](markdown_style
 
 ## 📝 File-based PR management
 
-This framework uses a **file-based PR tracking system** following the [Everything is Code](markdown_style_guide.md#-everything-is-code) philosophy. Every pull request has a corresponding markdown file in `docs/pr/`.
+This framework uses a **file-based PR tracking system** following the [Everything is Code](markdown_style_guide.md#-everything-is-code) philosophy. Every pull request has a corresponding markdown file in `docs/project/pr/`.
 
 ### Why file-based?
 
 - ✅ **Everything is code** — version controlled, searchable, agent-readable
 - ✅ **Single source of truth** — PR description links to file, not duplicated
-- ✅ **Historical record** — all merged PRs preserved forever in `docs/pr/`
+- ✅ **Historical record** — all merged PRs preserved forever in `docs/project/pr/`
 - ✅ **Agent-native** — agents read files locally, no API needed
 - ✅ **Portable** — GitHub → GitLab → Gitea, your PR history comes with you
 
 ### PR file naming convention
 
-Format: `docs/pr/pr-NNNNNNNN.md`
+Format: `docs/project/pr/pr-NNNNNNNN-short-description.md`
 
 - **Zero-padded 8-digit numbering:** `00000001`, `00000002`, `00000003`...
+- **Append a clear slug:** short lowercase hyphenated description after the number
 - **Examples:**
-  - `docs/pr/pr-00000001.md` ✓
-  - `docs/pr/pr-00000042.md` ✓
-  - `docs/pr/42-fix-bug.md` ✗ (wrong format)
+  - `docs/project/pr/pr-00000001-agentic-docs-and-monorepo-modernization.md` ✓
+  - `docs/project/pr/pr-00000042-fix-preview-deploy-timeout.md` ✓
+  - `docs/project/pr/42-fix-bug.md` ✗ (wrong format)
 
 Use the [PR template](markdown_templates/pull_request.md) for structure.
 
@@ -352,23 +353,25 @@ Use the [PR template](markdown_templates/pull_request.md) for structure.
 When creating the GitHub PR:
 
 1. **Title:** Scoped Conventional Commits format — `type(scope): description`
-2. **Description:** Link ONLY to the PR file — do NOT duplicate content
+2. **Description:** Include ONLY the full branch URL to the PR record file — do NOT duplicate content
+   - Format: `https://github.com/<org>/<repo>/blob/<branch>/docs/project/pr/pr-NNNNNNNN-short-description.md`
 3. **The file is the single source of truth** — all details, changes, and decisions live there
 
 ### Directory structure
 
 ```text
 docs/
-├── pr/                    # Pull request records
-│   ├── pr-00000001.md
-│   ├── pr-00000002.md
-│   └── ...
-├── issues/                # Issue records
-│   ├── issue-00000001.md
-│   └── ...
-└── kanban/                # Sprint/project boards
-    ├── sprint-2026-w07.md
-    └── ...
+└── project/
+    ├── pr/                # Pull request records
+    │   ├── pr-00000001-agentic-docs-and-monorepo-modernization.md
+    │   ├── pr-00000002-fix-preview-timeout.md
+    │   └── ...
+    ├── issues/            # Issue records
+    │   ├── issue-00000001-agentic-documentation-system.md
+    │   └── ...
+    └── kanban/            # Sprint/project boards
+        ├── sprint-2026-w07-agentic-template-modernization.md
+        └── ...
 ```
 
 ### Agent workflow for PRs
@@ -377,9 +380,9 @@ docs/
 
 1. Create branch with descriptive name
 2. Make code changes
-3. Create `docs/pr/pr-NNNNNNNN.md` using the [PR template](markdown_templates/pull_request.md)
+3. Create `docs/project/pr/pr-NNNNNNNN-short-description.md` using the [PR template](markdown_templates/pull_request.md)
 4. Push branch
-5. Create GitHub PR linking to the file
+5. Create GitHub PR with body set to only the full branch URL to the PR record file
 6. Mark as Draft for design review
 
 **When reviewing a PR:**
@@ -503,6 +506,9 @@ For projects using monorepo structure:
 ## 🤐 CI/CD and quality gates
 
 All repos should implement automated quality checks on every commit:
+
+- **Local pre-push CI run** — if the repo provides `./scripts/ci-local.sh`, run it before commit/push unless explicitly instructed not to
+- **Environment exception handling** — if local CI cannot run in the current environment (missing secrets/tools or hosted runner constraints), document the skip reason in PR/issue records and proceed with available checks
 
 - **Formatting** — code style consistency (e.g., Prettier, Black)
 - **Linting** — code quality rules (e.g., ESLint, Ruff)

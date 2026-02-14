@@ -92,10 +92,16 @@ MODEL_REGISTRY = {
     ),
 }
 
-DEFAULT_MODEL_KEY = (
-    "gemini-3-flash"  # User requested Gemini 3 Flash Preview (mapped to reliable Gemini 2.0 Flash)
+DEFAULT_MODEL_KEY = "gemini-3-flash"
+FALLBACK_MODEL_KEY = "gemini-flash"
+
+NVIDIA_PRIMARY_MODEL_KEY = "kimi-k2-5-nvidia"
+MODEL_REGISTRY[NVIDIA_PRIMARY_MODEL_KEY] = ModelConfig(
+    name="nvidia_nim/moonshotai/kimi-k2.5",
+    rpm_limit=60,
+    context_window=262144,
+    rate_limit_delay=0,
 )
-FALLBACK_MODEL_KEY = "gemini-flash"  # Gemini as fallback
 
 
 class GlobalRateLimiter:
@@ -153,6 +159,25 @@ def get_rate_limiter() -> GlobalRateLimiter:
     return _rate_limiter
 
 
+def _get_nvidia_api_key() -> Optional[str]:
+    """Return NVIDIA API key from supported env var names."""
+    return os.getenv("NVIDIA_API_KEY") or os.getenv("NVIDIA_NIM_API_KEY")
+
+
+def _resolve_model_key(model_key: Optional[str] = None) -> str:
+    """Resolve effective model key with provider priority.
+
+    Priority:
+    1. NVIDIA_API_KEY / NVIDIA_NIM_API_KEY present -> force Kimi K2.5 on NVIDIA NIM
+    2. Explicit model_key argument
+    3. MODEL_KEY env var
+    4. DEFAULT_MODEL_KEY
+    """
+    if _get_nvidia_api_key():
+        return NVIDIA_PRIMARY_MODEL_KEY
+    return model_key or os.getenv("MODEL_KEY", DEFAULT_MODEL_KEY)
+
+
 def get_llm(model_key: Optional[str] = None) -> LLM:
     """Get a configured LLM instance.
 
@@ -162,7 +187,7 @@ def get_llm(model_key: Optional[str] = None) -> LLM:
     Returns:
         Configured CrewAI LLM instance
     """
-    model_key = model_key or os.getenv("MODEL_KEY", DEFAULT_MODEL_KEY)
+    model_key = _resolve_model_key(model_key)
 
     if model_key not in MODEL_REGISTRY:
         raise ValueError(f"Unknown model: {model_key}. Available: {list(MODEL_REGISTRY.keys())}")
@@ -170,16 +195,32 @@ def get_llm(model_key: Optional[str] = None) -> LLM:
     config = MODEL_REGISTRY[model_key]
     get_rate_limiter().set_limit(config.rpm_limit)
 
-    api_key = os.getenv("OPENROUTER_API_KEY")
-    if not api_key:
-        raise ValueError("OPENROUTER_API_KEY required")
+    nvidia_api_key = _get_nvidia_api_key()
+    if model_key == NVIDIA_PRIMARY_MODEL_KEY:
+        if not nvidia_api_key:
+            raise ValueError("NVIDIA_API_KEY (or NVIDIA_NIM_API_KEY) required for NVIDIA Kimi")
+
+        return LLM(
+            model=config.name,
+            api_key=nvidia_api_key,
+            base_url="https://integrate.api.nvidia.com/v1",
+            timeout=30,
+            num_retries=0,
+            extra_body={"enable_thinking": False},
+        )
+
+    openrouter_api_key = os.getenv("OPENROUTER_API_KEY")
+    if not openrouter_api_key:
+        raise ValueError(
+            "No LLM provider key found. Set NVIDIA_API_KEY (preferred) or OPENROUTER_API_KEY."
+        )
 
     return LLM(
         model=config.name,
-        api_key=api_key,
+        api_key=openrouter_api_key,
         base_url="https://openrouter.ai/api/v1",
-        timeout=120,  # 120 second timeout for slow responses
-        num_retries=3,  # Retry transient failures
+        timeout=30,
+        num_retries=0,
         extra_headers={
             # CUSTOMIZE: Update these to your GitHub repo URL and project name
             "HTTP-Referer": os.getenv(
@@ -192,7 +233,7 @@ def get_llm(model_key: Optional[str] = None) -> LLM:
 
 def get_model_config(model_key: Optional[str] = None) -> ModelConfig:
     """Get model configuration without creating LLM instance."""
-    model_key = model_key or os.getenv("MODEL_KEY", DEFAULT_MODEL_KEY)
+    model_key = _resolve_model_key(model_key)
     config = MODEL_REGISTRY.get(model_key)
     if not config:
         raise ValueError(f"Unknown model: {model_key}. Available: {list(MODEL_REGISTRY.keys())}")
@@ -206,7 +247,7 @@ def get_rate_limit_delay() -> int:
         int: Seconds to wait between crew executions (0 for paid, 10 for free)
     """
     config = get_model_config()
-    return config.rate_limit_delay
+    return config.rate_limit_delay if config.rate_limit_delay is not None else 0
 
 
 def register_models():

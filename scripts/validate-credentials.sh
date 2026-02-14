@@ -159,14 +159,39 @@ validate_google() {
   add_row "" "Allowed Emails" "Secret" "${ALLOWED_EMAILS:+$email_count email(s)}" "$emails_status"
 }
 
-validate_openrouter() {
+validate_ai_provider_keys() {
+  local nvidia_status=""
   local openrouter_status=""
 
   echo ""
-  echo "=== Validating OpenRouter Credentials ==="
+  echo "=== Validating AI Provider Credentials ==="
+
+  if [ -z "${NVIDIA_API_KEY:-}" ] && [ -z "${NVIDIA_NIM_API_KEY:-}" ]; then
+    log_warn "NVIDIA_API_KEY not set (preferred for CrewAI review)"
+    nvidia_status="⚠️ Not Set"
+  else
+    local nvidia_key="${NVIDIA_API_KEY:-${NVIDIA_NIM_API_KEY:-}}"
+    log_info "NVIDIA API key is set"
+
+    NIM_MODELS_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
+      -H "Authorization: Bearer $nvidia_key" \
+      "https://integrate.api.nvidia.com/v1/models" 2>/dev/null || echo "000")
+
+    if [ "$NIM_MODELS_RESPONSE" = "200" ]; then
+      log_info "NVIDIA API key verified (models endpoint accessible)"
+      nvidia_status="✅ Valid"
+    elif [ "$NIM_MODELS_RESPONSE" = "401" ]; then
+      log_error "NVIDIA API key is invalid (401 Unauthorized)"
+      nvidia_status="❌ Invalid"
+      OVERALL_RESULT=1
+    else
+      log_warn "NVIDIA API returned HTTP $NIM_MODELS_RESPONSE"
+      nvidia_status="⚠️ HTTP $NIM_MODELS_RESPONSE"
+    fi
+  fi
 
   if [ -z "${OPENROUTER_API_KEY:-}" ]; then
-    log_warn "OPENROUTER_API_KEY not set (needed for CrewAI review)"
+    log_warn "OPENROUTER_API_KEY not set (used as fallback)"
     openrouter_status="⚠️ Not Set"
   else
     log_info "OPENROUTER_API_KEY is set"
@@ -188,6 +213,7 @@ validate_openrouter() {
     fi
   fi
 
+  add_row "**NVIDIA NIM**" "API Key" "Secret" "${NVIDIA_API_KEY:+${NVIDIA_API_KEY:0:12}•••}${NVIDIA_NIM_API_KEY:+${NVIDIA_NIM_API_KEY:0:12}•••}" "$nvidia_status"
   add_row "**OpenRouter**" "API Key" "Secret" "${OPENROUTER_API_KEY:+${OPENROUTER_API_KEY:0:12}•••}" "$openrouter_status"
 }
 
@@ -220,7 +246,7 @@ echo ""
 
 validate_cloudflare
 validate_google
-validate_openrouter
+validate_ai_provider_keys
 validate_optional
 
 cat >> "$SUMMARY_FILE" << 'EOF'
@@ -242,6 +268,7 @@ cat >> "$SUMMARY_FILE" << 'EOF'
 
 - **Cloudflare**: Verified via wrangler CLI and account access API
 - **Google OAuth**: Verified via OAuth2 token endpoint (400 = creds valid, 401 = creds invalid)
+- **NVIDIA NIM**: Verified via models endpoint (200 = key valid)
 - **OpenRouter**: Verified via models endpoint (200 = key valid)
 
 </details>
@@ -253,9 +280,10 @@ cat >> "$SUMMARY_FILE" << 'EOF'
 
 1. **Cloudflare**: Regenerate at [dash.cloudflare.com/profile/api-tokens](https://dash.cloudflare.com/profile/api-tokens)
 2. **Google OAuth**: Update at [console.cloud.google.com/apis/credentials](https://console.cloud.google.com/apis/credentials)
-3. **OpenRouter**: Regenerate at [openrouter.ai/keys](https://openrouter.ai/keys)
-4. **Allowed Emails**: Update the `ALLOWED_EMAILS` secret with comma-separated addresses
-5. Update secrets in repo: Settings → Secrets and variables → Actions
+3. **NVIDIA NIM**: Regenerate at [build.nvidia.com/moonshotai/kimi-k2.5](https://build.nvidia.com/moonshotai/kimi-k2.5)
+4. **OpenRouter**: Regenerate at [openrouter.ai/keys](https://openrouter.ai/keys)
+5. **Allowed Emails**: Update the `ALLOWED_EMAILS` secret with comma-separated addresses
+6. Update secrets in repo: Settings → Secrets and variables → Actions
 
 </details>
 EOF

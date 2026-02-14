@@ -8,7 +8,7 @@
 
 **Philosophy:** This file IS the PR description — not a companion, not a supplement, not a copy. The GitHub PR is a thin pointer: humans go there to comment on diffs, approve, and watch CI. But the actual record — what changed, why it changed, testing evidence, rollback plan, and lessons learned — lives HERE, committed to the repo.
 
-When someone asks "what was PR #123 about?" six months from now, they `grep docs/pr/`, not the GitHub API. When you migrate from GitHub to GitLab, every PR record comes with you. When an AI agent needs to understand the history of a module, it reads these files locally — no tokens, no rate limits, no platform dependency.
+When someone asks "what was PR #123 about?" six months from now, they `grep docs/project/pr/`, not the GitHub API. When you migrate from GitHub to GitLab, every PR record comes with you. When an AI agent needs to understand the history of a module, it reads these files locally — no tokens, no rate limits, no platform dependency.
 
 This is the [Everything is Code](../markdown_style_guide.md#-everything-is-code) philosophy: project management data lives in the repo, versioned and portable. Don't capture information in GitHub's UI that should be captured in this file. Invest the 10 minutes. A great PR file eliminates the "what was this PR about?" Slack message and the "can someone check the GitHub PR?" context switch — the answer is already in the repo.
 
@@ -17,14 +17,15 @@ This is the [Everything is Code](../markdown_style_guide.md#-everything-is-code)
 ## File Convention
 
 ```
-docs/pr/pr-00000123.md      # PR number, zero-padded to 8 digits
-docs/pr/pr-00000124.md
-docs/pr/pr-00000125.md
+docs/project/pr/pr-00000123-fix-auth-timeout.md
+docs/project/pr/pr-00000124-add-job-retry-metrics.md
+docs/project/pr/pr-00000125-refactor-ci-stage-order.md
 ```
 
-- **Directory:** `docs/pr/`
-- **Naming:** `pr-` + PR number zero-padded to 8 digits
+- **Directory:** `docs/project/pr/`
+- **Naming:** `pr-` + PR number zero-padded to 8 digits + `-` + short lowercase hyphenated description
 - **Cross-reference:** Link to the live PR in the metadata table
+- **GitHub PR body:** Use only the full branch URL to this file (for example, `https://github.com/<org>/<repo>/blob/<branch>/docs/project/pr/pr-00000123-fix-auth-timeout.md`)
 
 ---
 
@@ -36,15 +37,15 @@ Everything below the line is the template. Copy from here:
 
 # PR-[NUMBER]: [Concise Title — What This Changes]
 
-| Field               | Value                                                                         |
-| ------------------- | ----------------------------------------------------------------------------- |
-| **PR**              | [#NUMBER](https://github.com/org/repo/pull/NUMBER)                            |
-| **Author**          | [Name]                                                                        |
-| **Date**            | [YYYY-MM-DD]                                                                  |
-| **Status**          | [Open / Merged / Closed]                                                      |
-| **Branch**          | `[feature/branch-name]` → `main`                                              |
-| **Related issues**  | [#ISSUE](../issues/issue-00000000.md), [#ISSUE2](../issues/issue-00000000.md) |
-| **Deploy strategy** | [Standard / Canary / Blue-green / Feature flag]                               |
+| Field               | Value                                                                                                             |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| **PR**              | [#NUMBER](https://github.com/org/repo/pull/NUMBER)                                                                |
+| **Author**          | [Name]                                                                                                            |
+| **Date**            | [YYYY-MM-DD]                                                                                                      |
+| **Status**          | [Open / Merged / Closed]                                                                                          |
+| **Branch**          | `[feature/branch-name]` → `main`                                                                                  |
+| **Related issues**  | [#ISSUE](../issues/issue-00000000-short-description.md), [#ISSUE2](../issues/issue-00000000-short-description.md) |
+| **Deploy strategy** | [Standard / Canary / Blue-green / Feature flag]                                                                   |
 
 ---
 
@@ -308,7 +309,7 @@ git revert [commit-sha]
 ## 🔗 References
 
 - [Design document or ADR](../decisions/NNN-decision.md)
-- [Related issue](../issues/issue-00000000.md)
+- [Related issue](../issues/issue-00000000-short-description.md)
 - [Relevant documentation](https://example.com)
 
 ---

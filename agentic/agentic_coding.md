@@ -59,14 +59,23 @@
 
 ### Pull requests
 
-- ✅ Create PR record file in `docs/pr/pr-NNNNNNNN.md` using the [PR template](markdown_templates/pull_request.md)
-- ✅ GitHub PR description links ONLY to the file (single source of truth)
+- ✅ Create PR record file in `docs/project/pr/pr-NNNNNNNN-short-description.md` using the [PR template](markdown_templates/pull_request.md)
+- ✅ GitHub PR description contains ONLY the full branch URL to the file (single source of truth)
 - ✅ Write comprehensive PR documentation: what changed, why, and how tested
 - ✅ Include links to related issues, ADRs, or docs
 - ✅ Keep PR file updated as work progresses (living document)
+- ✅ Keep issue file(s) and kanban board updated as work progresses (living records)
 - ✅ Mark GitHub PR as **Draft** initially for design review
 - ✅ Update PR status as work progresses (see workflow steps 8–10 below)
 - ✅ Only move to **Ready for Review** after explicit human confirmation (see step 10)
+
+### Source-of-truth progress tracking
+
+- ✅ Before implementation begins, update PR/issue/kanban files with scope and `in progress` state
+- ✅ Before editing implementation files, ensure tracking files match planned edits
+- ✅ After each logical milestone, update PR/issue/kanban with decisions, blockers, and progress
+- ✅ Before running tests, record planned validation in PR/issue/kanban
+- ✅ After tests, record pass/fail evidence and next actions in PR/issue/kanban
 
 ### Responding to feedback
 
@@ -80,6 +89,8 @@
 ### Quality gates and local validation
 
 - ✅ Run tests locally before pushing
+- ✅ Run `./scripts/ci-local.sh` before commit/push when available in this repo
+- ✅ If local CI cannot run (missing local env/secrets/tools), record the reason in PR/issue and run the checks that are available
 - ✅ Fix lint/format errors
 - ✅ Respond to CI failures
 - ✅ Verify build passes
@@ -201,11 +212,11 @@ These actions are **absolutely off-limits** for you as an agent:
     - Goal: Get feedback on approach BEFORE implementing
 
  4. YOU CREATE DRAFT PR
-    - Create PR record: docs/pr/pr-NNNNNNNN.md
+- Create PR record: docs/project/pr/pr-NNNNNNNN-short-description.md
       * Use the PR template from markdown_templates/pull_request.md
       * Include: Summary, changes, checklist, related docs
     - PR title: "feat(search): implement product search"
-    - PR description links ONLY to the PR file (single source of truth)
+    - PR description contains ONLY the full branch URL to the PR file (single source of truth)
     - Mark as DRAFT (not Ready for Review)
 
  5. HUMAN REVIEWS DESIGN
@@ -230,8 +241,8 @@ These actions are **absolutely off-limits** for you as an agent:
     $ {package-manager} test
     $ {package-manager} run build
 
- 8. YOU UPDATE PR STATUS
-    - Update PR file with progress checklist:
+  8. YOU UPDATE SOURCE-OF-TRUTH FILES CONTINUOUSLY
+    - Update PR/issue/kanban files with progress checklist:
       * ✅ Design review completed
       * ✅ Implementation complete
       * ✅ All tests passing

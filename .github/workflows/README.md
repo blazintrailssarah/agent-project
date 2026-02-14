@@ -2,48 +2,57 @@
 
 > **Simplified, phase-based orchestration with environment validation**
 
+> **For AI agents:** read [../../AGENTS.md](../../AGENTS.md) first, then use this guide for CI-specific implementation details.
+
 ## 📊 Architecture Overview
 
 ```mermaid
 graph TD
     A[Pull Request / Push] --> B[ci.yml]
-    B --> C[Phase 1: Validation & Core CI]
+    B --> C[Phase 1: Validate]
 
     C --> D[validate-environment]
     C --> E[core-ci]
+    D --> F[validate stage gate: waits for all phase-1 jobs]
+    E --> F
 
     D --> D1[ensure-required-labels]
     D --> D2[validate-credentials]
     D --> D3[check-preview-conflicts]
 
-    E --> F[Phase 2: Tests & Build]
+    F --> G[Phase 2: Test/Build]
 
-    F --> F1[test-docs-links]
-    F --> F2[test-crewai]
-    F --> F3[test-website]
+    G --> G1[test-docs-links]
+    G --> G2[test-crewai]
+    G --> G3[test-website]
+    G1 --> H[test-build stage gate: waits for all phase-2 jobs]
+    G2 --> H
+    G3 --> H
 
-    F3 --> G[Phase 3: Deploy]
-    D --> G
+    H --> I[Phase 3: Deploy]
 
-    G --> G1[deploy-preview]
-    G --> G2[deploy-production]
+    I --> I1[deploy-preview]
+    I --> I2[deploy-production]
+    I1 --> J[deploy stage gate: waits for preview/production]
+    I2 --> J
 
-    E --> H[Phase 4: AI Review]
-    F --> H
-    G --> H
+    J --> K[Phase 4: CrewAI Review]
 
-    H --> H1[crewai-review]
+    K --> K1["crewai-review (last)"]
 
     style D fill:#e1f5ff
     style E fill:#fff4e1
-    style F fill:#e8f5e9
-    style G fill:#fce4ec
-    style H fill:#f3e5f5
+    style F fill:#fff9c4
+    style G fill:#e8f5e9
+    style H fill:#fff9c4
+    style I fill:#fce4ec
+    style J fill:#fff9c4
+    style K fill:#f3e5f5
 ```
 
 ## 🔄 Workflow Phases
 
-### Phase 1: Validation & Core CI (Parallel)
+### Phase 1: Validate (Parallel + Gate)
 
 ```mermaid
 graph LR
@@ -57,6 +66,8 @@ graph LR
     C --> C1[Ruff Format]
     C1 --> C2[Ruff Lint]
     C2 --> C3[Auto-fix & Commit]
+    B --> D[validate stage gate]
+    C --> D
 
     style B fill:#e1f5ff
     style C fill:#fff4e1
@@ -65,8 +76,10 @@ graph LR
 **validate-environment** (3 parallel jobs):
 
 - `ensure-required-labels` - Creates deployment labels if missing
-- `validate-credentials` - Validates Cloudflare, Google, OpenRouter secrets
+- `validate-credentials` - Validates Cloudflare, Google, NVIDIA/OpenRouter secrets
 - `check-preview-conflicts` - Warns if multiple PRs have preview label
+
+The `validate` stage gate only passes when both `validate-environment` and `core-ci` are complete.
 
 **core-ci**:
 
@@ -75,15 +88,15 @@ graph LR
 - Auto-fixes and commits if needed
 - Outputs `final-commit-sha` for downstream jobs
 
-### Phase 2: Tests & Build (Conditional)
+### Phase 2: Test/Build (Conditional + Gate)
 
 ```mermaid
 graph TD
-    A[core-ci complete] --> B{Files changed?}
+    A[validate stage complete] --> B{Files changed?}
 
     B -->|.md files| C[test-docs-links]
     B -->|.crewai/ files| D[test-crewai]
-    B -->|apps/website/ files| E[test-website]
+    B -->|apps/web/ files| E[test-website]
     B -->|No changes| F[Skip gracefully]
 
     C --> G[Validate links]
@@ -91,6 +104,9 @@ graph TD
     E --> I[Build website]
 
     I --> J[Upload artifact]
+    G --> K[test-build stage gate]
+    H --> K
+    I --> K
 
     style B fill:#fff9c4
     style F fill:#e0e0e0
@@ -102,11 +118,13 @@ Each test workflow:
 - Skips gracefully if no changes detected
 - Posts summary to Actions output
 
-### Phase 3: Deploy (Conditional)
+The `test-build` stage gate only passes when `test-docs-links`, `test-crewai`, and `test-website` are complete.
+
+### Phase 3: Deploy (Conditional + Gate)
 
 ```mermaid
 graph TD
-    A[Tests passed] --> B{Event type?}
+    A[test-build stage passed] --> B{Event type?}
 
     B -->|PR with label| C[deploy-preview]
     B -->|Push to main| D[deploy-production]
@@ -117,6 +135,8 @@ graph TD
 
     D --> D1[Deploy to production]
     D1 --> D2[Update production domain]
+    C --> E[deploy stage gate]
+    D --> E
 
     style C fill:#e1f5ff
     style D fill:#c8e6c9
@@ -134,11 +154,13 @@ graph TD
 - Deploys to production domain
 - No manual approval required
 
-### Phase 4: AI Review (After all phases)
+The `deploy` stage gate only passes when both deploy jobs are either complete (`success`) or intentionally skipped.
+
+### Phase 4: CrewAI Review (Runs Last)
 
 ```mermaid
 graph LR
-    A[All jobs complete] --> B[crewai-review]
+    A[validate + test-build + deploy complete] --> B[crewai-review]
     B --> C[Analyze test results]
     C --> D[Generate review]
     D --> E[Post to Actions summary]
@@ -148,7 +170,7 @@ graph LR
 
 **crewai-review**:
 
-- Runs after all other jobs
+- Runs after `validate`, `test-build`, and `deploy` stage gates
 - Analyzes test results and code changes
 - Posts AI-generated review to GitHub Actions summary
 
@@ -332,13 +354,13 @@ jobs:
 ```yaml
 test-api:
   name: Test API
-  needs: [core-ci]
+  needs: [validate]
   if: |
     always() &&
-    (needs.core-ci.result == 'success' || needs.core-ci.result == 'failure')
+    needs.validate.result == 'success'
   uses: ./.github/workflows/test-api-reusable.yml
   with:
-    commit_sha: ${{ needs.core-ci.outputs.final-commit-sha }}
+    commit_sha: ${{ needs.validate.outputs.final-commit-sha }}
   secrets: inherit
 ```
 
@@ -434,10 +456,10 @@ Pass the SHA from `core-ci` to ensure consistency:
 
 ```yaml
 test-workspace:
-  needs: [core-ci]
+  needs: [validate]
   uses: ./.github/workflows/test-workspace-reusable.yml
   with:
-    commit_sha: ${{ needs.core-ci.outputs.final-commit-sha }} # ✅
+    commit_sha: ${{ needs.validate.outputs.final-commit-sha }} # ✅
 ```
 
 ### 3. Handle Failures Gracefully
@@ -447,7 +469,7 @@ Always allow subsequent jobs to run:
 ```yaml
 if: |
   always() &&
-  (needs.core-ci.result == 'success' || needs.core-ci.result == 'failure')
+  needs.validate.result == 'success'
 ```
 
 ### 4. Use Parallel Jobs When Possible
@@ -457,10 +479,10 @@ if: |
 validate-environment:  # No dependencies
 core-ci:               # No dependencies
 
-# Phase 2: These run in parallel after Phase 1
-test-docs:     needs: [core-ci]
-test-crewai:   needs: [core-ci]
-test-website:  needs: [core-ci]
+# Phase 2: These run in parallel after validate stage
+test-docs:     needs: [validate]
+test-crewai:   needs: [validate]
+test-website:  needs: [validate]
 ```
 
 ## 🔗 Related Documentation
@@ -475,16 +497,19 @@ test-website:  needs: [core-ci]
 | -------------------- | --------- | ----- | ---------------- |
 | validate-environment | ✅ Active | 1     | 3 parallel jobs  |
 | core-ci              | ✅ Active | 1     | Format & lint    |
+| validate             | ✅ Active | 1     | Stage gate       |
 | test-docs-links      | ✅ Active | 2     | Self-detecting   |
 | test-crewai          | ✅ Active | 2     | Self-detecting   |
 | test-website         | ✅ Active | 2     | Self-detecting   |
+| test-build           | ✅ Active | 2     | Stage gate       |
 | deploy-preview       | ✅ Active | 3     | Label-triggered  |
 | deploy-production    | ✅ Active | 3     | Main branch only |
+| deploy               | ✅ Active | 3     | Stage gate       |
 | crewai-review        | ✅ Active | 4     | AI-powered       |
 
 ---
 
-**Last Updated:** 2026-01-24  
-**Architecture:** Phase-based with parallel validation  
+**Last Updated:** 2026-02-14  
+**Architecture:** Phase-based with explicit stage gates  
 **Entry Point:** `.github/workflows/ci.yml`  
 **Questions?** Open an issue or check the [troubleshooting guide](#-troubleshooting)

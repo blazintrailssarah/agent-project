@@ -4,8 +4,8 @@
   "description": "Persistent review memory — learned patterns and observations across CI runs",
   "learned_patterns": [],
   "review_history": {
-    "total_reviews": 2,
-    "last_review": "2026-02-13T18:24:31Z",
+    "total_reviews": 22,
+    "last_review": "2026-02-14T13:02:51Z",
     "findings_trend": [
       {
         "pr": "local",
@@ -16,6 +16,106 @@
         "pr": "local",
         "findings": 0,
         "date": "2026-02-13"
+      },
+      {
+        "pr": "local",
+        "findings": 0,
+        "date": "2026-02-13"
+      },
+      {
+        "pr": "local",
+        "findings": 0,
+        "date": "2026-02-13"
+      },
+      {
+        "pr": "local",
+        "findings": 0,
+        "date": "2026-02-13"
+      },
+      {
+        "pr": "local",
+        "findings": 1,
+        "date": "2026-02-13"
+      },
+      {
+        "pr": "local",
+        "findings": 1,
+        "date": "2026-02-13"
+      },
+      {
+        "pr": "local",
+        "findings": 1,
+        "date": "2026-02-13"
+      },
+      {
+        "pr": "local",
+        "findings": 1,
+        "date": "2026-02-13"
+      },
+      {
+        "pr": "local",
+        "findings": 1,
+        "date": "2026-02-13"
+      },
+      {
+        "pr": "local",
+        "findings": 1,
+        "date": "2026-02-13"
+      },
+      {
+        "pr": "local",
+        "findings": 1,
+        "date": "2026-02-13"
+      },
+      {
+        "pr": "local",
+        "findings": 1,
+        "date": "2026-02-13"
+      },
+      {
+        "pr": "local",
+        "findings": 1,
+        "date": "2026-02-13"
+      },
+      {
+        "pr": "local",
+        "findings": 1,
+        "date": "2026-02-13"
+      },
+      {
+        "pr": "local",
+        "findings": 1,
+        "date": "2026-02-13"
+      },
+      {
+        "pr": "local",
+        "findings": 1,
+        "date": "2026-02-13"
+      },
+      {
+        "pr": "local",
+        "findings": 3,
+        "date": "2026-02-14"
+      },
+      {
+        "pr": "local",
+        "findings": 0,
+        "date": "2026-02-14"
+      },
+      {
+        "pr": "local",
+        "findings": 0,
+        "date": "2026-02-14"
+      },
+      {
+        "pr": "local",
+        "findings": 0,
+        "date": "2026-02-14"
+      },
+      {
+        "pr": "local",
+        "findings": 3,
+        "date": "2026-02-14"
       }
     ]
   }

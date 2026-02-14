@@ -4,23 +4,25 @@
 import json
 import logging
 import os
+import re
 import sys
 import time
+import urllib.error
+import urllib.request
 from datetime import datetime
 from pathlib import Path
 
 # CRITICAL: Register models BEFORE importing any CrewAI components
 # This must happen before CrewAI checks model capabilities during class decoration
-from utils.model_config import get_rate_limit_delay, register_models
+from utils.model_config import get_model_config, get_rate_limit_delay, register_models
 
 register_models()
 
 # Configure LiteLLM for rate limit handling
 import litellm  # noqa: E402
 
-# Enable retries for rate limit errors (429)
-litellm.num_retries = 3  # Retry up to 3 times
-litellm.request_timeout = 120  # 2 minute timeout per request
+litellm.num_retries = 0
+litellm.request_timeout = 30
 
 from crews.agentic_review_crew import AgenticReviewCrew  # noqa: E402
 from crews.ci_log_analysis_crew import CILogAnalysisCrew  # noqa: E402
@@ -48,6 +50,138 @@ logging.basicConfig(
     handlers=[logging.StreamHandler(sys.stdout)],
 )
 logger = logging.getLogger(__name__)
+
+
+class FatalLLMAvailabilityError(RuntimeError):
+    pass
+
+
+def _extract_text_payload(value):
+    """Normalize provider payload values into plain text."""
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        return value.strip()
+    if isinstance(value, list):
+        parts = []
+        for item in value:
+            if isinstance(item, str):
+                parts.append(item)
+            elif isinstance(item, dict):
+                if isinstance(item.get("text"), str):
+                    parts.append(item["text"])
+                elif isinstance(item.get("content"), str):
+                    parts.append(item["content"])
+        return "\n".join(p for p in parts if p).strip()
+    if isinstance(value, dict):
+        if isinstance(value.get("text"), str):
+            return value["text"].strip()
+        if isinstance(value.get("content"), str):
+            return value["content"].strip()
+    return ""
+
+
+def _extract_json_object(text):
+    """Extract the first parseable JSON object from arbitrary text."""
+    if not text:
+        return None
+
+    candidate = text.strip()
+    if candidate.startswith("```"):
+        candidate = re.sub(r"^```(?:json)?", "", candidate, flags=re.IGNORECASE).strip()
+        candidate = re.sub(r"```$", "", candidate).strip()
+
+    try:
+        json.loads(candidate)
+        return candidate
+    except Exception:
+        pass
+
+    start = candidate.find("{")
+    while start != -1:
+        depth = 0
+        for idx in range(start, len(candidate)):
+            ch = candidate[idx]
+            if ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    snippet = candidate[start : idx + 1]
+                    try:
+                        json.loads(snippet)
+                        return snippet
+                    except Exception:
+                        break
+        start = candidate.find("{", start + 1)
+    return None
+
+
+def _nvidia_kimi_completion(prompt, api_key, max_tokens=900, timeout_seconds=30):
+    """Call NVIDIA NIM chat completions directly for Kimi K2.5."""
+    payload = {
+        "model": "moonshotai/kimi-k2.5",
+        "messages": [{"role": "user", "content": prompt}],
+        "max_tokens": max_tokens,
+        "temperature": 0,
+        "stream": False,
+    }
+
+    req = urllib.request.Request(
+        "https://integrate.api.nvidia.com/v1/chat/completions",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        },
+    )
+
+    with urllib.request.urlopen(req, timeout=timeout_seconds) as response:
+        raw_body = response.read().decode("utf-8")
+
+    data = json.loads(raw_body)
+    message = data.get("choices", [{}])[0].get("message", {})
+
+    content = _extract_text_payload(message.get("content"))
+    if not content:
+        content = (
+            _extract_json_object(_extract_text_payload(message.get("reasoning_content"))) or ""
+        )
+    if not content:
+        raise RuntimeError("Invalid NVIDIA response - missing parseable content.")
+
+    usage = data.get("usage", {}) if isinstance(data, dict) else {}
+    return {
+        "content": content,
+        "tokens_in": int(usage.get("prompt_tokens", 0) or 0),
+        "tokens_out": int(usage.get("completion_tokens", 0) or 0),
+        "cost": float(usage.get("cost", 0.0) or 0.0),
+        "model": "nvidia_nim/moonshotai/kimi-k2.5",
+    }
+
+
+def _is_fatal_llm_availability_error(error: Exception) -> bool:
+    message = str(error).lower()
+    fatal_signatures = [
+        "402",
+        "insufficient credits",
+        "out of credits",
+        "quota exceeded",
+        "no response",
+        "none or empty",
+        "empty response",
+        "timed out",
+        "timeout",
+        "notfounderror",
+        "404 page not found",
+    ]
+    return any(signature in message for signature in fatal_signatures)
+
+
+def _raise_if_fatal_llm_error(stage: str, error: Exception) -> None:
+    if _is_fatal_llm_availability_error(error):
+        raise FatalLLMAvailabilityError(f"{stage} failed: {error}") from error
+
 
 # Disable CrewAI tracing to prevent interactive prompts in CI
 os.environ["CREWAI_TRACING_ENABLED"] = "false"
@@ -131,6 +265,48 @@ def run_router(env_vars):
     logger.info("🔀 STEP 1: Router - Analyzing PR and deciding workflows")
     logger.info("=" * 60)
 
+    if env_vars.get("pr_number") == "local":
+        workspace = WorkspaceTool()
+        labels = []
+        if workspace.exists("diff.json"):
+            try:
+                labels = workspace.read_json("diff.json").get("labels", [])
+            except Exception:
+                labels = []
+
+        workflows = ["ci-log-analysis", "quick-review"]
+        specialist = []
+
+        if "crewai:full-review" in labels:
+            workflows.append("full-review")
+            specialist = list(SPECIALIST_CREWS.keys())
+        else:
+            label_to_specialist = {
+                "crewai:security": "security",
+                "crewai:legal": "legal",
+                "crewai:finance": "finance",
+                "crewai:docs": "documentation",
+                "crewai:agentic": "agentic",
+                "crewai:marketing": "marketing",
+                "crewai:science": "science",
+                "crewai:government": "government",
+                "crewai:strategy": "strategy",
+            }
+            for label in labels:
+                crew_key = label_to_specialist.get(label)
+                if crew_key and crew_key not in specialist:
+                    specialist.append(crew_key)
+
+        decision = {
+            "workflows": workflows,
+            "specialist_crews": specialist,
+            "suggestions": [],
+            "metadata": {"source": "local-short-circuit", "labels": labels},
+        }
+        logger.info(f"✅ Local router shortcut: workflows={workflows}, specialist={specialist}")
+        workspace.write_json("router_decision.json", decision)
+        return decision
+
     # Track costs for this crew
     tracker = get_tracker()
     tracker.set_current_task("analyze_pr_and_route")
@@ -181,6 +357,7 @@ def run_router(env_vars):
             }
 
     except Exception as e:
+        _raise_if_fatal_llm_error("router", e)
         workspace_state = get_workspace_diagnostics()
         logger.error(
             f"❌ Router failed: {e}\n"
@@ -205,6 +382,22 @@ def run_ci_analysis(env_vars):
     logger.info("=" * 60)
     logger.info("📊 STEP 2: CI Log Analysis - Parsing core-ci results")
     logger.info("=" * 60)
+
+    if env_vars.get("pr_number") == "local":
+        workspace = WorkspaceTool()
+        workspace.write_json(
+            "ci_summary.json",
+            {
+                "status": env_vars["core_ci_result"],
+                "passed": env_vars["core_ci_result"] == "success",
+                "summary": f"Local run: core-ci marked {env_vars['core_ci_result']}",
+                "critical_errors": [],
+                "warnings": [],
+                "checks_performed": ["local-short-circuit"],
+            },
+        )
+        logger.info("✅ Local CI analysis shortcut: wrote deterministic ci_summary.json")
+        return True
 
     # Track costs for this crew
     tracker = get_tracker()
@@ -251,6 +444,7 @@ def run_ci_analysis(env_vars):
             return True
 
     except Exception as e:
+        _raise_if_fatal_llm_error("ci-log-analysis", e)
         workspace_state = get_workspace_diagnostics()
         logger.error(
             f"❌ CI analysis failed: {e}\n"
@@ -281,6 +475,233 @@ def run_quick_review():
     logger.info("⚡ STEP 3: Quick Review - Fast code quality check")
     logger.info("=" * 60)
 
+    workspace = WorkspaceTool()
+
+    if os.getenv("PR_NUMBER") == "local":
+        try:
+            tracker = get_tracker()
+            tracker.set_current_task("quick_code_review")
+
+            diff_text = workspace.read("diff.txt") if workspace.exists("diff.txt") else ""
+            commit_messages = (
+                workspace.read("commit_messages.txt")
+                if workspace.exists("commit_messages.txt")
+                else ""
+            )
+            if len(diff_text) > 2000:
+                diff_excerpt = diff_text[:1200] + "\n...\n" + diff_text[-800:]
+            else:
+                diff_excerpt = diff_text
+
+            model_name = get_model_config().name
+            nvidia_key = os.getenv("NVIDIA_API_KEY") or os.getenv("NVIDIA_NIM_API_KEY")
+            openrouter_key = os.getenv("OPENROUTER_API_KEY")
+
+            ci_summary = ""
+            if workspace.exists("ci_summary.json"):
+                try:
+                    ci_summary = workspace.read_json("ci_summary.json").get("summary", "")
+                except Exception:
+                    ci_summary = ""
+
+            def call_quick_review_model(prompt_text, max_tokens):
+                llm_call_start = time.time()
+
+                if nvidia_key:
+                    nvidia_result = _nvidia_kimi_completion(
+                        prompt=prompt_text,
+                        api_key=nvidia_key,
+                        max_tokens=max_tokens,
+                        timeout_seconds=30,
+                    )
+                    content_text = nvidia_result["content"]
+                    tokens_in_local = nvidia_result["tokens_in"]
+                    tokens_out_local = nvidia_result["tokens_out"]
+                    usage_cost_local = nvidia_result["cost"]
+                    model_used_local = nvidia_result["model"]
+                elif openrouter_key:
+                    response = litellm.completion(
+                        model=model_name,
+                        api_key=openrouter_key,
+                        base_url="https://openrouter.ai/api/v1",
+                        messages=[{"role": "user", "content": prompt_text}],
+                        max_tokens=max_tokens,
+                        timeout=20,
+                        request_timeout=20,
+                        num_retries=0,
+                    )
+                    choices = getattr(response, "choices", None)
+                    content_text = None
+                    if choices:
+                        first_choice = choices[0]
+                        message = getattr(first_choice, "message", None)
+                        if message is not None:
+                            content_text = _extract_text_payload(getattr(message, "content", None))
+                    if not content_text:
+                        raise RuntimeError(
+                            "Invalid response from LLM call - None or empty content."
+                        )
+
+                    usage = getattr(response, "usage", None)
+                    tokens_in_local = int(getattr(usage, "prompt_tokens", 0) or 0)
+                    tokens_out_local = int(getattr(usage, "completion_tokens", 0) or 0)
+                    usage_cost_local = float(getattr(usage, "cost", 0.0) or 0.0)
+                    if usage_cost_local <= 0:
+                        try:
+                            usage_cost_local = float(
+                                litellm.completion_cost(completion_response=response) or 0.0
+                            )
+                        except Exception:
+                            usage_cost_local = 0.0
+                    model_used_local = model_name
+                else:
+                    raise RuntimeError(
+                        "No LLM provider key found. Set NVIDIA_API_KEY or OPENROUTER_API_KEY."
+                    )
+
+                llm_call_duration = max(time.time() - llm_call_start, 0.001)
+                tracker.log_api_call(
+                    model=model_used_local,
+                    tokens_in=tokens_in_local,
+                    tokens_out=tokens_out_local,
+                    cost=usage_cost_local,
+                    duration_seconds=llm_call_duration,
+                )
+                return content_text
+
+            def normalize_pass_payload(raw_content):
+                try:
+                    parsed_content = json.loads(raw_content)
+                except json.JSONDecodeError:
+                    parsed_content = {
+                        "summary": "Review pass returned non-JSON output; normalized.",
+                        "critical": [],
+                        "warnings": [],
+                        "info": [
+                            {
+                                "title": "Model response normalization",
+                                "file": "",
+                                "line": "",
+                                "description": raw_content[:300],
+                                "fix_suggestion": (
+                                    "Return strict JSON for richer structured findings."
+                                ),
+                            }
+                        ],
+                    }
+                return {
+                    "summary": parsed_content.get("summary", ""),
+                    "critical": parsed_content.get("critical", []) or [],
+                    "warnings": parsed_content.get("warnings", []) or [],
+                    "info": parsed_content.get("info", []) or [],
+                }
+
+            reviewer_passes = [
+                {
+                    "name": "Diff Reviewer",
+                    "prompt": (
+                        "Return ONLY JSON with keys summary, critical, warnings, info. "
+                        "Find concrete code and logic defects in this diff.\n\n"
+                        f"Diff excerpt:\n{diff_excerpt}"
+                    ),
+                    "max_tokens": 450,
+                },
+                {
+                    "name": "Risk Reviewer",
+                    "prompt": (
+                        "Return ONLY JSON with keys summary, critical, warnings, info. "
+                        "Focus on security, reliability, and regression risks.\n\n"
+                        f"CI Summary:\n{ci_summary}\n\n"
+                        f"Diff excerpt:\n{diff_excerpt}"
+                    ),
+                    "max_tokens": 450,
+                },
+                {
+                    "name": "Actionability Reviewer",
+                    "prompt": (
+                        "Return ONLY JSON with keys summary, critical, warnings, info. "
+                        "Focus on actionable improvements and test gaps.\n\n"
+                        f"Commit messages:\n{commit_messages}\n\n"
+                        f"Diff excerpt:\n{diff_excerpt}"
+                    ),
+                    "max_tokens": 450,
+                },
+            ]
+
+            aggregated = {"critical": [], "warnings": [], "info": []}
+            pass_summaries = []
+
+            for review_pass in reviewer_passes:
+                tracker.set_current_task(
+                    f"quick_code_review_{review_pass['name'].lower().replace(' ', '_')}"
+                )
+                raw_content = call_quick_review_model(
+                    prompt_text=review_pass["prompt"],
+                    max_tokens=review_pass["max_tokens"],
+                )
+                parsed = normalize_pass_payload(raw_content)
+                pass_summaries.append(
+                    {
+                        "reviewer": review_pass["name"],
+                        "summary": parsed.get("summary") or "No summary provided.",
+                    }
+                )
+                for key in ("critical", "warnings", "info"):
+                    aggregated[key].extend(parsed.get(key, []))
+
+            def dedupe_findings(items):
+                deduped = []
+                seen = set()
+                for item in items:
+                    if not isinstance(item, dict):
+                        continue
+                    signature = (
+                        item.get("title", ""),
+                        item.get("file", ""),
+                        str(item.get("line", "")),
+                        item.get("description", ""),
+                    )
+                    if signature in seen:
+                        continue
+                    seen.add(signature)
+                    deduped.append(item)
+                return deduped
+
+            critical_items = dedupe_findings(aggregated["critical"])
+            warning_items = dedupe_findings(aggregated["warnings"])
+            info_items = dedupe_findings(aggregated["info"])
+
+            review_data = {
+                "status": "completed",
+                "summary": (
+                    f"Local quick review completed with {len(reviewer_passes)} reviewer pass(es)."
+                ),
+                "critical": critical_items,
+                "warnings": warning_items,
+                "info": info_items,
+                "reviewer_summaries": pass_summaries,
+                "provider_used": "nvidia" if nvidia_key else "openrouter",
+                "calls_executed": len(reviewer_passes),
+            }
+            workspace.write_json("quick_review.json", review_data)
+            logger.info("✅ Local quick review shortcut completed")
+            return True
+        except Exception as e:
+            _raise_if_fatal_llm_error("quick-review", e)
+            logger.error(f"❌ Local quick review shortcut failed: {e}", exc_info=True)
+            workspace.write_json(
+                "quick_review.json",
+                {
+                    "status": "error",
+                    "error": str(e),
+                    "summary": "Quick review failed",
+                    "critical": [],
+                    "warnings": [],
+                    "info": [],
+                },
+            )
+            return False
+
     # Track costs for this crew
     tracker = get_tracker()
     tracker.set_current_task("quick_code_review")
@@ -296,7 +717,6 @@ def run_quick_review():
         logger.info("✅ Quick review task complete")
 
         # CRITICAL: Validate output file was created
-        workspace = WorkspaceTool()
         if not workspace.exists("quick_review.json"):
             workspace_state = get_workspace_diagnostics()
             logger.error(
@@ -344,6 +764,7 @@ def run_quick_review():
             return True
 
     except Exception as e:
+        _raise_if_fatal_llm_error("quick-review", e)
         workspace_state = get_workspace_diagnostics()
         logger.error(
             f"❌ Quick review failed: {e}\n"
@@ -404,6 +825,7 @@ def run_full_review(env_vars):
             return False
 
     except Exception as e:
+        _raise_if_fatal_llm_error("full-review", e)
         workspace_state = get_workspace_diagnostics()
         logger.error(
             f"❌ Full review failed: {e}\n"
@@ -478,6 +900,7 @@ def run_specialist_crew(crew_key):
             return False
 
     except Exception as e:
+        _raise_if_fatal_llm_error(f"specialist-{crew_key}", e)
         logger.error(f"❌ {crew_key.title()} review failed: {e}", exc_info=True)
         workspace = WorkspaceTool()
         workspace.write_json(
@@ -504,6 +927,11 @@ def run_final_summary(env_vars, workflows_executed):
     logger.info("=" * 60)
     logger.info("📋 STEP 6: Final Summary - Synthesizing all reviews")
     logger.info("=" * 60)
+
+    if env_vars.get("pr_number") == "local":
+        create_fallback_summary(Path(__file__).parent / "workspace", env_vars, workflows_executed)
+        logger.info("✅ Local final summary shortcut completed")
+        return True
 
     # Track costs for this crew
     tracker = get_tracker()
@@ -544,6 +972,7 @@ def run_final_summary(env_vars, workflows_executed):
             return False
 
     except Exception as e:
+        _raise_if_fatal_llm_error("final-summary", e)
         workspace_state = get_workspace_diagnostics()
         logger.error(
             f"❌ Final summary failed: {e}\n"
@@ -712,6 +1141,24 @@ def create_fallback_summary(workspace_dir, env_vars, workflows_executed):
             summary_parts.append(
                 f"**Summary**: {quick_data.get('summary', 'No summary available')}"
             )
+            provider_used = quick_data.get("provider_used")
+            calls_executed = quick_data.get("calls_executed")
+            if provider_used:
+                summary_parts.append(f"**Provider**: {provider_used}")
+            if calls_executed is not None:
+                summary_parts.append(f"**Reviewer Calls**: {calls_executed}")
+
+            reviewer_summaries = quick_data.get("reviewer_summaries", [])
+            if reviewer_summaries:
+                summary_parts.append("")
+                summary_parts.append("**Reviewer Pass Summaries**:")
+                for pass_summary in reviewer_summaries:
+                    if isinstance(pass_summary, dict):
+                        reviewer_name = pass_summary.get("reviewer", "Reviewer")
+                        reviewer_text = pass_summary.get("summary", "No summary provided.")
+                        summary_parts.append(f"- **{reviewer_name}**: {reviewer_text}")
+                    else:
+                        summary_parts.append(f"- {pass_summary}")
 
             # Get all findings
             critical_issues = quick_data.get("critical", [])
@@ -761,7 +1208,7 @@ def create_fallback_summary(workspace_dir, env_vars, workflows_executed):
             if suggestions:
                 summary_parts.append("")
                 summary_parts.append("<details>")
-                summary_parts.append(f"<summary><b>🔵 Suggestions ({info_count})</b></summary>")
+                summary_parts.append("<summary><b>🔵 Suggestions</b></summary>")
                 summary_parts.append("")
                 for suggestion in suggestions:
                     summary_parts.append(format_finding_item(suggestion, "🔵"))
@@ -1264,6 +1711,8 @@ def main():
         cost_breakdown = generate_cost_breakdown()
         final_markdown_with_cost = final_markdown + cost_breakdown
 
+        workspace.write("final_summary.md", final_markdown_with_cost)
+
         # STEP 7: Post results to GitHub Actions summary (with cost table)
         post_results(env_vars, final_markdown_with_cost)
 
@@ -1287,6 +1736,31 @@ def main():
 
         return 0
 
+    except FatalLLMAvailabilityError as e:
+        logger.error(f"❌ Fatal provider availability error: {e}")
+        workspace = WorkspaceTool()
+        workspace.write(
+            "final_summary.md",
+            "\n".join(
+                [
+                    "## ❌ Review Aborted",
+                    "",
+                    "The review stopped early due to provider availability.",
+                    "",
+                    f"- Error: `{e}`",
+                    "- Behavior: fail-fast (no additional crews executed)",
+                    "- Action: ensure provider has credits/responding, then rerun "
+                    "`./scripts/ci-local.sh --review`",
+                    "",
+                    "---",
+                    "",
+                    "## 💰 Cost Tracking",
+                    "",
+                    "No API calls recorded.",
+                ]
+            ),
+        )
+        return 1
     except Exception as e:
         logger.error(f"❌ Review failed: {e}", exc_info=True)
         return 1

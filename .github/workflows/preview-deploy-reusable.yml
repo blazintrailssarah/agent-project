@@ -37,6 +37,9 @@ jobs:
     name: Deploy Preview
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    concurrency:
+      group: preview-custom-domain
+      cancel-in-progress: false
 
     outputs:
       url: ${{ steps.extract_url.outputs.url }}
@@ -48,7 +51,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: website
+        working-directory: apps/web
 
     steps:
       - name: Checkout
@@ -94,7 +97,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: ${{ inputs.build_artifact }}
-          path: website/dist
+          path: apps/web/dist
 
       - name: Update GitHub links for preview branch
         if: ${{ inputs.head_ref != '' }}
@@ -156,7 +159,7 @@ jobs:
 
       - name: Append deploy output to captured log
         if: always()
-        working-directory: website
+        working-directory: apps/web
         run: |
           if [ -f deploy_output.txt ]; then
             echo "" >> "$GITHUB_WORKSPACE/.crewai-job-output/current-job.log"

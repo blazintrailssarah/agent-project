@@ -26,6 +26,9 @@ jobs:
     name: Deploy Production
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    concurrency:
+      group: production-deploy
+      cancel-in-progress: false
 
     outputs:
       url: ${{ steps.extract_url.outputs.url }}

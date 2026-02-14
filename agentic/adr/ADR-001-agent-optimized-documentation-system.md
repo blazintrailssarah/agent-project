@@ -177,7 +177,7 @@ The primary audience is AI agents, and agents consume raw markdown files — not
 - [Markdown Style Guide](../markdown_style_guide.md)
 - [ADR-002: Mermaid Diagram Standards](./ADR-002-mermaid-diagram-standards.md)
 - [ADR-003: Everything is Code](./ADR-003-everything-is-code.md)
-- [Issue-#1: Create agent-optimized documentation system](../../docs/issues/issue-00000001.md)
+- [Issue-#1: Create agent-optimized documentation system](../../docs/project/issues/issue-00000001-agentic-documentation-system.md)
 
 ---
 

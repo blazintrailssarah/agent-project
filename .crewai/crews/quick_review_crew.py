@@ -31,7 +31,7 @@ class QuickReviewCrew:
             tools=[WorkspaceTool()],
             llm=self.llm,
             function_calling_llm=self.llm,
-            max_iter=10,
+            max_iter=1,
             verbose=True,
             allow_delegation=False,
         )
@@ -44,7 +44,7 @@ class QuickReviewCrew:
             tools=[WorkspaceTool()],
             llm=self.llm,
             function_calling_llm=self.llm,
-            max_iter=12,
+            max_iter=1,
             verbose=True,
             allow_delegation=False,
         )
@@ -57,7 +57,7 @@ class QuickReviewCrew:
             tools=[WorkspaceTool()],
             llm=self.llm,
             function_calling_llm=self.llm,
-            max_iter=10,
+            max_iter=1,
             verbose=True,
             allow_delegation=False,
         )

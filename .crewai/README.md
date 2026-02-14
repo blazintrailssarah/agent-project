@@ -2,6 +2,8 @@
 
 > Multi-agent AI code review for GitHub pull requests. 27 specialized agents across 14 crews covering security, legal, finance, documentation, marketing, science, government compliance, and business strategy.
 
+> **For AI agents working in this repo:** start with [../AGENTS.md](../AGENTS.md) before using this subsystem guide.
+
 ---
 
 ## 📋 Overview
@@ -108,6 +110,11 @@ Router → CI Log Analysis → Quick Review → [Full Review] → [Specialist Cr
 ├── memory/
 │   ├── memory.json                  # Persistent review memory (local)
 │   └── suppressions.json            # Finding suppression rules
+├── adr/
+│   ├── README.md                    # CrewAI subsystem decision index
+│   ├── ADR-001-crewai-decision-log-scope.md
+│   ├── ADR-002-provider-priority-and-failover.md
+│   └── ADR-003-local-quick-review-multipass.md
 ├── workspace/                       # Runtime workspace (created per run, gitignored)
 └── tests/
     ├── conftest.py
@@ -131,11 +138,11 @@ Router → CI Log Analysis → Quick Review → [Full Review] → [Specialist Cr
 ./scripts/ci-local.sh --review
 ```
 
-The script will prompt for `OPENROUTER_API_KEY` if not set. It cleans the workspace, generates a diff, and runs the full crew pipeline.
+The script prefers `NVIDIA_API_KEY` (Kimi K2.5 on NVIDIA NIM) and falls back to `OPENROUTER_API_KEY` when NVIDIA is unavailable. It cleans the workspace, generates a diff, and runs the full crew pipeline.
 
 ### GitHub Actions
 
-1. Add `OPENROUTER_API_KEY` to repository secrets (Settings → Secrets → Actions)
+1. Add `NVIDIA_API_KEY` to repository secrets (preferred) and optionally `OPENROUTER_API_KEY` as fallback
 2. Push a PR — the review runs automatically
 3. Add labels to trigger specialist crews (e.g., `crewai:security`, `crewai:legal`)
 4. Add `crewai:full-review` to run ALL specialist crews
@@ -144,20 +151,31 @@ The script will prompt for `OPENROUTER_API_KEY` if not set. It cleans the worksp
 
 ## ⚙️ Configuration
 
+### 🧭 Architecture decisions
+
+CrewAI-specific implementation decisions are tracked in `.crewai/adr/`.
+
+- Subsystem-local decisions stay in `.crewai/adr/`
+- Cross-repo decisions must also be mirrored in `agentic/adr/`
+- Superseded decisions are retained and marked superseded (never deleted)
+
+See `.crewai/adr/README.md` for the local index.
+
 ### Environment variables
 
 Copy `.env.example` to `.env` and set:
 
-| Variable             | Required | Description                                                               |
-| -------------------- | -------- | ------------------------------------------------------------------------- |
-| `OPENROUTER_API_KEY` | Yes      | API key from [openrouter.ai/keys](https://openrouter.ai/keys)             |
-| `CREWAI_MODEL`       | No       | Override default model (default: configured in `model_config.py`)         |
-| `USE_MEM0_CLOUD`     | No       | Set to `true` to enable mem0 cloud memory (default: off, uses local JSON) |
-| `MEM0_API_KEY`       | No       | Only needed if `USE_MEM0_CLOUD=true`                                      |
+| Variable             | Required  | Description                                                                                         |
+| -------------------- | --------- | --------------------------------------------------------------------------------------------------- |
+| `NVIDIA_API_KEY`     | Preferred | API key from [build.nvidia.com/moonshotai/kimi-k2.5](https://build.nvidia.com/moonshotai/kimi-k2.5) |
+| `OPENROUTER_API_KEY` | Fallback  | Used only when NVIDIA key is unavailable                                                            |
+| `CREWAI_MODEL`       | No        | Override default model (default: configured in `model_config.py`)                                   |
+| `USE_MEM0_CLOUD`     | No        | Set to `true` to enable mem0 cloud memory (default: off, uses local JSON)                           |
+| `MEM0_API_KEY`       | No        | Only needed if `USE_MEM0_CLOUD=true`                                                                |
 
 ### Model selection
 
-Edit `utils/model_config.py` to change the default model. The system uses OpenRouter for model access. Any OpenRouter-compatible model works.
+Edit `utils/model_config.py` to change model behavior. Current provider priority is NVIDIA NIM first (`moonshotai/kimi-k2-5`), then OpenRouter fallback when no NVIDIA key is available.
 
 ### Customizing agents
 
@@ -237,7 +255,7 @@ All 9 specialist crews write the same JSON schema:
 
 ## 🔒 Security
 
-- `OPENROUTER_API_KEY` stored in GitHub Secrets (encrypted at rest)
+- `NVIDIA_API_KEY` preferred for CrewAI runs; `OPENROUTER_API_KEY` supported as fallback
 - `GITHUB_TOKEN` automatically provided by GitHub Actions with minimal permissions
 - No secrets logged or exposed in output
 - Local memory (`memory.json`) stays in repo, gitignored from workspace artifacts

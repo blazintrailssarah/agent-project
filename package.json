@@ -9,7 +9,7 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml,css,scss}\"",
     "lint": "eslint \"**/*.{js,ts,jsx,tsx}\" --no-error-on-unmatched-pattern",
     "lint:fix": "eslint --fix \"**/*.{js,ts,jsx,tsx}\" --no-error-on-unmatched-pattern",
-    "lint:md": "markdownlint-cli2 \"**/*.md\" \"#**/node_modules/**\" \"#.github/**\" --fix --config .markdownlint.json",
+    "lint:md": "markdownlint-cli2 \"**/*.md\" \"#**/node_modules/**\" \"#.github/**\" \"#.crewai/workspace/**\" --fix --config .markdownlint.json",
     "lint:css": "stylelint \"**/*.{css,scss}\" --fix --allow-empty-input",
     "lint:all": "pnpm format && pnpm lint:fix && pnpm lint:md && pnpm lint:css",
     "typecheck": "tsc --noEmit --skipLibCheck",

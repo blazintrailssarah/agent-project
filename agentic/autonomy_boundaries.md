@@ -66,6 +66,8 @@
 ### Quality gates
 
 - ✅ Run tests locally before pushing
+- ✅ Run `./scripts/ci-local.sh` before commit/push when available in this repo
+- ✅ If local CI cannot run (missing local env/secrets/tools), document the skip reason in PR/issue records
 - ✅ Fix lint/format errors
 - ✅ Respond to CI failures
 - ✅ Verify build passes

@@ -85,12 +85,16 @@ while [[ $# -gt 0 ]]; do
       echo "Usage: ./scripts/ci-local.sh [--review] [--full-review] [--crew <name>] [--deploy] [--step <name>] [--verbose]"
       echo ""
       echo "Flags:"
-      echo "  --review        Run quick CrewAI code review (requires OPENROUTER_API_KEY)"
+      echo "  --review        Run quick CrewAI code review (NVIDIA_API_KEY preferred, OPENROUTER_API_KEY fallback)"
       echo "  --full-review   Run ALL 9 specialist crews (security, legal, finance, etc.)"
       echo "  --crew <name>   Run specific crew(s) — can be repeated (e.g. --crew security --crew legal)"
       echo "  --deploy        Run Cloudflare deploy (requires CF credentials)"
       echo "  --step <name>   Run a single step by name"
       echo "  --verbose       Show full command output"
+      echo ""
+      echo "Environment overrides:"
+      echo "  CREWAI_REVIEW_TIMEOUT_SECONDS   Timeout for review subprocess (default: 90)"
+      echo "  CREWAI_NVIDIA_TIMEOUT_SECONDS   Timeout for NVIDIA primary attempt (default: 45)"
       echo ""
       echo ""
       echo "Specialist crews (use with --crew <name> or --full-review for all):"
@@ -171,13 +175,34 @@ prompt_env_var() {
 }
 
 check_env_for_review() {
-  if ! prompt_env_var "OPENROUTER_API_KEY" \
-    "Required for AI code review. Get one at https://openrouter.ai/keys" \
-    "true"; then
-    echo -e "  ${DIM}Skipping review — set OPENROUTER_API_KEY in .env or pass it interactively.${NC}"
-    return 1
+  if [[ -n "${NVIDIA_API_KEY:-}" || -n "${NVIDIA_NIM_API_KEY:-}" ]]; then
+    return 0
   fi
-  return 0
+
+  if prompt_env_var "NVIDIA_API_KEY" \
+    "Preferred for AI code review (Kimi K2.5 on NVIDIA NIM). Get one at https://build.nvidia.com/moonshotai/kimi-k2.5" \
+    "true"; then
+    return 0
+  fi
+
+  if prompt_env_var "OPENROUTER_API_KEY" \
+    "Fallback for AI code review when NVIDIA_API_KEY is not available. Get one at https://openrouter.ai/keys" \
+    "true"; then
+    return 0
+  fi
+
+  echo -e "  ${DIM}Skipping review — set NVIDIA_API_KEY (preferred) or OPENROUTER_API_KEY.${NC}"
+  return 1
+}
+
+resolve_review_provider() {
+  if [[ -n "${NVIDIA_API_KEY:-}" || -n "${NVIDIA_NIM_API_KEY:-}" ]]; then
+    echo "nvidia"
+  elif [[ -n "${OPENROUTER_API_KEY:-}" ]]; then
+    echo "openrouter"
+  else
+    echo "none"
+  fi
 }
 
 check_env_for_deploy() {
@@ -415,7 +440,7 @@ run_phase_1() {
     if git -C "${REPO_ROOT}" rev-parse HEAD~1 &>/dev/null; then
       print_step "Commitlint" "checking last commit message..."
       local cl_start; cl_start=$(date +%s)
-      if pnpm commitlint 2>/dev/null; then
+      if pnpm exec commitlint --from HEAD~1 --to HEAD --verbose >/dev/null 2>&1; then
         local cl_end; cl_end=$(date +%s)
         print_result "Commitlint" "pass" "$((cl_end - cl_start))"
       else
@@ -478,11 +503,11 @@ run_phase_2() {
 
   # --- Website Build ---
   if should_run "test-website" || should_run "build-website"; then
-    if [[ -d "${REPO_ROOT}/website" ]]; then
+    if [[ -d "${REPO_ROOT}/apps/web" ]]; then
       print_step "Website Build" "building website..."
-      run_step "Website Build" pnpm --filter website run build || phase_failed=true
+      run_step "Website Build" pnpm --filter @template/web run build || phase_failed=true
     else
-      print_result "Website Build" "skip" "0" "no website/ directory"
+      print_result "Website Build" "skip" "0" "no apps/web directory"
     fi
   fi
 
@@ -514,7 +539,7 @@ run_phase_3() {
   fi
 
   print_step "Deploy" "deploying to Cloudflare Pages..."
-  run_step "Cloudflare Deploy" wrangler pages deploy "${REPO_ROOT}/website/dist" \
+  run_step "Cloudflare Deploy" wrangler pages deploy "${REPO_ROOT}/apps/web/dist" \
     --project-name=website \
     --branch=local-preview \
     || return 1
@@ -534,9 +559,20 @@ run_phase_4() {
   print_header "PHASE 4: AI Code Review"
 
   if ! check_env_for_review; then
-    print_result "CrewAI Review" "skip" "0" "OPENROUTER_API_KEY not provided"
+    print_result "CrewAI Review" "skip" "0" "NVIDIA_API_KEY/OPENROUTER_API_KEY not provided"
     return 0
   fi
+
+  local provider
+  provider=$(resolve_review_provider)
+  case "$provider" in
+    nvidia)
+      echo -e "  ${DIM}LLM Provider: NVIDIA NIM (moonshotai/kimi-k2.5)${NC}"
+      ;;
+    openrouter)
+      echo -e "  ${DIM}LLM Provider: OpenRouter (fallback)${NC}"
+      ;;
+  esac
 
   # Clean workspace for idempotent run
   clean_workspace
@@ -689,8 +725,26 @@ with open('${workspace_dir}/commits.json', 'w') as f:
   print_step "CrewAI Review" "running AI code review..."
   local start
   start=$(date +%s)
+  local review_timeout_seconds="${CREWAI_REVIEW_TIMEOUT_SECONDS:-90}"
+  local nvidia_timeout_seconds="${CREWAI_NVIDIA_TIMEOUT_SECONDS:-45}"
+  local summary_file="${workspace_dir}/final_summary.md"
+  local provider
+  provider=$(resolve_review_provider)
+  if [[ "$provider" == "nvidia" ]]; then
+    echo -e "  ${DIM}Review timeout: NVIDIA primary ${nvidia_timeout_seconds}s, fallback ${review_timeout_seconds}s${NC}"
+  else
+    echo -e "  ${DIM}Review timeout: ${review_timeout_seconds}s${NC}"
+  fi
 
-  if (cd "${crewai_dir}" && python3 main.py) 2>&1 | {
+  local review_success=false
+  local primary_exit=0
+
+  local primary_timeout_seconds="$review_timeout_seconds"
+  if [[ "$provider" == "nvidia" ]]; then
+    primary_timeout_seconds="$nvidia_timeout_seconds"
+  fi
+
+  if (cd "${crewai_dir}" && timeout "${primary_timeout_seconds}" python3 main.py) 2>&1 | {
     if $VERBOSE; then
       cat
     else
@@ -703,16 +757,78 @@ with open('${workspace_dir}/commits.json', 'w') as f:
       done
     fi
   }; then
-    local end; end=$(date +%s)
+    review_success=true
+  else
+    primary_exit=$?
+
+    local nvidia_error_line=""
+    if [[ -f "$summary_file" ]]; then
+      nvidia_error_line=$(awk '/^- Error:/{print; exit}' "$summary_file")
+    fi
+
+    if [[ "$provider" == "nvidia" && -n "${OPENROUTER_API_KEY:-}" ]]; then
+      echo -e "  ${YELLOW}${WARN}${NC} NVIDIA primary failed — falling back to OpenRouter"
+      if [[ -n "$nvidia_error_line" ]]; then
+        echo -e "  ${YELLOW}${WARN}${NC} NVIDIA error: ${nvidia_error_line#- Error: }"
+      elif [[ $primary_exit -eq 124 ]]; then
+        echo -e "  ${YELLOW}${WARN}${NC} NVIDIA error: Timed out after ${primary_timeout_seconds}s"
+      fi
+
+      rm -f "${workspace_dir}/router_decision.json" "${workspace_dir}/ci_summary.json" \
+        "${workspace_dir}/quick_review.json" "${workspace_dir}/full_review.json" \
+        "${workspace_dir}/final_summary.md"
+
+      if (cd "${crewai_dir}" && env -u NVIDIA_API_KEY -u NVIDIA_NIM_API_KEY timeout "${review_timeout_seconds}" python3 main.py) 2>&1 | {
+        if $VERBOSE; then
+          cat
+        else
+          while IFS= read -r line; do
+            case "$line" in
+              *"STEP"*|*"✅"*|*"❌"*|*"⚠️"*|*"🔬"*|*"complete"*)
+                echo -e "     ${DIM}${line}${NC}"
+                ;;
+            esac
+          done
+        fi
+      }; then
+        review_success=true
+        echo -e "  ${GREEN}${PASS}${NC} OpenRouter fallback succeeded"
+      else
+        local fallback_exit=$?
+        if [[ $fallback_exit -eq 124 ]]; then
+          echo -e "  ${YELLOW}${WARN}${NC} OpenRouter fallback timed out after ${review_timeout_seconds}s"
+        fi
+      fi
+    elif [[ $primary_exit -eq 124 ]]; then
+      echo -e "  ${YELLOW}${WARN}${NC} CrewAI review timed out after ${primary_timeout_seconds}s"
+      if [[ ! -f "$summary_file" ]]; then
+        printf '%s\n' \
+          "## ❌ Review Aborted" \
+          "" \
+          "The review timed out before completion." \
+          "" \
+          "- Error: Timed out after ${primary_timeout_seconds}s" \
+          "- Behavior: fail-fast timeout guard triggered" \
+          "- Action: reduce diff scope or switch provider, then rerun." \
+          "" \
+          "---" \
+          "" \
+          "## 💰 Cost Tracking" \
+          "" \
+          "No API calls recorded." \
+          > "$summary_file"
+      fi
+    fi
+  fi
+
+  local end; end=$(date +%s)
+  if [[ "$review_success" == "true" ]]; then
     print_result "CrewAI Review" "pass" "$((end - start))"
   else
-    local end; end=$(date +%s)
     print_result "CrewAI Review" "fail" "$((end - start))"
-    return 1
   fi
 
   # Display summary if it exists
-  local summary_file="${workspace_dir}/final_summary.md"
   if [[ -f "$summary_file" ]]; then
     echo ""
     echo -e "${CYAN}${BOLD}  ┌─ Review Summary ───────────────────────────────────┐${NC}"
@@ -728,6 +844,88 @@ with open('${workspace_dir}/commits.json', 'w') as f:
     echo ""
     echo -e "  ${DIM}Full review: .crewai/workspace/final_summary.md${NC}"
     echo -e "  ${DIM}All outputs: .crewai/workspace/*.json${NC}"
+
+    if grep -q "^## 💰" "$summary_file"; then
+      echo ""
+      echo -e "${CYAN}${BOLD}  ┌─ Pricing / Cost ───────────────────────────────────┐${NC}"
+      local cost_panel
+      cost_panel=$(python3 - "$summary_file" <<'PY'
+import sys
+
+
+def flush_table(rows, out):
+    if not rows:
+        return
+    col_count = max(len(row) for row in rows)
+    widths = []
+    for idx in range(col_count):
+        widths.append(max(len(row[idx]) if idx < len(row) else 0 for row in rows))
+
+    def format_row(row):
+        cells = row + [""] * (col_count - len(row))
+        return " | ".join(cells[idx].ljust(widths[idx]) for idx in range(col_count))
+
+    out.append(format_row(rows[0]))
+    out.append("-+-".join("-" * width for width in widths))
+    for row in rows[1:]:
+        out.append(format_row(row))
+
+
+summary_path = sys.argv[1]
+with open(summary_path, encoding="utf-8") as handle:
+    lines = handle.read().splitlines()
+
+start = None
+for idx, line in enumerate(lines):
+    if line.startswith("## 💰"):
+        start = idx
+        break
+
+if start is None:
+    raise SystemExit(0)
+
+section = []
+for line in lines[start + 1:]:
+    if line.startswith("## ") and not line.startswith("## 💰"):
+        break
+    section.append(line.rstrip())
+
+while section and not section[0].strip():
+    section.pop(0)
+while section and not section[-1].strip():
+    section.pop()
+
+output = []
+table_rows = []
+
+for line in section:
+    stripped = line.strip()
+    if stripped.startswith("|") and stripped.endswith("|") and stripped.count("|") >= 3:
+        cells = [cell.strip() for cell in stripped.strip("|").split("|")]
+        if cells and all(set(cell) <= set("-: ") for cell in cells):
+            continue
+        table_rows.append(cells)
+        continue
+
+    flush_table(table_rows, output)
+    table_rows = []
+    output.append(line)
+
+flush_table(table_rows, output)
+
+for line in output[:22]:
+    print(line)
+PY
+)
+      while IFS= read -r line; do
+        echo -e "${CYAN}  │${NC} $line"
+      done <<< "$cost_panel"
+      echo -e "${CYAN}  └──────────────────────────────────────────────────────┘${NC}"
+    fi
+  fi
+
+  if [[ "$review_success" == "false" ]]; then
+    return 1
   fi
 }
 
