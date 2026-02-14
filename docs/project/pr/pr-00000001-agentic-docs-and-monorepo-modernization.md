@@ -2,7 +2,7 @@
 
 | Field               | Value                                                                                                                                                |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **PR**              | [#1](https://github.com/borealBytes/opencode/pull/1)                                                                                                 |
+| **PR**              | [#1](https://github.com/borealBytes/agent-project/pull/1)                                                                                            |
 | **Author**          | Clayton Young ([@borealBytes](https://github.com/borealBytes))                                                                                       |
 | **Date**            | 2026-02-13                                                                                                                                           |
 | **Status**          | Open                                                                                                                                                 |
