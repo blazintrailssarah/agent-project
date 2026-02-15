@@ -1,14 +1,14 @@
 # PR-00000001: Add Agentic Documentation System and Repo Cleanup
 
-| Field               | Value                                                                                                                                                                                                                            |
-| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **PR**              | [#1](https://github.com/borealBytes/agent-project/pull/1)                                                                                                                                                                        |
-| **Author**          | Clayton Young ([@borealBytes](https://github.com/borealBytes))                                                                                                                                                                   |
-| **Date**            | 2026-02-13                                                                                                                                                                                                                       |
-| **Status**          | Open                                                                                                                                                                                                                             |
-| **Branch**          | `feat/agentic-pr-doc-url-policy` → `main`                                                                                                                                                                                        |
-| **Related issues**  | [#1](../issues/issue-00000001-agentic-documentation-system.md), [#2](../issues/issue-00000002-provider-priority-fail-fast-review-cost-visibility.md), [#3](../issues/issue-00000003-local-review-context-pack-and-resilience.md) |
-| **Deploy strategy** | Standard (docs + local CI tooling updates, no production deploy path changes)                                                                                                                                                    |
+| Field               | Value                                                                                                                                                                                                                                                                                                       |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **PR**              | Planned (not yet created in GitHub UI)                                                                                                                                                                                                                                                                      |
+| **Author**          | Clayton Young ([@borealBytes](https://github.com/borealBytes))                                                                                                                                                                                                                                              |
+| **Date**            | 2026-02-13                                                                                                                                                                                                                                                                                                  |
+| **Status**          | Open                                                                                                                                                                                                                                                                                                        |
+| **Branch**          | `feat/agentic-pr-doc-url-policy` → `main`                                                                                                                                                                                                                                                                   |
+| **Related issues**  | [#1](../issues/issue-00000001-agentic-documentation-system.md), [#2](../issues/issue-00000002-provider-priority-fail-fast-review-cost-visibility.md), [#3](../issues/issue-00000003-local-review-context-pack-and-resilience.md), [#4](../issues/issue-00000004-memory-backend-self-hosted-and-sql-seed.md) |
+| **Deploy strategy** | Standard (docs + local CI tooling updates, no production deploy path changes)                                                                                                                                                                                                                               |
 
 ---
 
@@ -84,6 +84,20 @@ Added complete-repo review mode: local CI now supports `--complete-full-review`,
 
 Fixed a GitHub Actions prep-step regression in `.github/workflows/crewai-review-reusable.yml`: context-pack generation now safely handles `commits.json` when it is a list (current schema) or dict (legacy shape), preventing `AttributeError: 'list' object has no attribute 'get'` during PR review runs.
 
+Latest memory-governance pass adds persistent review-memory operations and policy propagation: introduced `scripts/memory.sh` with a dedicated memory CLI backend (`.crewai/tools/memory_cli.py`), expanded memory manager APIs (dedupe/list/deactivate), injected memory context into local prompt context packs so specialist/full/quick runs see the same memory guidance, seeded suppression and learned-memory entries to avoid false positives on placeholder values in `*.env.example`, and aligned root package metadata license to Apache-2.0 to remove MIT/Apache legal-signal drift.
+
+Latest W08 continuation pass expands memory backend completeness and planning governance: added self-hosted mem0 backend mode selection plus safe fallback-to-local behavior, added SQL-seed export and optional runtime SQLite materialization for text-first persistence, added compaction and memory-optimization controls in CLI, added dedicated tests for memory manager and memory CLI paths, and rolled kanban tracking from W07 to new W08 board with carryover consistency and closure notes.
+
+Latest local CI parity pass makes docs link checks deterministic in local runs: if `lychee` is unavailable, local CI now runs an internal markdown-link checker, writes markdown outputs to `.crewai/workspace` (`link-check-summary.md`, `link-check-report.md`, and `ci_results/test-docs-links/summary.md`), and injects those markdown artifacts into the local context pack so CrewAI can analyze broken-link evidence directly.
+
+Current continuation scope (W08) is focused on project-positioning completion: finalize root `README.md` language and package metadata descriptions so this repository is consistently presented as `agent-project`, an AGENTS.md-first agentic coding starter template with local + GitHub Actions CI and optional deep specialist review.
+
+Current milestone progress: root `README.md` positioning copy has been refreshed and both `package.json`/`pyproject.toml` descriptions (plus package names) are now aligned to `agent-project`. Next verification step is a local CI run to confirm docs, lint, and review flows remain green after identity-copy updates.
+
+Verification completed for this continuation: `./scripts/ci-local.sh --complete-full-review` passed end-to-end (format/lint/link-check/tests/build/review all green; local deploy steps skipped by design; commitlint remained warning-only). Local full specialist review completed in complete-repo mode and produced a non-blocking high-priority marketing wording suggestion for `crewai:complete-full-review` label clarity.
+
+Post-sync verification: after updating source-of-truth records and README/metadata wording, `./scripts/ci-local.sh --step link-check` was re-run and passed.
+
 ### Impact classification
 
 | Dimension         | Level             | Notes                                                                                              |
@@ -114,6 +128,7 @@ Fixed a GitHub Actions prep-step regression in `.github/workflows/crewai-review-
 | `docs/project/pr/pr-00000001-agentic-docs-and-monorepo-modernization.md`                                                                        | Added       | This PR's own documentation (self-referential, naturally)                                                                    |
 | `docs/project/issues/issue-00000001-agentic-documentation-system.md`                                                                            | Added       | Feature request for the documentation system                                                                                 |
 | `docs/project/kanban/sprint-2026-w07-agentic-template-modernization.md`                                                                         | Added       | Sprint W07 board tracking this work                                                                                          |
+| `docs/project/kanban/sprint-2026-w08-crewai-review-hardening-and-memory.md`                                                                     | Added       | Sprint W08 board for carryover + ongoing memory/router hardening work                                                        |
 | `agentic/README.md`                                                                                                                             | Rewritten   | Generic agentic framework overview with Mermaid architecture diagram                                                         |
 | `agentic/instructions.md`                                                                                                                       | Rewritten   | Generic agent entry point with doc standards routing                                                                         |
 | `agentic/file_organization.md`                                                                                                                  | Rewritten   | Generic repo structure map with complete file tree                                                                           |
@@ -127,11 +142,13 @@ Fixed a GitHub Actions prep-step regression in `.github/workflows/crewai-review-
 | `agentic/perplexity/`                                                                                                                           | Deleted     | Platform-specific directory, not relevant to template repo                                                                   |
 | `AGENTS.md`                                                                                                                                     | Added       | Root-level agent entry point — routes to style guides before any doc/diagram work                                            |
 | `scripts/ci-local.sh`                                                                                                                           | Modified    | Added deterministic NVIDIA primary timeout window, explicit NVIDIA timeout error output, and preserved OpenRouter fallback   |
+| `scripts/ci-local.sh`                                                                                                                           | Modified    | Added local markdown link-check artifact persistence and context-pack ingestion for CrewAI parity                            |
 | `.crewai/main.py`                                                                                                                               | Modified    | Added multi-pass local quick-review aggregation, reviewer-pass summaries, and deduplicated finding output                    |
 | `.crewai/main.py`                                                                                                                               | Modified    | Added one-failure NVIDIA disable for remaining quick-review passes and synthesized full/specialist JSON outputs when missing |
 | `.crewai/adr/README.md`, `.crewai/adr/ADR-001-*.md`, `.crewai/adr/ADR-002-*.md`, `.crewai/adr/ADR-003-*.md`                                     | Added       | Added CrewAI-local decision log and initial subsystem ADR set                                                                |
 | `.crewai/utils/model_config.py`, `scripts/ci-local.sh`, `SECRETS.md`, `.env.example`, `.crewai/.env.example`, `scripts/validate-credentials.sh` | Modified    | Local provider path updated to OpenRouter default + explicit NVIDIA opt-in, while preserving model override flexibility      |
 | `docs/project/issues/issue-00000003-local-review-context-pack-and-resilience.md`                                                                | Added       | Added dedicated issue record for local review context-pack and specialist resilience work                                    |
+| `docs/project/issues/issue-00000004-memory-backend-self-hosted-and-sql-seed.md`                                                                 | Added       | Tracks self-hosted mem0 support, SQL-seed export, and local-first memory persistence controls                                |
 | `.crewai/main.py`, `scripts/ci-local.sh`                                                                                                        | Modified    | Added local context-pack flow and structured local full/specialist synthesis with validation-aware retry                     |
 | `website/` → `apps/web/`                                                                                                                        | Moved       | Relocated frontend app to monorepo-standard app workspace path                                                               |
 | `pnpm-workspace.yaml`, `pnpm-lock.yaml`                                                                                                         | Modified    | Updated workspace importer paths to monorepo pattern (`apps/*`, `packages/*`)                                                |
@@ -416,9 +433,9 @@ All files render correctly on GitHub. Agents following the style guides produce 
 
 ### Key review decisions
 
-- **"Everything is Code" approach:** PRs, issues, and kanban boards are managed as markdown files in `docs/` rather than relying on GitHub's database. GitHub remains the UI for commenting, reviewing diffs, and watching CI — but the actual content lives in committed files. This makes project management data portable (GitHub → GitLab → anywhere) and AI-native (agents read local files, no API needed). See [ADR-003](../../agentic/adr/ADR-003-everything-is-code.md).
-- **`classDef` over `%%{init}` for Mermaid:** `%%{init}` directives override GitHub's theme engine, breaking dark mode. `classDef` with tested colors works in both themes. See [ADR-002](../../agentic/adr/ADR-002-mermaid-diagram-standards.md).
-- **Comprehensive guides over linter:** Linters enforce syntax, not quality. They can't teach agents to pick sequence diagrams over flowcharts. The guides teach decision-making, not just formatting. See [ADR-001](../../agentic/adr/ADR-001-agent-optimized-documentation-system.md).
+- **"Everything is Code" approach:** PRs, issues, and kanban boards are managed as markdown files in `docs/` rather than relying on GitHub's database. GitHub remains the UI for commenting, reviewing diffs, and watching CI — but the actual content lives in committed files. This makes project management data portable (GitHub → GitLab → anywhere) and AI-native (agents read local files, no API needed). See [ADR-003](../../../agentic/adr/ADR-003-everything-is-code.md).
+- **`classDef` over `%%{init}` for Mermaid:** `%%{init}` directives override GitHub's theme engine, breaking dark mode. `classDef` with tested colors works in both themes. See [ADR-002](../../../agentic/adr/ADR-002-mermaid-diagram-standards.md).
+- **Comprehensive guides over linter:** Linters enforce syntax, not quality. They can't teach agents to pick sequence diagrams over flowcharts. The guides teach decision-making, not just formatting. See [ADR-001](../../../agentic/adr/ADR-001-agent-optimized-documentation-system.md).
 - **ADR cleanup:** Removed all 7 ported ADRs from another project. Replaced with 3 ADRs documenting actual decisions made during this work.
 - **Completion governance hardening:** Added mandatory progress-sync loop plus completion gate in `AGENTS.md` + `agentic/instructions.md`, mirrored in workflow/coding docs, and documented rationale in ADR-004.
 - **Pre-push validation hardening:** Added explicit `./scripts/ci-local.sh` pre-commit/pre-push expectation across AGENTS-referenced docs, with hosted-environment exception requiring documented skip rationale.
@@ -458,19 +475,21 @@ All files render correctly on GitHub. Agents following the style guides produce 
 - [Issue-#1: Create agent-optimized documentation system](../issues/issue-00000001-agentic-documentation-system.md)
 - [Issue-#2: Provider priority + fail-fast + local pricing visibility](../issues/issue-00000002-provider-priority-fail-fast-review-cost-visibility.md)
 - [Issue-#3: Local review context pack and resilience](../issues/issue-00000003-local-review-context-pack-and-resilience.md)
-- [Mermaid Style Guide](../../agentic/mermaid_style_guide.md)
-- [Markdown Style Guide](../../agentic/markdown_style_guide.md)
-- [Idempotent script design patterns](../../agentic/idempotent_design_patterns.md)
-- [ADR-001: Documentation system decision](../../agentic/adr/ADR-001-agent-optimized-documentation-system.md)
-- [ADR-002: Mermaid standards decision](../../agentic/adr/ADR-002-mermaid-diagram-standards.md)
-- [ADR-003: Everything is Code decision](../../agentic/adr/ADR-003-everything-is-code.md)
-- [ADR-004: Mandatory source-of-truth sync at task completion](../../agentic/adr/ADR-004-task-completion-source-of-truth-sync.md)
-- [ADR-005: Polyglot monorepo workspace layout](../../agentic/adr/ADR-005-polyglot-monorepo-workspace-layout.md)
-- [ADR-006: Federated ADR governance](../../agentic/adr/ADR-006-federated-adr-governance.md)
-- [ADR-007: Monorepo foundation and decision baseline](../../agentic/adr/ADR-007-monorepo-foundation-and-decision-baseline.md)
-- [CrewAI ADR index](../../.crewai/adr/README.md)
-- [Sprint board](../kanban/sprint-2026-w07-agentic-template-modernization.md)
+- [Issue-#4: Memory backend self-hosted and SQL seed](../issues/issue-00000004-memory-backend-self-hosted-and-sql-seed.md)
+- [Mermaid Style Guide](../../../agentic/mermaid_style_guide.md)
+- [Markdown Style Guide](../../../agentic/markdown_style_guide.md)
+- [Idempotent script design patterns](../../../agentic/idempotent_design_patterns.md)
+- [ADR-001: Documentation system decision](../../../agentic/adr/ADR-001-agent-optimized-documentation-system.md)
+- [ADR-002: Mermaid standards decision](../../../agentic/adr/ADR-002-mermaid-diagram-standards.md)
+- [ADR-003: Everything is Code decision](../../../agentic/adr/ADR-003-everything-is-code.md)
+- [ADR-004: Mandatory source-of-truth sync at task completion](../../../agentic/adr/ADR-004-task-completion-source-of-truth-sync.md)
+- [ADR-005: Polyglot monorepo workspace layout](../../../agentic/adr/ADR-005-polyglot-monorepo-workspace-layout.md)
+- [ADR-006: Federated ADR governance](../../../agentic/adr/ADR-006-federated-adr-governance.md)
+- [ADR-007: Monorepo foundation and decision baseline](../../../agentic/adr/ADR-007-monorepo-foundation-and-decision-baseline.md)
+- [CrewAI ADR index](../../../.crewai/adr/README.md)
+- [Sprint W07 board (closed)](../kanban/sprint-2026-w07-agentic-template-modernization.md)
+- [Sprint W08 board (active)](../kanban/sprint-2026-w08-crewai-review-hardening-and-memory.md)
 
 ---
 
-_Last updated: 2026-02-14 17:22 EST_
+_Last updated: 2026-02-15 16:12 EST_

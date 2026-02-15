@@ -2,14 +2,14 @@
 
 | Field              | Value                                                                               |
 | ------------------ | ----------------------------------------------------------------------------------- |
-| **Issue**          | [#1](https://github.com/borealBytes/opencode/issues/1)                              |
+| **Issue**          | Planned (not yet created in GitHub UI)                                              |
 | **Type**           | ✨ Feature request                                                                  |
 | **Priority**       | P1                                                                                  |
 | **Requester**      | Human                                                                               |
 | **Assignee**       | Human + AI agents                                                                   |
 | **Date requested** | 2026-02-13                                                                          |
 | **Status**         | In progress                                                                         |
-| **Target release** | Sprint W07 2026                                                                     |
+| **Target release** | Sprint W08 2026                                                                     |
 | **Shipped in**     | [PR-#1](../pr/pr-00000001-agentic-docs-and-monorepo-modernization.md) (in progress) |
 
 ---
@@ -79,6 +79,8 @@ The feature is complete when:
 - [x] Local terminal pricing/cost panel now renders an aligned fixed-width table for readability
 - [x] Frontend app moved from `website/` to `apps/web/` and CI/deploy paths updated to match
 - [x] Monorepo scaffold expanded with `apps/`, `services/`, `packages/`, and `data/sql/` workspaces
+- [x] Root `README.md` and package metadata descriptions are aligned to `agent-project` template positioning
+- [ ] Source-of-truth records capture README/identity scope and verification evidence from the latest W08 continuation pass
 - [ ] Latest uncommitted work committed and pushed
 - [ ] NVIDIA-first review path produces consistently successful quick-review findings without timeout fallback
 
@@ -195,6 +197,14 @@ flowchart TB
 - **Remaining now:** commit/push, GitHub Mermaid rendering verification, and NVIDIA primary quick-review stability hardening (timeouts still intermittent)
 - **Risk level:** low; end-to-end review path is stable with deterministic failover, but NVIDIA primary success remains intermittent
 
+### Current execution status (2026-02-15)
+
+- **Completed now:** README and project metadata identity alignment to `agent-project` template positioning (AGENTS.md-first, everything-as-code, local + GitHub Actions CI, optional deep specialist review).
+- **In progress now:** source-of-truth synchronization updates across PR/issue/kanban before and after verification runs.
+- **Completed now:** local verification rerun `./scripts/ci-local.sh --complete-full-review` passed after identity updates (all required checks green; deploy steps skipped locally by policy).
+- **Completed now:** post-sync validation `./scripts/ci-local.sh --step link-check` passed after PR/issue/kanban updates.
+- **Next now:** finalize sync notes and prepare branch for commit/push.
+
 ### Success metrics
 
 - **Agent output consistency:** Agents following these guides produce docs that need 0 formatting corrections → measured by review feedback on first 10 PRs after merge
@@ -205,18 +215,18 @@ flowchart TB
 
 ## 🔗 References
 
-- [Mermaid Style Guide](../../agentic/mermaid_style_guide.md)
-- [Markdown Style Guide](../../agentic/markdown_style_guide.md)
-- [Idempotent script design patterns](../../agentic/idempotent_design_patterns.md)
-- [ADR-004: Mandatory source-of-truth sync at task completion](../../agentic/adr/ADR-004-task-completion-source-of-truth-sync.md)
-- [ADR-005: Polyglot monorepo workspace layout](../../agentic/adr/ADR-005-polyglot-monorepo-workspace-layout.md)
-- [ADR-006: Federated ADR governance](../../agentic/adr/ADR-006-federated-adr-governance.md)
-- [ADR-007: Monorepo foundation and decision baseline](../../agentic/adr/ADR-007-monorepo-foundation-and-decision-baseline.md)
-- [CrewAI ADR index](../../.crewai/adr/README.md)
+- [Mermaid Style Guide](../../../agentic/mermaid_style_guide.md)
+- [Markdown Style Guide](../../../agentic/markdown_style_guide.md)
+- [Idempotent script design patterns](../../../agentic/idempotent_design_patterns.md)
+- [ADR-004: Mandatory source-of-truth sync at task completion](../../../agentic/adr/ADR-004-task-completion-source-of-truth-sync.md)
+- [ADR-005: Polyglot monorepo workspace layout](../../../agentic/adr/ADR-005-polyglot-monorepo-workspace-layout.md)
+- [ADR-006: Federated ADR governance](../../../agentic/adr/ADR-006-federated-adr-governance.md)
+- [ADR-007: Monorepo foundation and decision baseline](../../../agentic/adr/ADR-007-monorepo-foundation-and-decision-baseline.md)
+- [CrewAI ADR index](../../../.crewai/adr/README.md)
 - [PR-#1: Agentic documentation system + repo cleanup](../pr/pr-00000001-agentic-docs-and-monorepo-modernization.md)
 - [Sprint board](../kanban/sprint-2026-w07-agentic-template-modernization.md)
 - [Issue-#2: Provider priority + fail-fast + local pricing visibility](issue-00000002-provider-priority-fail-fast-review-cost-visibility.md)
 
 ---
 
-_Last updated: 2026-02-14 13:08 EST_
+_Last updated: 2026-02-15 12:32 EST_
