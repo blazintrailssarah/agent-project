@@ -337,7 +337,7 @@ Not every diagram is simple, and that's fine. The goal is **clarity at every sca
 - You need both the big picture AND the details
 - The overview shows subgraph-level blocks with key connections
 - Each detail diagram zooms into one subgraph with full internal structure
-- Link them: _"See [Build phase detail](#build-phase) for the full compilation flow."_
+- Link them: _"See [Managing complexity](#managing-complexity) for the full scaling guidance."_
 
 ### Best practices at any scale
 

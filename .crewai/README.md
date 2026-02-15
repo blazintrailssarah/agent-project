@@ -38,7 +38,9 @@ Router → CI Log Analysis → Quick Review → [Full Review] → [Specialist Cr
 
 **Label-triggered crews:** Full Review, and any of the 10 specialist crews
 
-**`crewai:full-review` label:** Runs ALL specialist crews
+**`crewai:full-review` label:** Enables full review plus broader specialist selection (mode-aware)
+
+**`crewai:complete-full-review` label:** Runs ALL specialist crews with complete-repository scope
 
 ### Specialist crews
 
@@ -170,12 +172,17 @@ See `.crewai/adr/README.md` for the local index.
 
 Copy `.env.example` to `.env` and set:
 
-| Variable             | Required | Description                                                               |
-| -------------------- | -------- | ------------------------------------------------------------------------- |
-| `OPENROUTER_API_KEY` | Required | API key for CrewAI runtime calls (OpenRouter primary path)                |
-| `CREWAI_MODEL`       | No       | Override default model (default: configured in `model_config.py`)         |
-| `USE_MEM0_CLOUD`     | No       | Set to `true` to enable mem0 cloud memory (default: off, uses local JSON) |
-| `MEM0_API_KEY`       | No       | Only needed if `USE_MEM0_CLOUD=true`                                      |
+| Variable                 | Required | Description                                                        |
+| ------------------------ | -------- | ------------------------------------------------------------------ |
+| `OPENROUTER_API_KEY`     | Required | API key for CrewAI runtime calls (OpenRouter primary path)         |
+| `CREWAI_MODEL`           | No       | Override default model (default: configured in `model_config.py`)  |
+| `MEM0_BACKEND`           | No       | `local` (default), `cloud`, or `self-hosted`                       |
+| `USE_MEM0_CLOUD`         | No       | Legacy toggle for cloud mode when `MEM0_BACKEND` is not set        |
+| `USE_MEM0_SELF_HOSTED`   | No       | Legacy toggle for self-hosted mode when `MEM0_BACKEND` is not set  |
+| `MEM0_API_KEY`           | No       | Required for mem0 cloud; optional for some self-hosted deployments |
+| `MEM0_SELF_HOSTED_URL`   | No       | Base URL for self-hosted mem0 API                                  |
+| `MEM0_BASE_URL`          | No       | Optional override for cloud/self-hosted mem0 endpoint              |
+| `MEMORY_OPTIMIZER_MODEL` | No       | LLM model used for memory compression during `--add-memory`        |
 
 ### Model selection
 
@@ -188,6 +195,53 @@ Edit `config/agents.yaml` — each agent has `role`, `goal`, and `backstory` fie
 ### Customizing tasks
 
 Edit the relevant YAML in `config/tasks/` — each task has `description` (the agent's instructions) and `expected_output`.
+
+### Persistent review memory
+
+Use `scripts/memory.sh` to manage review memory that persists across runs:
+
+```bash
+# List learned memories
+./scripts/memory.sh --list-memories
+
+# Add a new learned memory
+./scripts/memory.sh --add-memory "Example placeholders in .env.example are acceptable when clearly fake" --source maintainer-policy --confidence 1.0
+
+# Add memory without LLM optimization
+./scripts/memory.sh --add-memory "Use strict schema checks for specialist outputs" --no-optimize
+
+# List active suppressions
+./scripts/memory.sh --list-suppressions
+
+# Add a suppression rule
+./scripts/memory.sh --add-suppression "placeholder api keys and tokens" --reason "Template placeholders are expected" --file-glob "*.env.example"
+
+# Show context injected into review prompts
+./scripts/memory.sh --show-context
+
+# Compact memory (dedupe + trim trends)
+./scripts/memory.sh --compact-memory --max-trend-entries 50
+
+# Preview compaction only
+./scripts/memory.sh --compact-memory --dry-run --json
+
+# Export SQL seed (text, tracked)
+./scripts/memory.sh --export-sql
+
+# Build runtime SQLite DB from SQL seed (local-only)
+./scripts/memory.sh --materialize-sqlite
+
+# Print backend mode and storage paths
+./scripts/memory.sh --backend-status
+```
+
+Memory backend behavior:
+
+- Local JSON (`.crewai/memory/memory.json`, `.crewai/memory/suppressions.json`) is the default.
+- SQL seed export is maintained at `.crewai/memory/sql/memory_seed.sql` (text, repo-safe).
+- Optional runtime SQLite materialization is supported for local CI/Actions bootstrap and should not be committed.
+- mem0 Cloud is optional via `MEM0_BACKEND=cloud` (or `USE_MEM0_CLOUD=true`) with `MEM0_API_KEY`.
+- mem0 self-hosted is optional via `MEM0_BACKEND=self-hosted` (or `USE_MEM0_SELF_HOSTED=true`) with `MEM0_SELF_HOSTED_URL`.
 
 ---
 
@@ -273,3 +327,4 @@ All 10 specialist crews write the same JSON schema:
 - Local memory (`memory.json`) stays in repo, gitignored from workspace artifacts
 - Local/non-PR runs skip memory trend writes to keep `memory.json` focused on real PR history
 - mem0 cloud integration is completely off by default
+- Placeholder values in `*.env.example` are acceptable for documentation templates; only real credential leakage should be flagged.

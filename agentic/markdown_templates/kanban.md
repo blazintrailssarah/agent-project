@@ -4,7 +4,7 @@
 
 **Use this template for:** Tracking work items, sprint boards, project task management, release planning, or any scenario where you need a persistent, markdown-based view of work status. This board IS the tracking system — a file in your repo that evolves with your codebase.
 
-**Key features:** Visual Mermaid kanban diagram, work item tables with status tracking, WIP limits, blocked items, aging indicators, flow efficiency metrics, and historical throughput.
+**Key features:** Visual Mermaid kanban diagram, work item tables with status tracking, WIP limits, blocked items, explicit Won't Do decisions, aging indicators, flow efficiency metrics, and historical throughput.
 
 **Philosophy:** This board is a file. Modify it in your branch, merge it with your PR. The board evolves WITH the codebase — no external board tool required. Anyone with repo access sees the board, AI agents included.
 
@@ -49,7 +49,7 @@ _[Team/Owner] · Last updated: [YYYY-MM-DD HH:MM]_
 
 ### Visual board
 
-_Kanban board showing current work distribution across backlog, in-progress, review, and done columns:_
+_Kanban board showing current work distribution across backlog, in-progress, review, done, blocked, and Won't Do columns:_
 
 ```mermaid
 kanban
@@ -65,6 +65,10 @@ kanban
     Done
         task7[Set up CI pipeline]
         task8[Database migration]
+    Blocked
+        task9[Waiting for security approval]
+    Won't Do
+        task10[Drop mobile support in this sprint]
 ```
 
 ---
@@ -78,6 +82,7 @@ kanban
 | 🔍 **In Review**   | [N]   | [Limit]   | [Status]                                       |
 | ✅ **Done**        | [N]   | —         | [This period]                                  |
 | 🚫 **Blocked**     | [N]   | —         | [See blocked section below]                    |
+| 🚫 **Won't Do**    | [N]   | —         | [Explicitly declined with rationale]           |
 
 ---
 
@@ -109,9 +114,9 @@ _Prioritized top-to-bottom. Top items are next to be pulled._
 
 ## 🔍 In Review
 
-| Item        | Author   | Reviewer | PR                                             | Days in review | Aging | Status                                           |
-| ----------- | -------- | -------- | ---------------------------------------------- | -------------- | ----- | ------------------------------------------------ |
-| [Work item] | [Person] | [Person] | [#NNN](../pr/pr-00000000-short-description.md) | [N]            | 🟢    | [Awaiting review / Changes requested / Approved] |
+| Item        | Author   | Reviewer | PR                                                                                   | Days in review | Aging | Status                                           |
+| ----------- | -------- | -------- | ------------------------------------------------------------------------------------ | -------------- | ----- | ------------------------------------------------ |
+| [Work item] | [Person] | [Person] | [#NNN](../../docs/project/pr/pr-00000001-agentic-docs-and-monorepo-modernization.md) | [N]            | 🟢    | [Awaiting review / Changes requested / Approved] |
 
 ---
 
@@ -119,10 +124,10 @@ _Prioritized top-to-bottom. Top items are next to be pulled._
 
 _Completed this period._
 
-| Item        | Assignee | Completed | Cycle time | PR                                             |
-| ----------- | -------- | --------- | ---------- | ---------------------------------------------- |
-| [Work item] | [Person] | [Date]    | [N days]   | [#NNN](../pr/pr-00000000-short-description.md) |
-| [Work item] | [Person] | [Date]    | [N days]   | [#NNN](../pr/pr-00000000-short-description.md) |
+| Item        | Assignee | Completed | Cycle time | PR                                                                                   |
+| ----------- | -------- | --------- | ---------- | ------------------------------------------------------------------------------------ |
+| [Work item] | [Person] | [Date]    | [N days]   | [#NNN](../../docs/project/pr/pr-00000001-agentic-docs-and-monorepo-modernization.md) |
+| [Work item] | [Person] | [Date]    | [N days]   | [#NNN](../../docs/project/pr/pr-00000001-agentic-docs-and-monorepo-modernization.md) |
 
 ---
 
@@ -133,6 +138,17 @@ _Completed this period._
 | [Work item] | [Person] | [Date]        | [What's blocking — dependency, decision, external team] | [Person/team] | [What needs to happen] |
 
 > 🔴 **[N] items blocked.** [Summary of what's needed to unblock them.]
+
+---
+
+## 🚫 Won't Do
+
+_Explicitly out of scope for this board period. Capture rationale so these decisions are transparent and auditable._
+
+| Item        | Date decided | Decision owner | Rationale                                           | Revisit trigger                      |
+| ----------- | ------------ | -------------- | --------------------------------------------------- | ------------------------------------ |
+| [Work item] | [Date]       | [Person/team]  | [Why this is intentionally excluded right now]      | [What change would reopen this item] |
+| [Work item] | [Date]       | [Person/team]  | [Tradeoff, dependency, or risk-based justification] | [Concrete condition to reconsider]   |
 
 ---
 
@@ -172,6 +188,7 @@ _Completed this period._
 ### Decisions made this period
 
 - **[Date]:** [Decision and context — e.g., "Deprioritized auth refactor to focus on payment bug"]
+- **[Date]:** [Added/updated Won't Do decision with explicit rationale and revisit trigger]
 
 ### Carryover from last period
 
@@ -185,9 +202,9 @@ _Completed this period._
 
 ## 🔗 References
 
-- [Live project board](https://github.com/org/repo/projects/N) — Real-time tracking
-- [Previous board](./sprint-2026-w06.md) — Last period's snapshot
-- [Status report](../status-2026-02-14.md) — Executive summary of this period
+- [Live project board](../../docs/project/kanban/sprint-2026-w08-crewai-review-hardening-and-memory.md) — Real-time tracking
+- [Previous board](../../docs/project/kanban/sprint-2026-w07-agentic-template-modernization.md) — Last period's snapshot
+- [Status report](../../docs/project/pr/pr-00000001-agentic-docs-and-monorepo-modernization.md) — Executive summary of this period
 
 ---
 

@@ -44,6 +44,7 @@ from tools.workspace_tool import WorkspaceTool  # noqa: E402
 from utils.specialist_output import (  # noqa: E402
     AUTODETECT_RULES,
     SPECIALIST_CREWS,
+    autodetect_crews,
     validate_specialist_output,
 )
 
@@ -57,6 +58,8 @@ logger = logging.getLogger(__name__)
 
 _REPO_ROOT = Path(__file__).parent.parent.resolve()
 _REPO_FILE_BASENAME_INDEX = None
+_REPO_RELATIVE_FILE_LIST = None
+_REPO_TEXT_SNIPPET_CACHE = {}
 _CHANGED_FILE_CANDIDATES = None
 _LEGACY_ROOT_ARTIFACTS = [
     "ci_summary.json",
@@ -105,6 +108,148 @@ def _get_review_labels() -> list[str]:
 def _is_complete_full_review_mode() -> bool:
     labels = {label.lower() for label in _get_review_labels()}
     return "crewai:complete-full-review" in labels
+
+
+def _determine_review_mode(labels: set[str]) -> str:
+    if "crewai:complete-full-review" in labels:
+        return "complete-full-review"
+    if "crewai:full-review" in labels:
+        return "full-review"
+    return "default"
+
+
+def _score_specialist_candidates(changed_files: list[str]) -> dict[str, int]:
+    lowered_files = [str(path).lower() for path in changed_files]
+    scores: dict[str, int] = {crew_key: 0 for crew_key in SPECIALIST_CREWS}
+
+    lockfiles = {
+        "package-lock.json",
+        "pnpm-lock.yaml",
+        "yarn.lock",
+        "poetry.lock",
+        "pipfile.lock",
+        "cargo.lock",
+        "go.sum",
+    }
+    ui_extensions = (".tsx", ".jsx", ".vue", ".svelte", ".html", ".css")
+
+    for crew_key, rules in AUTODETECT_RULES.items():
+        score = 0
+        for pattern in rules.get("path_patterns", []):
+            lowered_pattern = str(pattern).lower()
+            if any(lowered_pattern in file_path for file_path in lowered_files):
+                score += 2
+        for pattern in rules.get("file_patterns", []):
+            lowered_pattern = str(pattern).lower()
+            if any(fnmatch(file_path, lowered_pattern) for file_path in lowered_files):
+                score += 2
+        if rules.get("lockfile_trigger") and any(
+            file_path.split("/")[-1] in lockfiles for file_path in lowered_files
+        ):
+            score += 3
+        if rules.get("ui_trigger") and any(
+            file_path.endswith(ext) for file_path in lowered_files for ext in ui_extensions
+        ):
+            score += 2
+        scores[crew_key] = score
+
+    return scores
+
+
+def _mode_aware_specialist_decision(
+    labels: list[str],
+    changed_files: list[str],
+    additions: int = 0,
+    deletions: int = 0,
+    seed_specialists: list[str] | None = None,
+    seed_suggestions: list[str] | None = None,
+) -> tuple[list[str], list[str], list[str], str]:
+    normalized_labels = {str(label).strip().lower() for label in labels}
+    mode = _determine_review_mode(normalized_labels)
+
+    label_to_specialist = {meta["label"]: crew for crew, meta in SPECIALIST_CREWS.items()}
+    explicit_specialists = []
+    for label in normalized_labels:
+        crew_key = label_to_specialist.get(label)
+        if crew_key and crew_key not in explicit_specialists:
+            explicit_specialists.append(crew_key)
+
+    autodetected = autodetect_crews(changed_files)
+    candidate_scores = _score_specialist_candidates(changed_files)
+    for crew_key in autodetected:
+        candidate_scores[crew_key] = max(candidate_scores.get(crew_key, 0), 3)
+
+    ranked_candidates = sorted(
+        candidate_scores.items(),
+        key=lambda item: (-item[1], item[0]),
+    )
+
+    specialists: list[str] = list(seed_specialists or [])
+    suggestions: list[str] = list(seed_suggestions or [])
+    workflows = ["ci-log-analysis", "quick-review"]
+
+    if mode in {"full-review", "complete-full-review"}:
+        workflows.append("full-review")
+
+    if mode == "complete-full-review":
+        specialists = list(SPECIALIST_CREWS.keys())
+        suggestions.append(
+            "complete-full-review mode: running all specialists with complete repository scope"
+        )
+    elif mode == "full-review":
+        selected = []
+        for crew_key, score in ranked_candidates:
+            if score <= 0:
+                continue
+            if crew_key not in selected:
+                selected.append(crew_key)
+            if len(selected) >= 6:
+                break
+        for crew_key in explicit_specialists:
+            if crew_key not in selected:
+                selected.append(crew_key)
+        if len(selected) < 3:
+            for fallback in ["security", "documentation", "agentic"]:
+                if fallback not in selected:
+                    selected.append(fallback)
+                if len(selected) >= 3:
+                    break
+        specialists = selected[:6]
+    else:
+        specialists = list(explicit_specialists)
+        if not specialists:
+            high_risk_autorun = {"security", "legal", "finance", "data_engineering", "government"}
+            for crew_key, score in ranked_candidates:
+                if crew_key in high_risk_autorun and score >= 4:
+                    specialists = [crew_key]
+                    break
+
+    for crew_key, reason in sorted(autodetected.items()):
+        label = SPECIALIST_CREWS[crew_key]["label"]
+        suggestions.append(f"[{label}] recommended: {reason}")
+
+    changed_count = len(changed_files)
+    complexity_lines = int(additions or 0) + int(deletions or 0)
+    if mode == "default" and (changed_count > 20 or complexity_lines > 500):
+        suggestions.append(
+            "[crewai:full-review] recommended: high diff complexity detected; broaden specialist depth"
+        )
+
+    deduped_specialists = []
+    for crew_key in specialists:
+        if crew_key in SPECIALIST_CREWS and crew_key not in deduped_specialists:
+            deduped_specialists.append(crew_key)
+
+    deduped_suggestions = []
+    seen_suggestions = set()
+    for suggestion in suggestions:
+        cleaned = str(suggestion).strip()
+        if not cleaned or cleaned in seen_suggestions:
+            continue
+        seen_suggestions.add(cleaned)
+        deduped_suggestions.append(cleaned)
+
+    return workflows, deduped_specialists, deduped_suggestions, mode
 
 
 def _cleanup_root_artifact_leakage() -> None:
@@ -199,6 +344,24 @@ def _build_repo_file_basename_index():
     return index
 
 
+def _get_repo_relative_files():
+    global _REPO_RELATIVE_FILE_LIST
+    if _REPO_RELATIVE_FILE_LIST is not None:
+        return _REPO_RELATIVE_FILE_LIST
+
+    skip_dirs = {".git", "node_modules", ".venv", "venv", "dist", "build", ".next"}
+    files = []
+    for root, dirs, filenames in os.walk(_REPO_ROOT):
+        dirs[:] = [d for d in dirs if d not in skip_dirs]
+        root_path = Path(root)
+        for file_name in filenames:
+            rel_path = str((root_path / file_name).relative_to(_REPO_ROOT)).replace("\\", "/")
+            files.append(rel_path)
+
+    _REPO_RELATIVE_FILE_LIST = files
+    return files
+
+
 def _get_changed_file_candidates():
     global _CHANGED_FILE_CANDIDATES
     if _CHANGED_FILE_CANDIDATES is not None:
@@ -263,6 +426,242 @@ def _qualify_repo_file_path(raw_path):
             return repo_matches[0]
 
     return normalized
+
+
+def _read_repo_file_snippet(rel_path: str, max_chars: int = 900) -> str:
+    candidate = (_REPO_ROOT / rel_path).resolve()
+    try:
+        if not candidate.is_file():
+            return ""
+        text = candidate.read_text(encoding="utf-8", errors="ignore")
+    except Exception:
+        return ""
+
+    if not text:
+        return ""
+    if len(text) > max_chars:
+        return text[: max_chars - 40].rstrip() + "\n...\n[truncated]"
+    return text
+
+
+def _is_searchable_text_file(rel_path: str) -> bool:
+    lowered = rel_path.lower()
+    if "/.git/" in lowered or lowered.startswith(".git/"):
+        return False
+    if "/node_modules/" in lowered or lowered.startswith("node_modules/"):
+        return False
+
+    suffix = Path(lowered).suffix
+    return suffix in {
+        ".py",
+        ".ts",
+        ".tsx",
+        ".js",
+        ".jsx",
+        ".json",
+        ".yml",
+        ".yaml",
+        ".md",
+        ".txt",
+        ".toml",
+        ".ini",
+        ".cfg",
+        ".sql",
+        ".sh",
+        ".bash",
+        ".zsh",
+        ".dockerfile",
+        ".env",
+        ".example",
+        ".lock",
+    }
+
+
+def _read_repo_text_for_search(rel_path: str, max_chars: int = 14000) -> str:
+    if rel_path in _REPO_TEXT_SNIPPET_CACHE:
+        return _REPO_TEXT_SNIPPET_CACHE[rel_path]
+
+    candidate = (_REPO_ROOT / rel_path).resolve()
+    text = ""
+    try:
+        if candidate.is_file() and candidate.stat().st_size <= 200_000:
+            text = candidate.read_text(encoding="utf-8", errors="ignore")
+    except Exception:
+        text = ""
+
+    if len(text) > max_chars:
+        text = text[:max_chars]
+
+    _REPO_TEXT_SNIPPET_CACHE[rel_path] = text
+    return text
+
+
+def _build_specialist_probe_context(
+    crew_key: str,
+    domain_keywords: list[str],
+    complete_mode: bool,
+    max_files: int = 6,
+    max_total_chars: int = 5200,
+) -> tuple[str, list[str]]:
+    rules = AUTODETECT_RULES.get(crew_key, {})
+    path_patterns = [str(p).lower() for p in rules.get("path_patterns", [])]
+    file_patterns = [str(p).lower() for p in rules.get("file_patterns", [])]
+    keywords = [str(k).lower() for k in domain_keywords if isinstance(k, str)]
+
+    def _matches(path: str) -> bool:
+        lowered = path.lower()
+        if any(pattern in lowered for pattern in path_patterns):
+            return True
+        if any(fnmatch(lowered, pattern) for pattern in file_patterns):
+            return True
+        return any(keyword in lowered for keyword in keywords)
+
+    if complete_mode:
+        max_files = max(max_files, 12)
+        max_total_chars = max(max_total_chars, 10000)
+
+    selected: list[str] = []
+    reasons: dict[str, str] = {}
+
+    def _add_candidate(path: str, reason: str):
+        if not path or path in selected:
+            return
+        selected.append(path)
+        reasons[path] = reason
+
+    for changed_path in _get_changed_file_candidates():
+        normalized = _qualify_repo_file_path(changed_path)
+        if not normalized:
+            continue
+        if _matches(normalized):
+            _add_candidate(normalized, "path/pattern match in changed files")
+        if len(selected) >= max_files:
+            break
+
+    searchable_paths = []
+    for changed_path in _get_changed_file_candidates():
+        normalized = _qualify_repo_file_path(changed_path)
+        if normalized and _is_searchable_text_file(normalized):
+            searchable_paths.append(normalized)
+
+    if complete_mode and len(selected) < max_files:
+        for rel_path in _get_repo_relative_files():
+            if not _is_searchable_text_file(rel_path):
+                continue
+            searchable_paths.append(rel_path)
+
+    scanned = 0
+    for rel_path in searchable_paths:
+        if len(selected) >= max_files:
+            break
+        scanned += 1
+        lowered_path = rel_path.lower()
+        path_hits = [k for k in keywords if k and k in lowered_path]
+        if path_hits and rel_path not in selected:
+            _add_candidate(rel_path, f"path keyword match: {', '.join(path_hits[:3])}")
+            continue
+
+        text = _read_repo_text_for_search(rel_path)
+        if not text:
+            continue
+        lowered_text = text.lower()
+        content_hits = [k for k in keywords if k and k in lowered_text]
+        if content_hits:
+            _add_candidate(rel_path, f"content keyword match: {', '.join(content_hits[:3])}")
+
+    if complete_mode and len(selected) < max_files:
+        for rel_path in _get_repo_relative_files():
+            if rel_path in selected:
+                continue
+            if _matches(rel_path):
+                _add_candidate(rel_path, "fallback pattern match")
+            if len(selected) >= max_files:
+                break
+
+    if not selected:
+        return "", []
+
+    listed_candidates = selected[: min(len(selected), 36)]
+
+    lines = [
+        "## Domain-specific repository probes",
+        (
+            "The following file excerpts were selected for this specialist domain. "
+            "Use them as additional evidence, not as the only review source."
+        ),
+        (
+            f"Scan mode: {'complete-repository' if complete_mode else 'changed-files-first'}; "
+            f"search candidates scanned: {scanned}."
+        ),
+        "",
+        "### Candidate files (domain-ranked)",
+    ]
+
+    for candidate in listed_candidates:
+        lines.append(f"- {candidate}")
+    lines.append("")
+    lines.append("### Evidence excerpts")
+    lines.append("")
+
+    total_chars = 0
+    for rel_path in selected:
+        snippet = _read_repo_file_snippet(rel_path)
+        if not snippet:
+            continue
+        reason = reasons.get(rel_path, "domain relevance")
+        block = [f"### {rel_path} ({reason})", "```text", snippet, "```", ""]
+        block_text = "\n".join(block)
+        if total_chars + len(block_text) > max_total_chars and total_chars > 0:
+            break
+        lines.extend(block)
+        total_chars += len(block_text)
+
+    return "\n".join(lines).strip(), selected
+
+
+def _specialist_probe_profile(crew_key: str, complete_mode: bool) -> tuple[int, int]:
+    default_profiles = {
+        "security": (7, 7000),
+        "legal": (6, 6200),
+        "finance": (6, 6200),
+        "documentation": (8, 7600),
+        "agentic": (8, 7600),
+        "marketing": (7, 6800),
+        "science": (7, 7000),
+        "government": (7, 6800),
+        "strategy": (8, 7600),
+        "data_engineering": (9, 8200),
+    }
+    max_files, max_chars = default_profiles.get(crew_key, (7, 7000))
+    if complete_mode:
+        return int(max_files * 1.5), int(max_chars * 1.6)
+    return max_files, max_chars
+
+
+def _is_domain_specific_finding(finding: dict, domain_keywords: list[str]) -> bool:
+    if not isinstance(finding, dict):
+        return False
+    combined_text = (
+        f"{finding.get('title', '')} {finding.get('description', '')} "
+        f"{finding.get('recommendation', '')} {finding.get('file', '')}"
+    ).lower()
+    if any(keyword in combined_text for keyword in domain_keywords):
+        return True
+    file_value = str(finding.get("file", "")).strip()
+    return bool(file_value)
+
+
+def _needs_refinement(parsed: dict, domain_keywords: list[str], complete_mode: bool) -> bool:
+    if not complete_mode:
+        return False
+    findings = _normalize_findings_list(parsed.get("findings"))
+    if not findings:
+        return True
+
+    specialized_count = sum(
+        1 for finding in findings if _is_domain_specific_finding(finding, domain_keywords)
+    )
+    return specialized_count < max(1, len(findings) // 2)
 
 
 def _clean_summary_text(summary_text):
@@ -617,35 +1016,43 @@ def run_router(env_vars):
 
     if env_vars.get("pr_number") == "local":
         workspace = WorkspaceTool()
-        labels = []
+        labels: list[str] = []
+        changed_files: list[str] = []
+        additions = 0
+        deletions = 0
         if workspace.exists("diff.json"):
             try:
-                labels = workspace.read_json("diff.json").get("labels", [])
+                diff_data = workspace.read_json("diff.json")
+                labels = diff_data.get("labels", []) if isinstance(diff_data, dict) else []
+                changed_files = (
+                    diff_data.get("file_list", []) if isinstance(diff_data, dict) else []
+                )
+                additions = int(diff_data.get("additions", 0) or 0)
+                deletions = int(diff_data.get("deletions", 0) or 0)
             except Exception:
                 labels = []
+                changed_files = []
 
-        workflows = ["ci-log-analysis", "quick-review"]
-        specialist = []
-
-        normalized_labels = {str(label).strip().lower() for label in labels}
-        if (
-            "crewai:full-review" in normalized_labels
-            or "crewai:complete-full-review" in normalized_labels
-        ):
-            workflows.append("full-review")
-            specialist = list(SPECIALIST_CREWS.keys())
-        else:
-            label_to_specialist = {v["label"]: k for k, v in SPECIALIST_CREWS.items()}
-            for label in labels:
-                crew_key = label_to_specialist.get(label)
-                if crew_key and crew_key not in specialist:
-                    specialist.append(crew_key)
+        changed_files = [str(path) for path in changed_files if isinstance(path, str)]
+        workflows, specialist, suggestions, mode = _mode_aware_specialist_decision(
+            labels=labels,
+            changed_files=changed_files,
+            additions=additions,
+            deletions=deletions,
+        )
 
         decision = {
             "workflows": workflows,
             "specialist_crews": specialist,
-            "suggestions": [],
-            "metadata": {"source": "local-short-circuit", "labels": labels},
+            "suggestions": suggestions,
+            "metadata": {
+                "source": "local-short-circuit",
+                "labels": labels,
+                "mode": mode,
+                "files_changed": len(changed_files),
+                "lines_added": additions,
+                "lines_removed": deletions,
+            },
         }
         logger.info(f"✅ Local router shortcut: workflows={workflows}, specialist={specialist}")
         workspace.write_json("router_decision.json", decision)
@@ -673,6 +1080,36 @@ def run_router(env_vars):
         workspace = WorkspaceTool()
         if workspace.exists("router_decision.json"):
             decision = workspace.read_json("router_decision.json")
+            normalized_decision = dict(decision) if isinstance(decision, dict) else {}
+            diff_data = workspace.read_json("diff.json") if workspace.exists("diff.json") else {}
+            labels = diff_data.get("labels", []) if isinstance(diff_data, dict) else []
+            changed_files = diff_data.get("file_list", []) if isinstance(diff_data, dict) else []
+            additions = (
+                int(diff_data.get("additions", 0) or 0) if isinstance(diff_data, dict) else 0
+            )
+            deletions = (
+                int(diff_data.get("deletions", 0) or 0) if isinstance(diff_data, dict) else 0
+            )
+            seed_specialists = normalized_decision.get("specialist_crews", [])
+            seed_suggestions = normalized_decision.get("suggestions", [])
+            workflows, specialists, suggestions, mode = _mode_aware_specialist_decision(
+                labels=labels if isinstance(labels, list) else [],
+                changed_files=[str(path) for path in changed_files if isinstance(path, str)],
+                additions=additions,
+                deletions=deletions,
+                seed_specialists=seed_specialists if isinstance(seed_specialists, list) else [],
+                seed_suggestions=seed_suggestions if isinstance(seed_suggestions, list) else [],
+            )
+            normalized_decision["workflows"] = workflows
+            normalized_decision["specialist_crews"] = specialists
+            normalized_decision["suggestions"] = suggestions
+            metadata = normalized_decision.get("metadata", {})
+            if not isinstance(metadata, dict):
+                metadata = {}
+            metadata["mode"] = mode
+            normalized_decision["metadata"] = metadata
+            decision = normalized_decision
+            workspace.write_json("router_decision.json", decision)
             logger.info(f"✅ Router decision: {decision.get('workflows', [])}")
             if decision.get("suggestions"):
                 logger.info("💡 Router suggestions:")
@@ -1656,8 +2093,24 @@ def _extract_json_from_result(result, expected_keys=None):
 
 
 def _read_local_context_pack(workspace: WorkspaceTool, max_chars: int = 14000) -> str:
+    memory_context = (
+        workspace.read("memory_context.md") if workspace.exists("memory_context.md") else ""
+    )
+
+    def _combine_with_memory(base_context: str) -> str:
+        if not memory_context.strip():
+            return base_context
+        if "## Persistent review memory" in base_context:
+            return base_context
+        return (
+            base_context.rstrip()
+            + "\n\n## Persistent review memory\n"
+            + memory_context.strip()
+            + "\n"
+        )
+
     if workspace.exists("context_pack.md"):
-        context = workspace.read("context_pack.md")
+        context = _combine_with_memory(workspace.read("context_pack.md"))
         if len(context) > max_chars:
             return context[: max_chars - 200] + "\n...\n[truncated context pack]"
         return context
@@ -1682,7 +2135,7 @@ def _read_local_context_pack(workspace: WorkspaceTool, max_chars: int = 14000) -
     for msg in commits.get("commit_messages", [])[:8]:
         lines.append("- " + str(msg))
     lines.extend(["", "## Diff", "```diff", diff_text, "```"])
-    return "\n".join(lines)
+    return _combine_with_memory("\n".join(lines))
 
 
 def _call_local_review_model(prompt_text: str, max_tokens: int, timeout_seconds: int = 30) -> dict:
@@ -1909,6 +2362,19 @@ def _run_specialist_local(crew_key: str, output_file: str, complete_mode: bool =
         },
     )
 
+    domain_keywords = [k.lower() for k in domain_focus.get("keywords", [])]
+    probe_max_files, probe_max_chars = _specialist_probe_profile(crew_key, complete_mode)
+    probe_context, probe_files = _build_specialist_probe_context(
+        crew_key=crew_key,
+        domain_keywords=domain_keywords,
+        complete_mode=complete_mode,
+        max_files=probe_max_files,
+        max_total_chars=probe_max_chars,
+    )
+    review_context = context_text
+    if probe_context:
+        review_context = review_context + "\n\n" + probe_context
+
     schema_prompt = (
         "You are a domain specialist reviewer. "
         + crew_info.get("description", "Review changed code and provide actionable findings.")
@@ -1925,6 +2391,10 @@ def _run_specialist_local(crew_key: str, output_file: str, complete_mode: bool =
         + "\n- Avoid duplicating quick-review or full-review generic feedback."
         + "\n- If no true domain finding exists, return findings=[] and explain in summary why domain risk is low."
         + "\n- You may include at most one info-level educational FYI, but only if it is domain-specific."
+        + "\n- In complete repository mode, inspect multiple domain-relevant files; do not rely on a single shared context block."
+        + "\n- Every recommendation must be domain-specific and reference a concrete control, file, or process in this repository."
+        + "\n- Avoid repeating advice that another specialist would own; stay in your domain lane."
+        + "\n- Do not flag placeholder/example secrets in *.env.example files unless evidence suggests real credentials are committed."
         + "\nRequired schema:\n"
         + "{\n"
         + '  "summary": "1-3 sentence summary",\n'
@@ -1950,7 +2420,7 @@ def _run_specialist_local(crew_key: str, output_file: str, complete_mode: bool =
 
     parsed, provider, parse_errors = _request_json_with_retry(
         stage_name=f"specialist_{crew_key}_local",
-        context_text=context_text,
+        context_text=review_context,
         schema_prompt=schema_prompt,
         expected_keys=["summary", "severity_counts", "findings"],
         max_tokens=1300,
@@ -1965,6 +2435,27 @@ def _run_specialist_local(crew_key: str, output_file: str, complete_mode: bool =
         )
         return False
 
+    if _needs_refinement(parsed, domain_keywords, complete_mode):
+        refine_prompt = (
+            schema_prompt
+            + "\nSecond-pass requirement: challenge the first-pass conclusions and tighten "
+            "domain specificity. Keep only substantiated domain findings and include concrete file "
+            "evidence where possible."
+        )
+        refine_context = (
+            review_context + "\n\nFirst-pass JSON result:\n" + json.dumps(parsed, indent=2)
+        )
+        refined, refined_provider, refined_errors = _request_json_with_retry(
+            stage_name=f"specialist_{crew_key}_local_refine",
+            context_text=refine_context,
+            schema_prompt=refine_prompt,
+            expected_keys=["summary", "severity_counts", "findings"],
+            max_tokens=1300,
+        )
+        if not refined_errors and refined:
+            parsed = refined
+            provider = refined_provider
+
     raw_findings = _normalize_findings_list(parsed.get("findings"))
     prefix = crew_info.get("id_prefix", "FIND")
     findings = []
@@ -1977,7 +2468,6 @@ def _run_specialist_local(crew_key: str, output_file: str, complete_mode: bool =
         "maintainability",
         "generic best practice",
     ]
-    domain_keywords = [k.lower() for k in domain_focus.get("keywords", [])]
     for index, finding in enumerate(raw_findings, start=1):
         normalized = dict(finding)
         finding_id = str(normalized.get("id", "")).strip()
@@ -2022,7 +2512,8 @@ def _run_specialist_local(crew_key: str, output_file: str, complete_mode: bool =
         baseline_title = f"{crew_key.replace('_', ' ').title()} baseline guardrail"
         baseline_desc = (
             "No direct high-severity domain risk detected in the current repository state. "
-            f"Reviewed domain focus: {domain_focus['focus']}."
+            f"Reviewed domain focus: {domain_focus['focus']}. "
+            f"Domain probe files considered: {len(probe_files)}."
         )
         baseline_recommendation = (
             "Track this domain in subsequent cycles and re-evaluate after substantive changes."
@@ -3362,127 +3853,259 @@ def create_fallback_summary(workspace_dir, env_vars, workflows_executed):
     return fallback_md
 
 
-def generate_cost_breakdown():
-    """Generate markdown table with cost breakdown grouped by crew.
+def _fmt_running(tokens_in: int, tokens_out: int, total_tokens: int, cost: float) -> str:
+    return f"{tokens_in:,}/{tokens_out:,}/{total_tokens:,}/${cost:.6f}"
 
-    Returns:
-        str: Markdown formatted cost breakdown table with crew subtotals
-    """
+
+def _cost_table_row(
+    row_type: str,
+    crew: str,
+    agent: str,
+    call: str,
+    tokens_in: int,
+    tokens_out: int,
+    total_tokens: int,
+    cost: float,
+    crew_running: str = "",
+    agent_running: str = "",
+    global_running: str = "",
+    *,
+    bold_cost: bool = False,
+) -> str:
+    cost_cell = f"${cost:.6f}"
+    if bold_cost:
+        cost_cell = f"**{cost_cell}**"
+    return (
+        f"| {row_type} | {crew} | {agent} | {call} | {tokens_in:,} | {tokens_out:,} | "
+        f"{total_tokens:,} | {cost_cell} | {crew_running} | {agent_running} | {global_running} |"
+    )
+
+
+def generate_cost_breakdown():
+    """Generate a unified cost table with running totals by call, crew, and agent."""
     try:
         tracker = get_tracker()
         summary = tracker.get_summary()
 
         if summary["total_calls"] == 0:
-            return "\n---\n\n## 💰 Cost Tracking\n\nNo API calls recorded.\n"
+            return "\n---\n\n## 💰 Cost and efficiency\n\nNo API calls recorded.\n"
 
-        crew_breakdown = summary["crew_breakdown"]
+        calls = sorted(tracker.calls, key=lambda call: call.call_number)
+        crew_breakdown = summary.get("crew_breakdown", {})
         agent_breakdown = summary.get("agent_breakdown", {})
-        total_cost = summary["total_cost"]
 
         crew_rows = sorted(
             crew_breakdown.items(),
             key=lambda item: item[1].get("cost", 0.0),
             reverse=True,
         )
-
-        crew_table = [
-            "| Crew | Calls | Input | Output | Total tokens | Cost | Cost share | Avg speed |",
-            "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
-        ]
-
-        for crew_name, stats in crew_rows:
-            crew_duration = stats.get("duration", 0.0)
-            avg_speed = (
-                f"{stats.get('total_tokens', 0) / crew_duration:.1f} tok/s"
-                if crew_duration > 0
-                else "-"
-            )
-            share = (stats.get("cost", 0.0) / total_cost * 100.0) if total_cost > 0 else 0.0
-            crew_table.append(
-                f"| {crew_name} | {stats.get('calls', 0)} | {stats.get('tokens_in', 0):,} | "
-                f"{stats.get('tokens_out', 0):,} | {stats.get('total_tokens', 0):,} | "
-                f"${stats.get('cost', 0.0):.6f} | {share:.1f}% | {avg_speed} |"
-            )
-
         agent_rows = sorted(
             agent_breakdown.items(),
             key=lambda item: item[1].get("cost", 0.0),
             reverse=True,
         )
-        agent_table = [
-            "| Agent | Calls | Input | Output | Total tokens | Cost | Cost share | Avg speed |",
-            "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+
+        max_crew_cost = crew_rows[0][1].get("cost", 0.0) if crew_rows else 0.0
+        max_agent_cost = agent_rows[0][1].get("cost", 0.0) if agent_rows else 0.0
+
+        lines = [
+            "",
+            "---",
+            "",
+            "## 💰 Cost and efficiency",
+            "",
+            (
+                f"- Final total cost: **${summary['total_cost']:.6f}** "
+                f"across **{summary['total_calls']}** calls"
+            ),
+            (
+                "- Final total tokens: "
+                f"**{summary['total_tokens_in']:,} in / {summary['total_tokens_out']:,} out "
+                f"/ {summary['total_tokens']:,} total**"
+            ),
         ]
+
+        if crew_rows:
+            lines.append(
+                f"- Top crew total: **{crew_rows[0][0]}** at **${crew_rows[0][1].get('cost', 0.0):.6f}**"
+            )
+        if agent_rows:
+            lines.append(
+                f"- Top agent total: **{agent_rows[0][0]}** at **${agent_rows[0][1].get('cost', 0.0):.6f}**"
+            )
+
+        lines.extend(
+            [
+                "",
+                "| Row | Crew | Agent | Call | Input | Output | Tokens | Cost | Crew running (in/out/tok/$) | Agent running (in/out/tok/$) | Global running (in/out/tok/$) |",
+                "| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | --- | --- | --- |",
+            ]
+        )
+
+        global_in = 0
+        global_out = 0
+        global_tokens = 0
+        global_cost = 0.0
+        crew_running = {}
+        agent_running = {}
+
+        for call in calls:
+            global_in += call.tokens_in
+            global_out += call.tokens_out
+            global_tokens += call.total_tokens
+            global_cost += call.cost
+
+            crew_state = crew_running.setdefault(
+                call.crew_name,
+                {"in": 0, "out": 0, "tokens": 0, "cost": 0.0},
+            )
+            crew_state["in"] += call.tokens_in
+            crew_state["out"] += call.tokens_out
+            crew_state["tokens"] += call.total_tokens
+            crew_state["cost"] += call.cost
+
+            agent_state = agent_running.setdefault(
+                call.agent_name,
+                {"in": 0, "out": 0, "tokens": 0, "cost": 0.0},
+            )
+            agent_state["in"] += call.tokens_in
+            agent_state["out"] += call.tokens_out
+            agent_state["tokens"] += call.total_tokens
+            agent_state["cost"] += call.cost
+
+            lines.append(
+                _cost_table_row(
+                    row_type="Call",
+                    crew=call.crew_name,
+                    agent=call.agent_name,
+                    call=f"#{call.call_number}",
+                    tokens_in=call.tokens_in,
+                    tokens_out=call.tokens_out,
+                    total_tokens=call.total_tokens,
+                    cost=call.cost,
+                    crew_running=_fmt_running(
+                        crew_state["in"],
+                        crew_state["out"],
+                        crew_state["tokens"],
+                        crew_state["cost"],
+                    ),
+                    agent_running=_fmt_running(
+                        agent_state["in"],
+                        agent_state["out"],
+                        agent_state["tokens"],
+                        agent_state["cost"],
+                    ),
+                    global_running=_fmt_running(global_in, global_out, global_tokens, global_cost),
+                )
+            )
+
+        crew_rollup_in = 0
+        crew_rollup_out = 0
+        crew_rollup_tokens = 0
+        crew_rollup_cost = 0.0
+        for crew_name, stats in crew_rows:
+            row_in = int(stats.get("tokens_in", 0) or 0)
+            row_out = int(stats.get("tokens_out", 0) or 0)
+            row_tokens = int(stats.get("total_tokens", 0) or 0)
+            row_cost = float(stats.get("cost", 0.0) or 0.0)
+            crew_rollup_in += row_in
+            crew_rollup_out += row_out
+            crew_rollup_tokens += row_tokens
+            crew_rollup_cost += row_cost
+            lines.append(
+                _cost_table_row(
+                    row_type="Crew total",
+                    crew=crew_name,
+                    agent="-",
+                    call="-",
+                    tokens_in=row_in,
+                    tokens_out=row_out,
+                    total_tokens=row_tokens,
+                    cost=row_cost,
+                    crew_running=_fmt_running(
+                        crew_rollup_in,
+                        crew_rollup_out,
+                        crew_rollup_tokens,
+                        crew_rollup_cost,
+                    ),
+                    global_running=_fmt_running(
+                        crew_rollup_in,
+                        crew_rollup_out,
+                        crew_rollup_tokens,
+                        crew_rollup_cost,
+                    ),
+                    bold_cost=row_cost == max_crew_cost,
+                )
+            )
+
+        agent_rollup_in = 0
+        agent_rollup_out = 0
+        agent_rollup_tokens = 0
+        agent_rollup_cost = 0.0
         for agent_name, stats in agent_rows:
-            agent_duration = stats.get("duration", 0.0)
-            avg_speed = (
-                f"{stats.get('total_tokens', 0) / agent_duration:.1f} tok/s"
-                if agent_duration > 0
-                else "-"
-            )
-            share = (stats.get("cost", 0.0) / total_cost * 100.0) if total_cost > 0 else 0.0
-            agent_table.append(
-                f"| {agent_name} | {stats.get('calls', 0)} | {stats.get('tokens_in', 0):,} | "
-                f"{stats.get('tokens_out', 0):,} | {stats.get('total_tokens', 0):,} | "
-                f"${stats.get('cost', 0.0):.6f} | {share:.1f}% | {avg_speed} |"
-            )
-
-        most_expensive_crew = crew_rows[0][0] if crew_rows else "n/a"
-        most_expensive_call = max(tracker.calls, key=lambda call: call.cost, default=None)
-
-        call_table = tracker.format_as_markdown_table()
-
-        lines = []
-        lines.append("")
-        lines.append("---")
-        lines.append("")
-        lines.append("## 💰 Cost and efficiency")
-        lines.append("")
-        lines.append("### Crew totals")
-        lines.extend(crew_table)
-        lines.append("")
-        if agent_rows:
-            lines.append("### Agent totals")
-            lines.extend(agent_table)
-            lines.append("")
-        lines.append(
-            f"- Highest total spend: **{most_expensive_crew}** ({crew_rows[0][1].get('cost', 0.0):.6f} USD)"
-            if crew_rows
-            else "- Highest total spend: n/a"
-        )
-        if agent_rows:
+            row_in = int(stats.get("tokens_in", 0) or 0)
+            row_out = int(stats.get("tokens_out", 0) or 0)
+            row_tokens = int(stats.get("total_tokens", 0) or 0)
+            row_cost = float(stats.get("cost", 0.0) or 0.0)
+            agent_rollup_in += row_in
+            agent_rollup_out += row_out
+            agent_rollup_tokens += row_tokens
+            agent_rollup_cost += row_cost
             lines.append(
-                f"- Highest agent spend: **{agent_rows[0][0]}** "
-                f"({agent_rows[0][1].get('cost', 0.0):.6f} USD)"
+                _cost_table_row(
+                    row_type="Agent total",
+                    crew="-",
+                    agent=agent_name,
+                    call="-",
+                    tokens_in=row_in,
+                    tokens_out=row_out,
+                    total_tokens=row_tokens,
+                    cost=row_cost,
+                    agent_running=_fmt_running(
+                        agent_rollup_in,
+                        agent_rollup_out,
+                        agent_rollup_tokens,
+                        agent_rollup_cost,
+                    ),
+                    global_running=_fmt_running(
+                        agent_rollup_in,
+                        agent_rollup_out,
+                        agent_rollup_tokens,
+                        agent_rollup_cost,
+                    ),
+                    bold_cost=row_cost == max_agent_cost,
+                )
             )
-        if most_expensive_call:
-            lines.append(
-                f"- Most expensive call: **#{most_expensive_call.call_number}** "
-                f"({most_expensive_call.crew_name} / {most_expensive_call.agent_name}, "
-                f"{most_expensive_call.model}, "
-                f"${most_expensive_call.cost:.6f})"
-            )
-        lines.append("")
-        lines.append("<details>")
-        lines.append("<summary><b>Per-call breakdown</b></summary>")
-        lines.append("")
-        lines.append(call_table)
-        lines.append("")
-        lines.append("</details>")
-        lines.append("")
-        lines.append(
-            f"**Summary**: {summary['total_calls']} calls across "
-            f"{len(summary['crew_breakdown'])} crews and {len(agent_rows)} agents | "
-            f"Total: {summary['total_tokens']:,} tokens in {summary['total_duration']:.1f}s | "
-            f"Avg: {summary['total_tokens'] / summary['total_duration']:.1f} tok/s"
-        )
-        lines.append("")
 
+        grand_running = _fmt_running(
+            int(summary["total_tokens_in"]),
+            int(summary["total_tokens_out"]),
+            int(summary["total_tokens"]),
+            float(summary["total_cost"]),
+        )
+        lines.append(
+            _cost_table_row(
+                row_type="Grand total",
+                crew="ALL",
+                agent="ALL",
+                call="-",
+                tokens_in=int(summary["total_tokens_in"]),
+                tokens_out=int(summary["total_tokens_out"]),
+                total_tokens=int(summary["total_tokens"]),
+                cost=float(summary["total_cost"]),
+                crew_running=grand_running,
+                agent_running=grand_running,
+                global_running=grand_running,
+                bold_cost=True,
+            )
+        )
+
+        lines.append("")
         return "\n".join(lines)
 
     except Exception as e:
         logger.warning(f"⚠️ Could not generate cost breakdown: {e}")
-        return "\n---\n\n## 💰 Cost Breakdown\n\nCost tracking unavailable.\n"
+        return "\n---\n\n## 💰 Cost and efficiency\n\nCost tracking unavailable.\n"
 
 
 def post_results(env_vars, final_markdown):
@@ -3685,6 +4308,16 @@ def main():
             logger.info("🧠 Memory context loaded — writing to workspace")
             workspace = WorkspaceTool()
             workspace.write("memory_context.md", memory_context)
+            if workspace.exists("context_pack.md"):
+                context_pack = workspace.read("context_pack.md")
+                if "## Persistent review memory" not in context_pack:
+                    merged_context_pack = (
+                        context_pack.rstrip()
+                        + "\n\n## Persistent review memory\n"
+                        + memory_context.strip()
+                        + "\n"
+                    )
+                    workspace.write("context_pack.md", merged_context_pack)
         else:
             logger.info("🧠 No prior memory context (fresh start)")
 

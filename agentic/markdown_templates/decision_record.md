@@ -192,9 +192,9 @@ flowchart LR
 
 ## 🔗 References
 
-- [Related ADR or RFC](./NNN-related-decision.md)
+- [Related ADR or RFC](../adr/ADR-001-agent-optimized-documentation-system.md)
 - [External documentation or benchmark](https://example.com)
-- [Relevant issue or discussion thread](https://github.com/org/repo/issues/NNN)
+- [Relevant issue or discussion thread](../../docs/project/issues/issue-00000001-agentic-documentation-system.md)
 
 ---
 

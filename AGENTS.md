@@ -39,6 +39,7 @@ You **MUST** read and follow the style guides. These are not optional — they d
 - **Multi-line commit bodies are required** for non-trivial changes. The body must explain **why** the change was made, **what** key files were touched, and **how** behavior differs. The commit history is the authoritative record of the project — someone reading `git log` alone should fully understand every change.
 - **License and attribution are mandatory in redistributions** — this repo is Apache-2.0. Keep `LICENSE` and `NOTICE` when redistributing derivative works, and preserve attribution to Superior Byte Works, LLC / Clayton Young (Boreal Bytes).
 - **No warranty / no liability** — do not add language in docs or code comments that contradicts Apache-2.0 warranty and liability disclaimers.
+- **Example secret placeholders are acceptable** — `*.env.example` may contain clearly fake sample values; flag only real credential leakage or unsafe secret handling.
 - **Run local CI before commit/push when possible** — run `./scripts/ci-local.sh` (or `./scripts/ci-local.sh --review` when review behavior changed) before committing/pushing unless the user explicitly says not to.
 - **If local CI cannot run in this environment** (missing local secrets/tools, hosted remote runner), document the skip reason in PR/issue records and proceed with available checks.
 - **Draft PR first** → design checkpoint → implement → code review → human marks Ready

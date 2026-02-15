@@ -118,7 +118,7 @@ After this presentation, you'll be able to:
 - [Point 2 with brief explanation]
 - [Point 3 with brief explanation]
 
-![Descriptive alt text](images/[filename].png)
+Image placeholder: `images/slide-[filename].png`
 _Figure 1: [What this image demonstrates]_
 
 > 💡 **Key insight:** [The one-liner the audience should remember from this topic]
@@ -285,7 +285,7 @@ flowchart LR
 
 _All footnote references from the presentation are collected here:_
 
-[^1]: [Author/Org]. ([Year]). "[Title]." _[Publication]_. [https://full-url]
+[^1]: [Author/Org]. ([Year]). "[Title]." _[Publication]_. <https://example.com>
 
 ### Further reading
 

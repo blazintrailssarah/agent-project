@@ -283,19 +283,19 @@ xychart-beta
 
 _All sources cited in this paper:_
 
-[^1]: [Author/Org]. ([Year]). "[Title]." _[Publication]_. <https://full-url>
+[^1]: [Author/Org]. ([Year]). "[Title]." _[Publication]_. <https://example.com>
 
-[^2]: [Author/Org]. ([Year]). "[Title]." _[Publication]_. <https://full-url>
+[^2]: [Author/Org]. ([Year]). "[Title]." _[Publication]_. <https://example.com>
 
-[^3]: [Author/Org]. ([Year]). "[Title]." _[Publication]_. <https://full-url>
+[^3]: [Author/Org]. ([Year]). "[Title]." _[Publication]_. <https://example.com>
 
-[^4]: [Author/Org]. ([Year]). "[Title]." _[Publication]_. <https://full-url>
+[^4]: [Author/Org]. ([Year]). "[Title]." _[Publication]_. <https://example.com>
 
-[^5]: [Author/Org]. ([Year]). "[Title]." _[Publication]_. <https://full-url>
+[^5]: [Author/Org]. ([Year]). "[Title]." _[Publication]_. <https://example.com>
 
-[^6]: [Author/Org]. ([Year]). "[Title]." _[Publication]_. <https://full-url>
+[^6]: [Author/Org]. ([Year]). "[Title]." _[Publication]_. <https://example.com>
 
-[^7]: [Author/Org]. ([Year]). "[Title]." _[Publication]_. <https://full-url>
+[^7]: [Author/Org]. ([Year]). "[Title]." _[Publication]_. <https://example.com>
 
 ---
 

@@ -2,14 +2,14 @@
 
 | Field              | Value                                                                               |
 | ------------------ | ----------------------------------------------------------------------------------- |
-| **Issue**          | [#3](https://github.com/borealBytes/opencode/issues/3)                              |
+| **Issue**          | Planned (not yet created in GitHub UI)                                              |
 | **Type**           | ✨ Feature request                                                                  |
 | **Priority**       | P1                                                                                  |
 | **Requester**      | Human                                                                               |
 | **Assignee**       | Human + AI agents                                                                   |
 | **Date requested** | 2026-02-14                                                                          |
 | **Status**         | In progress                                                                         |
-| **Target release** | Sprint W07                                                                          |
+| **Target release** | Sprint W08                                                                          |
 | **Shipped in**     | [PR-#1](../pr/pr-00000001-agentic-docs-and-monorepo-modernization.md) (in progress) |
 
 ---
@@ -35,6 +35,7 @@ Add a context-pack contract and resilient local structured-review path with non-
 - [x] `--step review` passes for quick and full-review paths with specialist output files present
 - [x] Specialist crews can selectively inspect repo context via tools (`FileContentTool`, `RelatedFilesTool`, `CommitInfoTool`, `CommitDiffTool`) while staying diff-first
 - [x] Specialist outputs are non-simulated by policy; no-relevant domains emit explicit not-applicable zero-finding results
+- [x] Local docs link-check markdown artifacts are written into `.crewai/workspace` for CrewAI visibility
 
 ---
 
@@ -86,6 +87,14 @@ flowchart LR
 - Introduced complete-repo review mode: `--complete-full-review` in local CI sets `crewai:complete-full-review` and runs full review plus all specialists under complete-repository scope semantics.
 - Router contract updated so GitHub PR labels containing `crewai:complete-full-review` trigger the same full+all-specialist expansion path as `crewai:full-review`.
 - Fixed reusable review workflow context-pack parsing to support list-shaped `commits.json` output, eliminating GitHub Actions failure `AttributeError: 'list' object has no attribute 'get'` in PR data preparation.
+- Added persistent memory operations for review quality: `.crewai/main.py` now injects memory context into prompt context packs, and review suppressions continue to filter accepted low-signal findings.
+- Added `scripts/memory.sh` + `.crewai/tools/memory_cli.py` to manage learned memories and suppression rules (`--add-memory`, `--list-memories`, `--add-suppression`, `--list-suppressions`, `--show-context`).
+- Added explicit memory policy to suppress recurring false positives for placeholder credentials in `*.env.example` files when values are clearly fake examples.
+- Corrected root packaging metadata to Apache-2.0 in `pyproject.toml` to align legal signals with repository policy and avoid MIT-license false positives in legal review outputs.
+- `scripts/ci-local.sh` now persists local docs link-check markdown artifacts (`link-check-summary.md`, optional `link-check-report.md`) and stage-style markdown summaries (`local_ci_summary.md`, `ci_results/*/summary.md`) in `.crewai/workspace`.
+- Local context-pack generation now includes local CI markdown artifacts and link-check markdown content so CrewAI can review broken-link evidence directly from workspace files.
+- `.gitignore` now explicitly ignores `.tools/` so local runtime helper binaries (for example downloaded `lychee`) never enter version control.
+- Verification rerun (`./scripts/ci-local.sh --complete-full-review`) passed after ignore hardening and produced expected untracked workspace outputs only.
 
 ---
 
@@ -93,8 +102,10 @@ flowchart LR
 
 - [PR-#1](../pr/pr-00000001-agentic-docs-and-monorepo-modernization.md)
 - [Issue-#2](issue-00000002-provider-priority-fail-fast-review-cost-visibility.md)
-- [Sprint board](../kanban/sprint-2026-w07-agentic-template-modernization.md)
+- [Sprint W07 board (closed)](../kanban/sprint-2026-w07-agentic-template-modernization.md)
+- [Sprint W08 board (active)](../kanban/sprint-2026-w08-crewai-review-hardening-and-memory.md)
+- [Issue-#4: Memory backend self-hosted + SQL seed](issue-00000004-memory-backend-self-hosted-and-sql-seed.md)
 
 ---
 
-_Last updated: 2026-02-14 19:16 EST_
+_Last updated: 2026-02-15 13:03 EST_

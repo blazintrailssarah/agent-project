@@ -12,6 +12,16 @@
       "added_date": "2026-02-13",
       "expires": null,
       "active": true
+    },
+    {
+      "id": "sup-001",
+      "pattern": "placeholder api keys and tokens",
+      "file_glob": "*.env.example",
+      "reason": "Placeholder credentials in .env.example templates are acceptable when they are clearly fake and no real secrets are committed.",
+      "added_by": "memory-cli-bootstrap",
+      "added_date": "2026-02-15",
+      "expires": null,
+      "active": true
     }
   ],
   "usage_notes": [

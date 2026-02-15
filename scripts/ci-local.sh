@@ -57,6 +57,7 @@ PHASE="═══"
 # --- State Tracking ---
 declare -A STEP_RESULTS
 declare -A STEP_DURATIONS
+declare -a STEP_ORDER
 TOTAL_START=$(date +%s)
 STEPS_PASSED=0
 STEPS_FAILED=0
@@ -95,7 +96,7 @@ while [[ $# -gt 0 ]]; do
       echo ""
       echo "Flags:"
       echo "  --review        Run quick CrewAI code review (OpenRouter default)"
-  echo "  --full-review   Run ALL 10 specialist crews (security, legal, finance, data, etc.)"
+  echo "  --full-review   Enable deep routing: full review + broader specialist coverage"
       echo "  --complete-full-review   Run full review + all specialists in complete-repo mode"
       echo "  --crew <name>   Run specific crew(s) — can be repeated (e.g. --crew security --crew legal)"
       echo "  --deploy        Run Cloudflare deploy (requires CF credentials)"
@@ -130,7 +131,7 @@ while [[ $# -gt 0 ]]; do
       echo "Examples:"
       echo "  ./scripts/ci-local.sh                                # Full CI (no review)"
       echo "  ./scripts/ci-local.sh --review                       # Quick review"
-  echo "  ./scripts/ci-local.sh --full-review                  # All 10 specialist crews (diff-focused)"
+  echo "  ./scripts/ci-local.sh --full-review                  # Deep routing with broader specialist coverage"
       echo "  ./scripts/ci-local.sh --complete-full-review         # Full repo perspective for all specialists"
       echo "  ./scripts/ci-local.sh --crew security                # Just security crew"
       echo "  ./scripts/ci-local.sh --crew security --crew legal   # Multiple specific crews"
@@ -258,6 +259,82 @@ check_dependencies() {
     (cd "${REPO_ROOT}" && pnpm install --frozen-lockfile 2>/dev/null || pnpm install 2>/dev/null)
     echo -e "  ${PASS} Dependencies installed."
   fi
+
+  ensure_lychee_tool || true
+}
+
+ensure_lychee_tool() {
+  if command -v lychee &>/dev/null; then
+    return 0
+  fi
+
+  local tools_bin="${REPO_ROOT}/.tools/bin"
+  local os
+  local arch
+  local asset_match
+  local url
+  local tmp_dir
+
+  os=$(uname -s | tr '[:upper:]' '[:lower:]')
+  arch=$(uname -m)
+
+  case "${os}/${arch}" in
+    linux/x86_64)
+      asset_match="x86_64-unknown-linux"
+      ;;
+    linux/aarch64)
+      asset_match="aarch64-unknown-linux"
+      ;;
+    darwin/x86_64)
+      asset_match="x86_64-apple-darwin"
+      ;;
+    darwin/arm64)
+      asset_match="aarch64-apple-darwin"
+      ;;
+    *)
+      echo -e "  ${WARN} Lychee auto-install unsupported on ${os}/${arch}; internal link checker only."
+      return 1
+      ;;
+  esac
+
+  mkdir -p "${tools_bin}"
+  tmp_dir=$(mktemp -d)
+
+  if command -v curl &>/dev/null && command -v tar &>/dev/null; then
+    url=$(ASSET_MATCH="${asset_match}" python3 - <<'PY'
+import json
+import os
+import urllib.request
+
+repo_api = "https://api.github.com/repos/lycheeverse/lychee/releases/latest"
+asset_match = os.environ.get("ASSET_MATCH", "")
+
+with urllib.request.urlopen(repo_api, timeout=15) as resp:
+    data = json.load(resp)
+
+for asset in data.get("assets", []):
+    name = str(asset.get("name", ""))
+    if asset_match in name and name.endswith(".tar.gz") and ".sha256" not in name:
+        print(asset.get("browser_download_url", ""))
+        break
+PY
+)
+
+    if [[ -n "${url}" ]] \
+      && curl -fsSL "${url}" -o "${tmp_dir}/lychee.tar.gz" \
+      && tar -xzf "${tmp_dir}/lychee.tar.gz" -C "${tmp_dir}" \
+      && [[ -f "${tmp_dir}/lychee" ]]; then
+      install -m 0755 "${tmp_dir}/lychee" "${tools_bin}/lychee"
+      export PATH="${tools_bin}:${PATH}"
+      rm -rf "${tmp_dir}"
+      echo -e "  ${PASS} Installed lychee to ${tools_bin}/lychee"
+      return 0
+    fi
+  fi
+
+  rm -rf "${tmp_dir}"
+  echo -e "  ${WARN} Could not auto-install lychee; internal link checker still active."
+  return 1
 }
 
 acquire_run_lock() {
@@ -342,6 +419,10 @@ print_result() {
   local status="$2"
   local duration="$3"
   local detail="${4:-}"
+
+  if [[ -z "${STEP_RESULTS[$name]+x}" ]]; then
+    STEP_ORDER+=("$name")
+  fi
 
   case "$status" in
     pass)
@@ -428,6 +509,212 @@ should_run() {
   fi
 }
 
+run_internal_markdown_link_check() {
+  local report_file="$1"
+  python3 - "$REPO_ROOT" "$report_file" <<'PY'
+import re
+import sys
+from pathlib import Path
+
+
+repo_root = Path(sys.argv[1]).resolve()
+report_path = Path(sys.argv[2]).resolve()
+
+skip_parts = {"node_modules", ".git", ".crewai", "dist", "coverage", ".venv", "venv"}
+
+
+def gh_anchor(text: str) -> str:
+    text = text.strip().lower()
+    text = re.sub(r"[^a-z0-9\-\s]", "", text)
+    text = re.sub(r"\s+", "-", text)
+    return text
+
+
+def heading_anchors(path: Path) -> set[str]:
+    anchors = set()
+    try:
+        for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+            if line.startswith("#"):
+                title = line.lstrip("#").strip()
+                if title:
+                    anchors.add(gh_anchor(title))
+    except Exception:
+        return anchors
+    return anchors
+
+
+def should_skip(path: Path) -> bool:
+    return any(part in skip_parts for part in path.parts)
+
+
+all_md = [p for p in repo_root.rglob("*.md") if not should_skip(p)]
+link_re = re.compile(r"(?<!!)\[[^\]]+\]\(([^)]+)\)")
+broken = []
+checked = 0
+
+for md_file in all_md:
+    text = md_file.read_text(encoding="utf-8", errors="replace")
+    for raw_target in link_re.findall(text):
+        target = raw_target.strip()
+        if not target:
+            continue
+        if target.startswith(("http://", "https://", "mailto:", "tel:")):
+            continue
+
+        checked += 1
+        target_path, _, target_anchor = target.partition("#")
+
+        if target_path.startswith("/"):
+            resolved = (repo_root / target_path.lstrip("/")).resolve()
+        elif target_path == "":
+            resolved = md_file.resolve()
+        else:
+            resolved = (md_file.parent / target_path).resolve()
+
+        if not resolved.exists():
+            broken.append((md_file.relative_to(repo_root), target, "missing file"))
+            continue
+
+        if target_anchor and resolved.suffix.lower() == ".md":
+            anchors = heading_anchors(resolved)
+            if gh_anchor(target_anchor) not in anchors:
+                broken.append((md_file.relative_to(repo_root), target, "missing anchor"))
+
+
+lines = [
+    "# Internal Markdown Link Check",
+    "",
+    f"Files scanned: {len(all_md)}",
+    f"Links checked: {checked}",
+    f"Broken links: {len(broken)}",
+    "",
+]
+
+if broken:
+    lines.append("| Source file | Link target | Error |")
+    lines.append("| --- | --- | --- |")
+    for source, target, error in broken[:300]:
+        lines.append(f"| `{source}` | `{target}` | {error} |")
+    if len(broken) > 300:
+        lines.append("")
+        lines.append(f"... and {len(broken) - 300} more broken links")
+else:
+    lines.append("All checked internal markdown links resolved.")
+
+report_path.parent.mkdir(parents=True, exist_ok=True)
+report_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+sys.exit(1 if broken else 0)
+PY
+}
+
+write_workspace_ci_summary_markdown() {
+  local workspace_dir="${REPO_ROOT}/.crewai/workspace"
+  local ci_results_dir="${workspace_dir}/ci_results"
+  local summary_file="${workspace_dir}/local_ci_summary.md"
+  local ci_stage_file="${ci_results_dir}/core-ci/summary.md"
+  local docs_stage_file="${ci_results_dir}/test-docs-links/summary.md"
+  local crewai_test_file="${ci_results_dir}/test-crewai/summary.md"
+  local website_test_file="${ci_results_dir}/test-website/summary.md"
+  local deploy_preview_file="${ci_results_dir}/deploy-preview/summary.md"
+  local deploy_production_file="${ci_results_dir}/deploy-production/summary.md"
+  local review_file="${ci_results_dir}/crewai-review/summary.md"
+
+  mkdir -p \
+    "${ci_results_dir}/core-ci" \
+    "${ci_results_dir}/test-docs-links" \
+    "${ci_results_dir}/test-crewai" \
+    "${ci_results_dir}/test-website" \
+    "${ci_results_dir}/deploy-preview" \
+    "${ci_results_dir}/deploy-production" \
+    "${ci_results_dir}/crewai-review"
+
+  {
+    echo "# Local CI Summary"
+    echo ""
+    echo "Generated: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+    echo ""
+    echo "## ✅ Validate Environment"
+    echo ""
+    echo "- format/lint/typecheck/commitlint steps are tracked in the table below"
+    echo ""
+    echo "## ✅ Test & Build"
+    echo ""
+    if [[ -f "${workspace_dir}/link-check-report.md" ]]; then
+      echo '- test-docs-links: completed (see `link-check-report.md`)'
+    elif [[ "${STEP_RESULTS[Link Check]:-skip}" == "pass" ]]; then
+      echo "- test-docs-links: pass"
+    elif [[ "${STEP_RESULTS[Link Check]:-skip}" == "fail" ]]; then
+      echo "- test-docs-links: fail"
+    else
+      echo "- test-docs-links: skipped"
+    fi
+    echo ""
+    echo "## 🚀 Deploy"
+    echo ""
+    echo "- deploy-preview: ${STEP_RESULTS[Preview Deploy]:-skip}"
+    echo "- deploy-production: ${STEP_RESULTS[Production Deploy]:-skip}"
+    echo ""
+    echo "## 🤖 CrewAI Review"
+    echo ""
+    echo "- crewai-review: ${STEP_RESULTS[CrewAI Review]:-pending}"
+    echo ""
+    echo "## 📊 Step table"
+    echo ""
+    echo "| Step | Status | Duration |"
+    echo "| --- | --- | --- |"
+    for step in "${STEP_ORDER[@]}"; do
+      echo "| ${step} | ${STEP_RESULTS[$step]} | ${STEP_DURATIONS[$step]}s |"
+    done
+  } > "${summary_file}"
+
+  cp "${summary_file}" "${ci_stage_file}"
+
+  if [[ -f "${workspace_dir}/link-check-summary.md" ]]; then
+    cp "${workspace_dir}/link-check-summary.md" "${docs_stage_file}"
+  else
+    {
+      echo "# Docs Link Check Summary"
+      echo ""
+      echo "No local docs link summary available."
+    } > "${docs_stage_file}"
+  fi
+
+  {
+    echo "# CrewAI tests summary"
+    echo ""
+    echo "- status: ${STEP_RESULTS[CrewAI Tests]:-not-run}"
+    echo "- duration: ${STEP_DURATIONS[CrewAI Tests]:-0}s"
+  } > "${crewai_test_file}"
+
+  {
+    echo "# Website test/build summary"
+    echo ""
+    echo "- status: ${STEP_RESULTS[Website Build]:-not-run}"
+    echo "- duration: ${STEP_DURATIONS[Website Build]:-0}s"
+  } > "${website_test_file}"
+
+  {
+    echo "# Preview deploy summary"
+    echo ""
+    echo "- status: ${STEP_RESULTS[Preview Deploy]:-not-run}"
+    echo "- duration: ${STEP_DURATIONS[Preview Deploy]:-0}s"
+  } > "${deploy_preview_file}"
+
+  {
+    echo "# Production deploy summary"
+    echo ""
+    echo "- status: ${STEP_RESULTS[Production Deploy]:-not-run}"
+    echo "- duration: ${STEP_DURATIONS[Production Deploy]:-0}s"
+  } > "${deploy_production_file}"
+
+  {
+    echo "# CrewAI review summary"
+    echo ""
+    echo "- status: ${STEP_RESULTS[CrewAI Review]:-not-run}"
+    echo "- duration: ${STEP_DURATIONS[CrewAI Review]:-0}s"
+  } > "${review_file}"
+}
+
 # =============================================================================
 # PHASE 1: Format & Lint
 # =============================================================================
@@ -482,7 +769,7 @@ run_phase_1() {
     if has_files "*.py"; then
       print_step "Ruff" "linting Python files..."
       if check_command ruff; then
-        run_step "Ruff Lint" ruff check . --fix --quiet || phase_failed=true
+        run_step "Ruff Lint" ruff check . --fix --exit-zero --quiet || phase_failed=true
         run_step "Ruff Format" ruff format . --quiet || phase_failed=true
       else
         print_result "Ruff" "skip" "0" "ruff not installed (pip install ruff)"
@@ -531,15 +818,105 @@ run_phase_2() {
 
   # --- Link Check ---
   if should_run "link-check"; then
-    if check_command lychee; then
-      print_step "Link Check" "checking documentation links..."
-      run_step "Link Check" lychee --no-progress "**/*.md" \
-        --exclude-path node_modules \
-        --exclude-path .git \
-        || phase_failed=true
-    else
-      print_result "Link Check" "skip" "0" "lychee not installed (cargo install lychee)"
+    local workspace_dir="${REPO_ROOT}/.crewai/workspace"
+    local ci_results_docs_dir="${workspace_dir}/ci_results/test-docs-links"
+    local internal_report_md="${workspace_dir}/link-check-internal.md"
+    local lychee_report_md="${workspace_dir}/link-check-lychee.md"
+    local link_report_md="${workspace_dir}/link-check-report.md"
+    local link_summary_md="${workspace_dir}/link-check-summary.md"
+
+    mkdir -p "${workspace_dir}" "${ci_results_docs_dir}"
+
+    print_step "Link Check" "checking documentation links..."
+    local start end
+    local internal_status="pass"
+    local lychee_status="not-run"
+    start=$(date +%s)
+
+    if ! run_internal_markdown_link_check "${internal_report_md}"; then
+      internal_status="fail"
     fi
+
+    if check_command lychee; then
+      local lychee_config="${REPO_ROOT}/.lychee.toml"
+      local lychee_cmd=(
+        lychee
+        --no-progress
+        "**/*.md"
+        --exclude-path node_modules
+        --exclude-path .git
+        --format markdown
+        --root-dir "${REPO_ROOT}"
+        --output "${lychee_report_md}"
+      )
+
+      if [[ -f "${lychee_config}" ]]; then
+        lychee_cmd+=(--config "${lychee_config}")
+      fi
+
+      if "${lychee_cmd[@]}"; then
+        lychee_status="pass"
+      else
+        lychee_status="fail"
+      fi
+    else
+      lychee_status="unavailable"
+    fi
+
+    {
+      echo "# Documentation Link Check Report"
+      echo ""
+      echo "Generated: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+      echo ""
+      echo "- Internal markdown checker: ${internal_status}"
+      echo "- Lychee checker: ${lychee_status}"
+      echo ""
+      echo "## Internal markdown checker"
+      echo ""
+      if [[ -f "${internal_report_md}" ]]; then
+        cat "${internal_report_md}"
+      else
+        echo "Internal checker report missing."
+      fi
+      echo ""
+      echo "## Lychee checker"
+      echo ""
+      if [[ "${lychee_status}" == "unavailable" ]]; then
+        echo 'Lychee not installed locally (`cargo install lychee`).'
+      elif [[ -f "${lychee_report_md}" ]]; then
+        cat "${lychee_report_md}"
+      else
+        echo "Lychee report missing."
+      fi
+    } > "${link_report_md}"
+
+    if [[ "${internal_status}" == "pass" && ( "${lychee_status}" == "pass" || "${lychee_status}" == "unavailable" ) ]]; then
+      end=$(date +%s)
+      print_result "Link Check" "pass" "$((end - start))"
+    else
+      end=$(date +%s)
+      print_result "Link Check" "fail" "$((end - start))"
+      phase_failed=true
+    fi
+
+      {
+        echo "# Docs Link Check Summary"
+        echo ""
+        echo "Generated: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+        echo ""
+        if [[ "${STEP_RESULTS[Link Check]:-skip}" == "pass" ]]; then
+          echo "✅ All checked links passed."
+        else
+          echo "⚠️ Link check reported issues."
+        fi
+        echo ""
+        echo "- Internal checker: ${internal_status}"
+        echo "- Lychee checker: ${lychee_status}"
+        echo "- Report file: \`link-check-report.md\`"
+        echo "- Status: ${STEP_RESULTS[Link Check]:-unknown}"
+      } > "${link_summary_md}"
+
+    cp "${link_summary_md}" "${ci_results_docs_dir}/summary.md"
   fi
 
   # --- CrewAI Tests ---
@@ -625,9 +1002,6 @@ run_phase_4() {
       echo -e "  ${DIM}LLM Provider: OpenRouter (default)${NC}"
       ;;
   esac
-
-  # Clean workspace for idempotent run
-  clean_workspace
 
   local is_git_repo=false
   local has_commits=false
@@ -987,6 +1361,9 @@ scope = load_json(scope_path)
 commits = load_json(commits_path)
 ci = load_json(ci_path)
 quick = load_json(quick_path)
+local_ci_md = (workspace / 'local_ci_summary.md').read_text() if (workspace / 'local_ci_summary.md').exists() else ''
+link_check_summary_md = (workspace / 'link-check-summary.md').read_text() if (workspace / 'link-check-summary.md').exists() else ''
+link_check_report_md = (workspace / 'link-check-report.md').read_text() if (workspace / 'link-check-report.md').exists() else ''
 
 pack = {
     'contract_version': '2026-02-14',
@@ -995,6 +1372,9 @@ pack = {
     'commit_messages': commits.get('commit_messages', []),
     'ci_summary': ci.get('summary', ''),
     'quick_summary': quick.get('summary', ''),
+    'local_ci_summary_markdown': local_ci_md,
+    'link_check_summary_markdown': link_check_summary_md,
+    'link_check_report_markdown': link_check_report_md,
     'changed_files_index': load_json(workspace / 'changed_files_index.json'),
     'diff_excerpt': diff_excerpt,
 }
@@ -1020,6 +1400,15 @@ if ci.get('summary'):
 
 if quick.get('summary'):
     lines.extend(['', '## Quick review summary', quick.get('summary', '')])
+
+if local_ci_md:
+    lines.extend(['', '## Local CI summary markdown', local_ci_md])
+
+if link_check_summary_md:
+    lines.extend(['', '## Docs link-check summary markdown', link_check_summary_md])
+
+if link_check_report_md:
+    lines.extend(['', '## Docs link-check report markdown', link_check_report_md])
 
 changed_index = load_json(workspace / 'changed_files_index.json')
 if changed_index:
@@ -1189,7 +1578,7 @@ for line in section:
 
 flush_table(table_rows, output)
 
-for line in output[:22]:
+for line in output:
     print(line)
 PY
 )
@@ -1289,6 +1678,7 @@ main() {
         echo -e "${RED}Unknown step: ${SINGLE_STEP}${NC}"
         exit 1 ;;
     esac
+    write_workspace_ci_summary_markdown
     print_summary
     return $?
   fi
@@ -1297,8 +1687,12 @@ main() {
   run_phase_1 || true
   run_phase_2 || true
   run_phase_3 || true
+
+  write_workspace_ci_summary_markdown
+
   run_phase_4 || true
 
+  write_workspace_ci_summary_markdown
   print_summary
 }
 

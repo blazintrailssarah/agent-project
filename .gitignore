@@ -99,6 +99,14 @@ htmlcov/
 # Memory files ARE tracked (version-controlled review memory)
 # .crewai/memory/memory.json     — tracked
 # .crewai/memory/suppressions.json — tracked
+# .crewai/memory/sql/memory_seed.sql — tracked (text seed)
+
+# Runtime memory DB artifacts should stay local-only
+.crewai/memory/sql/*.sqlite
+.crewai/memory/sql/*.sqlite3
+
+# Local helper tool installs (runtime only)
+.tools/
 
 # ===========================
 # Test / Coverage

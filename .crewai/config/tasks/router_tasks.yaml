@@ -45,7 +45,8 @@ analyze_pr_and_route:
 
     WORKFLOW RULES (always-run defaults):
     - Always include: ["ci-log-analysis", "quick-review"]
-    - If label "crewai:full-review" OR "crewai:complete-full-review" exists: add "full-review" AND add ALL specialist crews to specialist_crews
+    - If label "crewai:full-review" exists: add "full-review" and prioritize broader specialist coverage (not necessarily all)
+    - If label "crewai:complete-full-review" exists: add "full-review" and include ALL specialist crews
 
     SPECIALIST CREW LABELS (add matching keys to specialist_crews array):
     - "crewai:security"  → "security"
@@ -60,8 +61,9 @@ analyze_pr_and_route:
     - "crewai:data-engineering" → "data_engineering"
 
     FULL REVIEW EXPANSION:
-    If "crewai:full-review" or "crewai:complete-full-review" label is present, set specialist_crews to ALL:
-    ["security", "legal", "finance", "documentation", "agentic", "marketing", "science", "government", "strategy", "data_engineering"]
+    - For "crewai:full-review": select high-confidence specialists first, targeting broader depth than default mode.
+    - For "crewai:complete-full-review": set specialist_crews to ALL:
+      ["security", "legal", "finance", "documentation", "agentic", "marketing", "science", "government", "strategy", "data_engineering"]
 
     AUTODETECT RULES (add to suggestions AND autodetect_triggers):
     Scan file_list for path patterns. If matched, suggest the label:

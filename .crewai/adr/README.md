@@ -17,6 +17,7 @@ If a local decision affects other subsystems or repo governance, mirror it in `a
 | [ADR-003](./ADR-003-local-quick-review-multipass.md)                      | Local quick-review multi-pass synthesis and output schema     | Accepted |
 | [ADR-004](./ADR-004-review-scope-contract-and-tiering.md)                 | Review scope contract and tiered diff strategy                | Accepted |
 | [ADR-005](./ADR-005-output-validation-and-data-engineering-specialist.md) | Output validation ledger and data engineering specialist      | Accepted |
+| [ADR-006](./ADR-006-persistent-review-memory-and-cli.md)                  | Persistent review memory policy and memory CLI                | Accepted |
 
 ---
 

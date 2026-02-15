@@ -525,9 +525,9 @@ output = """
 
 ## 🔗 Related Documentation
 
-- [CI Log Capture Implementation](../../docs/ci-log-capture-implementation.md)
-- [Progress Summary](../../PROGRESS.md)
-- [Backlog](../../BACKLOG.md)
+- [Sprint W08 board](../../docs/project/kanban/sprint-2026-w08-crewai-review-hardening-and-memory.md)
+- [PR-00000001 record](../../docs/project/pr/pr-00000001-agentic-docs-and-monorepo-modernization.md)
+- [Issue-00000003 record](../../docs/project/issues/issue-00000003-local-review-context-pack-and-resilience.md)
 
 ---
 

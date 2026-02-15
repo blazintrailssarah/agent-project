@@ -94,4 +94,4 @@ Every application should include:
 
 ---
 
-_Part of the [opencode](https://github.com/borealBytes/agent-project) template project._
+_Part of the [Boreal Bytes GitHub org](https://github.com/borealBytes)._

@@ -46,3 +46,46 @@ def test_build_no_relevant_output_is_explicit():
     assert data["findings"] == []
     assert data["severity_counts"]["critical"] == 0
     assert "did not detect relevant changed files" in data["summary"].lower()
+
+
+def test_mode_aware_specialist_decision_default_is_conservative():
+    workflows, specialists, suggestions, mode = main._mode_aware_specialist_decision(
+        labels=[],
+        changed_files=["src/utils/helpers.py"],
+        additions=20,
+        deletions=5,
+    )
+    assert mode == "default"
+    assert workflows == ["ci-log-analysis", "quick-review"]
+    assert specialists == []
+    assert all(isinstance(item, str) for item in suggestions)
+
+
+def test_mode_aware_specialist_decision_full_review_is_broader():
+    workflows, specialists, _suggestions, mode = main._mode_aware_specialist_decision(
+        labels=["crewai:full-review"],
+        changed_files=[
+            "src/auth/login.py",
+            "README.md",
+            "data/sql/pipeline.sql",
+            "apps/web/src/components/Form.tsx",
+        ],
+        additions=300,
+        deletions=120,
+    )
+    assert mode == "full-review"
+    assert "full-review" in workflows
+    assert 3 <= len(specialists) <= 6
+    assert "security" in specialists
+
+
+def test_mode_aware_specialist_decision_complete_mode_runs_all():
+    workflows, specialists, _suggestions, mode = main._mode_aware_specialist_decision(
+        labels=["crewai:complete-full-review"],
+        changed_files=["src/main.py"],
+        additions=10,
+        deletions=4,
+    )
+    assert mode == "complete-full-review"
+    assert workflows == ["ci-log-analysis", "quick-review", "full-review"]
+    assert specialists == list(main.SPECIALIST_CREWS.keys())

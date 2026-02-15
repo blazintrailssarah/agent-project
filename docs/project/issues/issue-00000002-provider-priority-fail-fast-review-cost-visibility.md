@@ -2,7 +2,7 @@
 
 | Field              | Value                                                                                 |
 | ------------------ | ------------------------------------------------------------------------------------- |
-| **Issue**          | [#2](https://github.com/borealBytes/opencode/issues/2)                                |
+| **Issue**          | Planned (not yet created in GitHub UI)                                                |
 | **Type**           | 🐛 Bug                                                                                |
 | **Severity**       | 🔴 High                                                                               |
 | **Priority**       | P1                                                                                    |
@@ -220,15 +220,16 @@ Provider-availability failures should be classified as stop-the-line events, not
 
 - [PR-#1](../pr/pr-00000001-agentic-docs-and-monorepo-modernization.md)
 - [Issue-#3: Local review context pack and resilience](issue-00000003-local-review-context-pack-and-resilience.md)
-- [Sprint board](../kanban/sprint-2026-w07-agentic-template-modernization.md)
-- [SECRETS.md](../../SECRETS.md)
-- [ADR-005: Polyglot monorepo workspace layout](../../agentic/adr/ADR-005-polyglot-monorepo-workspace-layout.md)
-- [ADR-006: Federated ADR governance](../../agentic/adr/ADR-006-federated-adr-governance.md)
-- [ADR-007: Monorepo foundation and decision baseline](../../agentic/adr/ADR-007-monorepo-foundation-and-decision-baseline.md)
-- [CrewAI ADR index](../../.crewai/adr/README.md)
-- [ADR-004: Review scope contract and tiered diff strategy](../../.crewai/adr/ADR-004-review-scope-contract-and-tiering.md)
-- [ADR-005: Output validation ledger and data engineering specialist](../../.crewai/adr/ADR-005-output-validation-and-data-engineering-specialist.md)
+- [Sprint W07 board (closed)](../kanban/sprint-2026-w07-agentic-template-modernization.md)
+- [Sprint W08 board (active)](../kanban/sprint-2026-w08-crewai-review-hardening-and-memory.md)
+- [SECRETS.md](../../../SECRETS.md)
+- [ADR-005: Polyglot monorepo workspace layout](../../../agentic/adr/ADR-005-polyglot-monorepo-workspace-layout.md)
+- [ADR-006: Federated ADR governance](../../../agentic/adr/ADR-006-federated-adr-governance.md)
+- [ADR-007: Monorepo foundation and decision baseline](../../../agentic/adr/ADR-007-monorepo-foundation-and-decision-baseline.md)
+- [CrewAI ADR index](../../../.crewai/adr/README.md)
+- [ADR-004: Review scope contract and tiered diff strategy](../../../.crewai/adr/ADR-004-review-scope-contract-and-tiering.md)
+- [ADR-005: Output validation ledger and data engineering specialist](../../../.crewai/adr/ADR-005-output-validation-and-data-engineering-specialist.md)
 
 ---
 
-_Last updated: 2026-02-14 15:56 EST_
+_Last updated: 2026-02-15 16:12 EST_

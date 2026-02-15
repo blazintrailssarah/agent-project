@@ -232,9 +232,9 @@ Run through these checks to confirm everything is working:
 
 ### Still stuck?
 
-- **Search existing issues:** [Link to GitHub issues or knowledge base]
-- **Ask for help:** [Link to community forum, Slack, or Stack Overflow tag]
-- **File a bug:** [Link to issue template — include what to put in the report]
+- **Search existing issues:** [docs/project/issues/](../../docs/project/issues/)
+- **Ask for help:** [docs/project/kanban/](../../docs/project/kanban/)
+- **File a bug:** [issue template](../../docs/project/issues/issue-00000001-agentic-documentation-system.md)
 
 ---
 
@@ -242,9 +242,9 @@ Run through these checks to confirm everything is working:
 
 Now that you've completed this guide:
 
-- **[Next tutorial]** — [What it covers and why you'd want to do it next](link)
-- **[Reference docs]** — [Where to learn the full feature set](link)
-- **[Advanced topic]** — [Deeper dive for when you're ready](link)
+- **[Next tutorial]** — [What it covers and why you'd want to do it next](../workflow_guide.md)
+- **[Reference docs]** — [Where to learn the full feature set](../markdown_style_guide.md)
+- **[Advanced topic]** — [Deeper dive for when you're ready](../operational_readiness.md)
 
 <details>
 <summary><strong>📋 Quick reference card</strong></summary>
@@ -266,7 +266,7 @@ Key commands and values from this guide for future reference:
 ## 🔗 References
 
 - [Official documentation](https://example.com) — [Which section is most relevant]
-- [Source repository](https://github.com/org/repo) — [For bug reports and contributions]
+- [Source repository](https://github.com/borealBytes) — [For bug reports and contributions]
 
 ---
 

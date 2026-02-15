@@ -193,7 +193,7 @@ See the [Mermaid Style Guide](mermaid_style_guide.md) for diagram conventions.
 ```
 
 - **Meaningful link text** — `[Mermaid Style Guide]` not `[click here]` or `[link]`
-- **Relative paths** for internal links — `[Guide](../docs/guide.md)` not absolute URLs
+- **Relative paths** for internal links — `[Guide](./README.md)` not absolute URLs
 - **Full URLs** for external links — always `https://`
 
 ### Footnote citations
@@ -540,7 +540,7 @@ accDescr: User login sequence through API and auth service
 
 ‎```
 
-The token expires after 24 hours. See [Session Management](#session-management)
+The token expires after 24 hours. See [Authentication flow](#authentication-flow)
 for refresh token details.
 ````
 

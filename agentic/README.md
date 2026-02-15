@@ -111,6 +111,7 @@ flowchart TD
 | [ADR-005](adr/ADR-005-polyglot-monorepo-workspace-layout.md)        | Polyglot monorepo workspace layout                         |
 | [ADR-006](adr/ADR-006-federated-adr-governance.md)                  | Federated ADR governance for global + subsystem decisions  |
 | [ADR-007](adr/ADR-007-monorepo-foundation-and-decision-baseline.md) | Baseline monorepo decision map and operating foundation    |
+| [ADR-008](adr/ADR-008-persistent-review-memory-governance.md)       | Persistent review memory governance                        |
 
 Subsystems may also keep local ADR logs (for example `.crewai/adr/`) for implementation decisions that do not affect the full monorepo.
 

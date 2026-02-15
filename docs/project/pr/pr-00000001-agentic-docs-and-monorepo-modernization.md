@@ -98,6 +98,8 @@ Verification completed for this continuation: `./scripts/ci-local.sh --complete-
 
 Post-sync verification: after updating source-of-truth records and README/metadata wording, `./scripts/ci-local.sh --step link-check` was re-run and passed.
 
+Runtime-artifact hygiene hardening was also applied in this continuation: `.tools/` is now ignored to prevent local binary downloads from being tracked, and a fresh `./scripts/ci-local.sh --complete-full-review` rerun confirmed `.crewai/workspace` outputs remain runtime-local (untracked) while intended repo files remain commit candidates.
+
 ### Impact classification
 
 | Dimension         | Level             | Notes                                                                                              |

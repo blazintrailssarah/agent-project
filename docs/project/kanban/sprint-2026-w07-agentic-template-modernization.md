@@ -1,9 +1,11 @@
 # Sprint W07 2026 — Kanban Board
 
 _Sprint W07: Feb 10–14, 2026 · opencode repo_
-_Human · Last updated: 2026-02-14 19:16_
+_Human · Last updated: 2026-02-15 16:12_
 
 ---
+
+> 📌 **Sprint rollover:** Sprint W07 tracking is now closed. Active backlog and in-progress work moved to `docs/project/kanban/sprint-2026-w08-crewai-review-hardening-and-memory.md`.
 
 ## 📋 Board Overview
 
@@ -75,6 +77,8 @@ kanban
         task52["🔒 Local CI lock + workspace reset + specialist domain-focus tightening"]
         task53["🌐 Add complete-full-review mode (local flag + PR label trigger semantics)"]
         task54["🛠️ Fix GHA CrewAI prep crash for list-shaped commits.json context pack"]
+        task55["🧠 Add persistent memory CLI + prompt-memory propagation"]
+        task56["⚖️ Fix legal metadata drift: pyproject license aligned to Apache-2.0"]
 
     column5["🚫 Won't Do"]
         task41["⛔ Keep NVIDIA as default local provider"]
@@ -87,8 +91,8 @@ kanban
 
 | Column             | Count | WIP Limit | Status                              |
 | ------------------ | ----- | --------- | ----------------------------------- |
-| 📋 **Backlog**     | 2     | —         | Rendering check + pending commit    |
-| 🔄 **In Progress** | 1     | 3         | 🟢 Under limit                      |
+| 📋 **Backlog**     | 0     | —         | Moved to Sprint W08 board           |
+| 🔄 **In Progress** | 0     | 3         | Moved to Sprint W08 board           |
 | 🔍 **In Review**   | 0     | —         | —                                   |
 | ✅ **Done**        | 50    | —         | Core docs + CI/review + scaffolding |
 | 🚫 **Won't Do**    | 2     | —         | Explicitly declined with rationale  |
@@ -96,22 +100,47 @@ kanban
 
 ---
 
+## 🔄 Rollover map
+
+_Rollover mapping from closed W07 columns into active W08 tracking, keeping only historical records in this board:_
+
+```mermaid
+flowchart LR
+    accTitle: Sprint W07 to W08 rollover map
+    accDescr: Shows how W07 active items were moved to W08 while completed records remained in W07 history.
+
+    w07b["W07 Backlog (2)"] --> w08b["W08 Backlog (2)"]
+    w07p["W07 In Progress (1)"] --> w08p["W08 In Progress (1)"]
+    w07d["W07 Done (historical)"] --> archive["W07 archived tracking"]
+
+    classDef source fill:#dbeafe,stroke:#2563eb,stroke-width:2px,color:#1e3a5f
+    classDef target fill:#dcfce7,stroke:#16a34a,stroke-width:2px,color:#14532d
+
+    class w07b,w07p,w07d source
+    class w08b,w08p,archive target
+```
+
+---
+
 ## 📋 Backlog
 
 _Prioritized top-to-bottom. Top items are next to be pulled._
 
-| #   | Item                                                    | Priority | Estimate | Assignee | Notes                                                                 |
-| --- | ------------------------------------------------------- | -------- | -------- | -------- | --------------------------------------------------------------------- |
-| 1   | Verify Mermaid rendering on GitHub (light + dark)       | 🔴 High  | S        | Human    | Push branch, check architecture/requirement/C4/radar/treemap diagrams |
-| 2   | Commit and push current uncommitted reliability updates | 🔴 High  | S        | Human    | Include provider routing, fail-fast timeout, and doc updates          |
+> 🔄 **Moved to Sprint W08:** All remaining backlog items were rolled into `docs/project/kanban/sprint-2026-w08-crewai-review-hardening-and-memory.md` for active tracking.
+
+| #   | Item                    | Priority | Estimate | Assignee | Notes                                    |
+| --- | ----------------------- | -------- | -------- | -------- | ---------------------------------------- |
+| -   | _(Moved to Sprint W08)_ | —        | —        | —        | Active backlog tracking continues in W08 |
 
 ---
 
 ## 🔄 In Progress
 
-| Item                                                 | Assignee | Started | Expected | Days in column | Aging | Status                                                               |
-| ---------------------------------------------------- | -------- | ------- | -------- | -------------- | ----- | -------------------------------------------------------------------- |
-| Finalize source-of-truth records and publish updates | Human    | Feb 14  | Feb 14   | 0              | 🟢    | 🟢 Local verification complete; PR/issue/kanban/ADR sync in progress |
+> 🔄 **Moved to Sprint W08:** In-progress execution was carried forward to the new weekly board.
+
+| Item                    | Assignee | Started | Expected | Days in column | Aging | Status                                       |
+| ----------------------- | -------- | ------- | -------- | -------------- | ----- | -------------------------------------------- |
+| _(Moved to Sprint W08)_ | —        | —       | —        | —              | —     | Active in-progress tracking now lives in W08 |
 
 > ⚠️ **WIP limit:** 1 / 3. Under limit.
 
@@ -197,7 +226,7 @@ _Completed this sprint._
 
 | Metric                             | Value   | Target | Trend |
 | ---------------------------------- | ------- | ------ | ----- |
-| **Throughput** (items completed)   | 23      | 4      | ↑     |
+| **Throughput** (items completed)   | 50      | 4      | ↑     |
 | **Avg cycle time** (start → done)  | 1.0 day | —      | —     |
 | **Avg lead time** (created → done) | 1.0 day | —      | —     |
 | **Avg review time**                | —       | —      | —     |
@@ -216,9 +245,9 @@ _Completed this sprint._
 
 ### Decisions made this period
 
-- **Feb 13:** Decided to build comprehensive documentation system rather than lightweight linter approach — see [ADR-001](../../agentic/adr/ADR-001-agent-optimized-documentation-system.md)
-- **Feb 13:** Chose `classDef` palette over `%%{init}` theming for Mermaid — see [ADR-002](../../agentic/adr/ADR-002-mermaid-diagram-standards.md)
-- **Feb 13:** Adopted "Everything is Code" for project management — see [ADR-003](../../agentic/adr/ADR-003-everything-is-code.md)
+- **Feb 13:** Decided to build comprehensive documentation system rather than lightweight linter approach — see [ADR-001](../../../agentic/adr/ADR-001-agent-optimized-documentation-system.md)
+- **Feb 13:** Chose `classDef` palette over `%%{init}` theming for Mermaid — see [ADR-002](../../../agentic/adr/ADR-002-mermaid-diagram-standards.md)
+- **Feb 13:** Adopted "Everything is Code" for project management — see [ADR-003](../../../agentic/adr/ADR-003-everything-is-code.md)
 - **Feb 13:** Removed all 7 ported ADRs (perplexity spaces, monorepo structure, Walmart procurement, USB backup, etc.) — not relevant to this project
 - **Feb 13:** Upgraded PR template to 2026 standards: added security review, breaking changes, deployment strategy, observability plan sections
 - **Feb 13:** Upgraded issue template: added customer impact quantification, workaround section, SLA tracking
@@ -277,10 +306,38 @@ _Completed this sprint._
 - **Feb 14:** Added `.ci-local.lock` single-run guard and forced workspace cleanup at local CI start; upgraded specialist local prompts to stronger domain-only focus and extended cost reporting with agent-level attribution.
 - **Feb 14:** Added `--complete-full-review` local mode and `crewai:complete-full-review` routing semantics so full + all specialists can run in complete-repository perspective mode.
 - **Feb 14:** Fixed CrewAI reusable workflow context-pack generator to handle list-based `commits.json` safely and prevent PR-review job crashes.
+- **Feb 15:** Added persistent memory management tooling (`scripts/memory.sh` + `.crewai/tools/memory_cli.py`) and prompt memory propagation for local quick/full/specialist review paths.
+- **Feb 15:** Added explicit memory policy for placeholder credential examples in `*.env.example` and aligned root `pyproject.toml` license metadata to Apache-2.0.
 
 ### Carryover from last period
 
 - N/A — first sprint for this project
+
+### Rollover to Sprint W08
+
+- Active tracking now continues in `docs/project/kanban/sprint-2026-w08-crewai-review-hardening-and-memory.md`.
+- Carried over from this board: both backlog items plus the single in-progress item.
+- Completed on Feb 15 moved to W08 Done to keep week boundaries clean.
+
+_Week-one closure timeline with rollover checkpoint:_
+
+```mermaid
+timeline
+    accTitle: Sprint W07 closure timeline
+    accDescr: Timeline of Sprint W07 completion and rollover actions into Sprint W08.
+
+    title Sprint W07 closeout
+    Feb 10 : Sprint W07 start
+    Feb 13 : Documentation + CI reliability foundation completed
+    Feb 14 : Review hardening + complete-full-review semantics landed
+    Feb 15 : Rollover executed to Sprint W08 board
+```
+
+### Week-one closeout notes
+
+- Strong first week: documentation system, CI hardening, and CrewAI reliability foundations are in place.
+- Biggest leverage point going forward: keep specialist quality high while tightening routing and token efficiency.
+- Operational baseline is now good enough to iterate on deeper memory + router quality improvements in W08.
 
 ### Upcoming dependencies
 
@@ -298,18 +355,20 @@ _Completed this sprint._
 - [Issue-#2: Provider priority + fail-fast + local pricing visibility](../issues/issue-00000002-provider-priority-fail-fast-review-cost-visibility.md)
 - [Issue-#3: Local review context pack and resilience](../issues/issue-00000003-local-review-context-pack-and-resilience.md)
 - [PR-#1: Agentic documentation system + repo cleanup](../pr/pr-00000001-agentic-docs-and-monorepo-modernization.md)
-- [ADR-001: Documentation system decision](../../agentic/adr/ADR-001-agent-optimized-documentation-system.md)
-- [ADR-002: Mermaid standards decision](../../agentic/adr/ADR-002-mermaid-diagram-standards.md)
-- [ADR-003: Everything is Code decision](../../agentic/adr/ADR-003-everything-is-code.md)
-- [ADR-004: Source-of-truth sync loop decision](../../agentic/adr/ADR-004-task-completion-source-of-truth-sync.md)
-- [ADR-005: Polyglot monorepo workspace layout](../../agentic/adr/ADR-005-polyglot-monorepo-workspace-layout.md)
-- [ADR-006: Federated ADR governance](../../agentic/adr/ADR-006-federated-adr-governance.md)
-- [ADR-007: Monorepo foundation and decision baseline](../../agentic/adr/ADR-007-monorepo-foundation-and-decision-baseline.md)
-- [CrewAI ADR index](../../.crewai/adr/README.md)
-- [CrewAI ADR-004: Review scope contract and tiered diff strategy](../../.crewai/adr/ADR-004-review-scope-contract-and-tiering.md)
-- [CrewAI ADR-005: Output validation and data engineering specialist](../../.crewai/adr/ADR-005-output-validation-and-data-engineering-specialist.md)
-- [Idempotent script design patterns](../../agentic/idempotent_design_patterns.md)
+- [ADR-001: Documentation system decision](../../../agentic/adr/ADR-001-agent-optimized-documentation-system.md)
+- [ADR-002: Mermaid standards decision](../../../agentic/adr/ADR-002-mermaid-diagram-standards.md)
+- [ADR-003: Everything is Code decision](../../../agentic/adr/ADR-003-everything-is-code.md)
+- [ADR-004: Source-of-truth sync loop decision](../../../agentic/adr/ADR-004-task-completion-source-of-truth-sync.md)
+- [ADR-005: Polyglot monorepo workspace layout](../../../agentic/adr/ADR-005-polyglot-monorepo-workspace-layout.md)
+- [ADR-006: Federated ADR governance](../../../agentic/adr/ADR-006-federated-adr-governance.md)
+- [ADR-007: Monorepo foundation and decision baseline](../../../agentic/adr/ADR-007-monorepo-foundation-and-decision-baseline.md)
+- [ADR-008: Persistent review memory governance](../../../agentic/adr/ADR-008-persistent-review-memory-governance.md)
+- [CrewAI ADR index](../../../.crewai/adr/README.md)
+- [CrewAI ADR-004: Review scope contract and tiered diff strategy](../../../.crewai/adr/ADR-004-review-scope-contract-and-tiering.md)
+- [CrewAI ADR-005: Output validation and data engineering specialist](../../../.crewai/adr/ADR-005-output-validation-and-data-engineering-specialist.md)
+- [CrewAI ADR-006: Persistent review memory policy and memory CLI](../../../.crewai/adr/ADR-006-persistent-review-memory-and-cli.md)
+- [Idempotent script design patterns](../../../agentic/idempotent_design_patterns.md)
 
 ---
 
-_Next update: 2026-02-14 14:30 EST · Board owner: Human_
+_Next update: Closed; tracking moved to Sprint W08 · Board owner: Human_

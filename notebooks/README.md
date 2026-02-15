@@ -85,4 +85,4 @@ python -m ipykernel install --user --name opencode --display-name "opencode"
 
 ---
 
-_Part of the [opencode](https://github.com/borealBytes/agent-project) template project._
+_Part of the [Boreal Bytes GitHub org](https://github.com/borealBytes)._
