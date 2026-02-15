@@ -77,6 +77,12 @@ flowchart LR
 - Local/non-PR runs now skip persistent review-history updates, so `memory.json` no longer accumulates noisy local trend data; memory baseline was reset.
 - Repository licensing/attribution policy clarified in source-of-truth docs: Apache-2.0 + top-level `NOTICE` preserved in redistributions with attribution to Superior Byte Works, LLC / Clayton Young (Boreal Bytes).
 - Executive summary now prioritizes actionability over workflow narration (high-priority count, top risk, and immediate action window), and quick-review breakdowns prune repeated low-signal placeholder findings.
+- Local full-review execution now runs an explicit four-stage multipass path (quality, architecture, security, synthesis) so call accounting and review coverage align with full-review expectations in local CI.
+- Final summary formatting no longer forces horizontal-rule separators after every `</details>` block.
+- Removed duplicate specialist status rows from the top workflow guide; specialist review status now appears only once in each specialist section.
+- `scripts/ci-local.sh` now enforces single-run locking via `.ci-local.lock` and clears `.crewai/workspace` at startup to prevent stale artifact bleed-through between local runs.
+- Specialist local execution now consistently uses structured domain-focused prompts per crew in full-review mode, reducing generic cross-domain findings and improving specialty signal quality.
+- Cost reporting now includes agent-level attribution in addition to crew-level totals.
 
 ---
 
@@ -88,4 +94,4 @@ flowchart LR
 
 ---
 
-_Last updated: 2026-02-14 18:28 EST_
+_Last updated: 2026-02-14 18:59 EST_

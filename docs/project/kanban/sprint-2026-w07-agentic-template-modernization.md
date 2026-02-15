@@ -1,7 +1,7 @@
 # Sprint W07 2026 — Kanban Board
 
 _Sprint W07: Feb 10–14, 2026 · opencode repo_
-_Human · Last updated: 2026-02-14 18:28_
+_Human · Last updated: 2026-02-14 18:59_
 
 ---
 
@@ -70,6 +70,9 @@ kanban
         task47["🧠 Final sweep: scoped specialist findings + clean persistent memory baseline"]
         task48["⚖️ License policy finalized: Apache-2.0 + NOTICE attribution baseline"]
         task49["🧭 Executive summary rewrite: action-first, less workflow narration"]
+        task50["🧪 Local full-review multipass restored + remove forced details separators"]
+        task51["🧹 Remove duplicate specialist status rows from top workflow guide"]
+        task52["🔒 Local CI lock + workspace reset + specialist domain-focus tightening"]
 
     column5["🚫 Won't Do"]
         task41["⛔ Keep NVIDIA as default local provider"]
@@ -85,7 +88,7 @@ kanban
 | 📋 **Backlog**     | 2     | —         | Rendering check + pending commit    |
 | 🔄 **In Progress** | 1     | 3         | 🟢 Under limit                      |
 | 🔍 **In Review**   | 0     | —         | —                                   |
-| ✅ **Done**        | 45    | —         | Core docs + CI/review + scaffolding |
+| ✅ **Done**        | 48    | —         | Core docs + CI/review + scaffolding |
 | 🚫 **Won't Do**    | 2     | —         | Explicitly declined with rationale  |
 | 🚫 **Blocked**     | 0     | —         | Clear                               |
 
@@ -267,6 +270,9 @@ _Completed this sprint._
 - **Feb 14:** Final quality sweep added changed-file scope filtering for specialist recovered findings and prevented local/non-PR runs from polluting persistent memory trend history; revalidated with full local review pass.
 - **Feb 14:** Added top-level `NOTICE` and updated agent/contributor guidance to enforce Apache-2.0 redistribution attribution requirements.
 - **Feb 14:** Refined final summary executive section to focus on decision-critical actions and pruned repeated quick-review low-signal placeholders from reviewer breakdowns.
+- **Feb 14:** Replaced local full-review single-shot shortcut with 4-call multipass (quality/architecture/security/synthesis) and removed forced `---` separators after `</details>` in final-summary formatting rules.
+- **Feb 14:** Removed duplicate specialist status lines from the top workflow guide in fallback summaries; specialist status remains in dedicated specialist sections only.
+- **Feb 14:** Added `.ci-local.lock` single-run guard and forced workspace cleanup at local CI start; upgraded specialist local prompts to stronger domain-only focus and extended cost reporting with agent-level attribution.
 
 ### Carryover from last period
 

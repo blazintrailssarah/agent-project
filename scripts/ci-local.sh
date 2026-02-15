@@ -33,6 +33,9 @@ REVIEW_LABELS=""
 SINGLE_STEP=""
 VERBOSE=false
 
+LOCK_FILE="${REPO_ROOT}/.ci-local.lock"
+LOCK_FD=9
+
 # --- Colors & Symbols ---
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -227,6 +230,9 @@ check_dependencies() {
   if ! command -v python3 &>/dev/null && ! command -v python &>/dev/null; then
     missing+=("python3 (install via pyenv or https://python.org)")
   fi
+  if ! command -v flock &>/dev/null; then
+    missing+=("flock (install util-linux package)")
+  fi
 
   if [[ ${#missing[@]} -gt 0 ]]; then
     echo ""
@@ -244,6 +250,28 @@ check_dependencies() {
     (cd "${REPO_ROOT}" && pnpm install --frozen-lockfile 2>/dev/null || pnpm install 2>/dev/null)
     echo -e "  ${PASS} Dependencies installed."
   fi
+}
+
+acquire_run_lock() {
+  exec {LOCK_FD}>"${LOCK_FILE}"
+  if ! flock -n "${LOCK_FD}"; then
+    local holder
+    holder=$(cat "${LOCK_FILE}" 2>/dev/null || true)
+    echo ""
+    echo -e "  ${RED}${FAIL} Another local CI run is already active.${NC}"
+    if [[ -n "${holder}" ]]; then
+      echo -e "  ${DIM}Lock owner: ${holder}${NC}"
+    fi
+    echo -e "  ${DIM}Wait for it to finish, then retry.${NC}"
+    exit 1
+  fi
+
+  echo "pid=$$ started=$(date -u '+%Y-%m-%dT%H:%M:%SZ') cwd=${REPO_ROOT}" 1>&"${LOCK_FD}"
+}
+
+release_run_lock() {
+  flock -u "${LOCK_FD}" 2>/dev/null || true
+  rm -f "${LOCK_FILE}" 2>/dev/null || true
 }
 
 # =============================================================================
@@ -1191,6 +1219,9 @@ print_summary() {
 main() {
   cd "${REPO_ROOT}"
 
+  trap release_run_lock EXIT
+  acquire_run_lock
+
   echo ""
   echo -e "${BOLD}${BLUE}  🚀 Local CI Runner${NC}"
   echo -e "${DIM}  Same pipeline as GitHub Actions — minus the cloud.${NC}"
@@ -1198,6 +1229,8 @@ main() {
 
   # Check required tools
   check_dependencies
+
+  clean_workspace
 
   # Single step mode
   if [[ -n "$SINGLE_STEP" ]]; then

@@ -28,7 +28,7 @@ synthesize_summary:
     - H2 headings get exactly ONE emoji at the start: "## 🛡️ Security review"
     - H3 and H4 headings get NO emoji
     - Sentence case for headings: "## 🛡️ Security review" not "## 🛡️ Security Review"
-    - Use <details> for collapsible sections; ALWAYS put --- after every </details>
+    - Use <details> for collapsible sections
     - Tables: always include a header row, bold the key column, concise cells
     - Use `code formatting` for file paths, commands, config values
     - Bold sparingly — key terms only, never entire sentences
@@ -87,12 +87,12 @@ synthesize_summary:
     Use <details open> with a bold red-circle header showing the count.
     For each finding show the title in bold, file path in backticks,
     then the description, then a fix line with 💡 prefix and the recommendation.
-    Close with </details> then --- on the next line.
+    Close with </details>.
 
     ### Other findings
     Use <details> (collapsed) with a bold header showing medium/low/info counts.
     Same format as above but collapsed by default.
-    Close with </details> then --- on the next line.
+    Close with </details>.
 
     ## 💡 Router suggestions
     Include autodetect suggestions if present.
@@ -111,7 +111,7 @@ synthesize_summary:
     SUCCESS CRITERIA:
     - Follows ALL markdown style rules listed above
     - Exactly one H1, emoji on H2 only, no emoji on H3/H4
-    - --- after every </details> block
+    - No required horizontal rule after </details> blocks
     - All available JSON files read
     - Final markdown >1000 characters
     - Covers all executed crews

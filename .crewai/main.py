@@ -1306,9 +1306,9 @@ def run_full_review(env_vars):
     if env_vars.get("pr_number") == "local":
         success = _run_full_review_local(env_vars)
         if success:
-            logger.info("✅ Local full review shortcut completed")
+            logger.info("✅ Local full review multi-pass completed")
         else:
-            logger.warning("⚠️ Local full review shortcut failed validation")
+            logger.warning("⚠️ Local full review multi-pass failed validation")
         return success
 
     try:
@@ -1747,9 +1747,74 @@ def _run_specialist_local(crew_key: str, output_file: str) -> bool:
     workspace = WorkspaceTool()
     crew_info = SPECIALIST_CREWS[crew_key]
     context_text = _read_local_context_pack(workspace)
+    domain_focus = {
+        "security": {
+            "focus": "vulnerabilities, authz/authn flaws, secret exposure, and exploit paths",
+            "keywords": ["security", "auth", "token", "secret", "owasp", "xss", "injection"],
+        },
+        "legal": {
+            "focus": "licenses, attribution obligations, redistribution/compliance, and regulatory/legal exposure",
+            "keywords": ["license", "notice", "copyright", "compliance", "privacy", "terms"],
+        },
+        "finance": {
+            "focus": "billing correctness, pricing/charge logic, revenue recognition, and payment safety",
+            "keywords": [
+                "billing",
+                "payment",
+                "invoice",
+                "subscription",
+                "price",
+                "charge",
+                "refund",
+            ],
+        },
+        "documentation": {
+            "focus": "docs accuracy/completeness, broken instructions, and mismatches with implemented behavior",
+            "keywords": ["readme", "docs", "documentation", "changelog", "guide", "api docs"],
+        },
+        "agentic": {
+            "focus": "AGENTS/agentic conventions, workflow integrity, and repo process contract compliance",
+            "keywords": ["agentic", "agents", "workflow", "convention", "ci-local", "crewai"],
+        },
+        "marketing": {
+            "focus": "messaging clarity, market positioning, conversion-risk copy, and brand/comms consistency",
+            "keywords": ["copy", "messaging", "brand", "landing", "pricing", "plans", "cta"],
+        },
+        "science": {
+            "focus": "reproducibility, data leakage, statistical validity, and measurement rigor",
+            "keywords": ["experiment", "metric", "dataset", "model", "analysis", "reproduc"],
+        },
+        "government": {
+            "focus": "accessibility and government/public-sector compliance (WCAG/508/auditability)",
+            "keywords": ["accessibility", "wcag", "508", "aria", "audit", "compliance"],
+        },
+        "strategy": {
+            "focus": "business impact, market/expansion implications, and strategic tradeoff quality",
+            "keywords": ["strategy", "roi", "market", "expansion", "positioning", "roadmap"],
+        },
+        "data_engineering": {
+            "focus": "schema/query correctness, pipeline reliability, and data model/contract risk",
+            "keywords": ["sql", "schema", "migration", "etl", "pipeline", "warehouse", "query"],
+        },
+    }.get(
+        crew_key,
+        {
+            "focus": crew_info.get("description", "domain-specific review"),
+            "keywords": [],
+        },
+    )
+
     schema_prompt = (
         "You are a domain specialist reviewer. "
         + crew_info.get("description", "Review changed code and provide actionable findings.")
+        + "\nDomain focus: "
+        + domain_focus["focus"]
+        + "\nHard constraints:"
+        + "\n- Do NOT report generic code-quality/style/architecture findings unless they directly create "
+        + f"{crew_key} domain risk."
+        + "\n- Avoid duplicating quick-review or full-review generic feedback."
+        + "\n- If no true domain finding exists, return findings=[] and explain in summary why domain risk is low."
+        + "\n- You may include at most one info-level educational FYI, but only if it is domain-specific."
         + "\nRequired schema:\n"
         + "{\n"
         + '  "summary": "1-3 sentence summary",\n'
@@ -1767,7 +1832,7 @@ def _run_specialist_local(crew_key: str, output_file: str) -> bool:
         + "  ]\n"
         + "}\n"
         + "Focus on changed code first; "
-        + "include broader context only when it changes risk materially."
+        + "include broader context only when it changes domain risk materially."
     )
 
     parsed, provider, parse_errors = _request_json_with_retry(
@@ -1790,6 +1855,16 @@ def _run_specialist_local(crew_key: str, output_file: str) -> bool:
     raw_findings = _normalize_findings_list(parsed.get("findings"))
     prefix = crew_info.get("id_prefix", "FIND")
     findings = []
+    generic_markers = [
+        "naming convention",
+        "code style",
+        "formatting issue",
+        "refactor this",
+        "separation of concerns",
+        "maintainability",
+        "generic best practice",
+    ]
+    domain_keywords = [k.lower() for k in domain_focus.get("keywords", [])]
     for index, finding in enumerate(raw_findings, start=1):
         normalized = dict(finding)
         finding_id = str(normalized.get("id", "")).strip()
@@ -1818,6 +1893,16 @@ def _run_specialist_local(crew_key: str, output_file: str) -> bool:
             str(normalized.get("verification", "Re-run local review and relevant tests.")).strip()
             or "Re-run local review and relevant tests."
         )
+
+        combined_text = (
+            f"{normalized.get('title', '')} {normalized.get('description', '')} "
+            f"{normalized.get('recommendation', '')} {normalized.get('file', '')}"
+        ).lower()
+        has_domain_signal = any(keyword in combined_text for keyword in domain_keywords)
+        looks_generic = any(marker in combined_text for marker in generic_markers)
+        if looks_generic and not has_domain_signal:
+            continue
+
         findings.append(normalized)
 
     parsed["findings"] = findings
@@ -1843,72 +1928,173 @@ def _run_full_review_local(env_vars: dict) -> bool:
     quick_json = (
         workspace.read_json("quick_review.json") if workspace.exists("quick_review.json") else {}
     )
-    validation_json = (
-        workspace.read_json("validation_report.json")
-        if workspace.exists("validation_report.json")
-        else {}
-    )
 
-    specialist_payloads = []
-    for crew_info in SPECIALIST_CREWS.values():
-        output_file = crew_info["output_file"]
-        if workspace.exists(output_file):
-            specialist_payloads.append(
-                {
-                    "label": crew_info["label"],
-                    "output_file": output_file,
-                    "data": workspace.read_json(output_file),
-                }
-            )
-
-    context_blob = {
+    base_context = {
         "env": {
             "pr_number": env_vars.get("pr_number"),
             "commit_sha": env_vars.get("commit_sha"),
             "repository": env_vars.get("repository"),
         },
         "quick_review": quick_json,
-        "validation_report": validation_json,
-        "specialist_reviews": specialist_payloads,
     }
 
-    schema_prompt = (
-        "Synthesize a comprehensive technical full-review JSON "
-        "from specialist and quick-review context.\n"
-        "Required schema:\n"
+    quality_prompt = (
+        "Perform deep code-quality review from diff/context and return JSON only.\n"
+        "Schema:\n"
+        "{\n"
+        '  "summary": "1-2 sentence summary",\n'
+        '  "quality_findings": [{"title":"...","severity":"critical|high|medium|low|info","file":"...","description":"...","recommendation":"..."}],\n'
+        '  "performance_findings": [{"title":"...","severity":"critical|high|medium|low|info","file":"...","description":"...","recommendation":"..."}],\n'
+        '  "testing_gaps": [{"title":"...","severity":"critical|high|medium|low|info","file":"...","description":"...","recommendation":"..."}],\n'
+        '  "maintainability_findings": [{"title":"...","severity":"critical|high|medium|low|info","file":"...","description":"...","recommendation":"..."}]\n'
+        "}"
+    )
+    quality_context = (
+        context_text + "\n\nQuality review inputs:\n" + json.dumps(base_context, indent=2)
+    )
+    quality_json, provider_quality, quality_errors = _request_json_with_retry(
+        stage_name="full_review_quality_local",
+        context_text=quality_context,
+        schema_prompt=quality_prompt,
+        expected_keys=[
+            "summary",
+            "quality_findings",
+            "performance_findings",
+            "testing_gaps",
+            "maintainability_findings",
+        ],
+        max_tokens=1500,
+    )
+    if quality_errors:
+        _record_validation(
+            "full_review.json",
+            valid=False,
+            source="local-full-review-quality-failed",
+            errors=quality_errors,
+            metadata={"provider": provider_quality},
+        )
+        return False
+    workspace.write_json("code_quality_deep.json", quality_json)
+
+    architecture_prompt = (
+        "Perform architecture impact review from diff/context and quality outputs. Return JSON only.\n"
+        "Schema:\n"
+        "{\n"
+        '  "summary": "1-2 sentence summary",\n'
+        '  "architecture_findings": [{"title":"...","severity":"critical|high|medium|low|info","file":"...","description":"...","suggestion":"...","impact":"critical|high|medium|low"}],\n'
+        '  "affected_modules": ["module/name"],\n'
+        '  "breaking_changes_detected": false\n'
+        "}"
+    )
+    architecture_context = (
+        context_text
+        + "\n\nArchitecture review inputs:\n"
+        + json.dumps({"base": base_context, "code_quality": quality_json}, indent=2)
+    )
+    architecture_json, provider_arch, architecture_errors = _request_json_with_retry(
+        stage_name="full_review_architecture_local",
+        context_text=architecture_context,
+        schema_prompt=architecture_prompt,
+        expected_keys=[
+            "summary",
+            "architecture_findings",
+            "affected_modules",
+            "breaking_changes_detected",
+        ],
+        max_tokens=1500,
+    )
+    if architecture_errors:
+        _record_validation(
+            "full_review.json",
+            valid=False,
+            source="local-full-review-architecture-failed",
+            errors=architecture_errors,
+            metadata={"provider": provider_arch},
+        )
+        return False
+    workspace.write_json("architecture_analysis.json", architecture_json)
+
+    security_prompt = (
+        "Perform OWASP/security and performance risk review from diff/context. Return JSON only.\n"
+        "Schema:\n"
+        "{\n"
+        '  "summary": "1-2 sentence summary",\n'
+        '  "critical_vulnerabilities": [{"title":"...","severity":"critical|high|medium|low|info","file":"...","description":"...","recommendation":"..."}],\n'
+        '  "warnings": [{"title":"...","severity":"critical|high|medium|low|info","file":"...","description":"...","recommendation":"..."}],\n'
+        '  "recommendations": [{"title":"...","severity":"critical|high|medium|low|info","file":"...","description":"...","recommendation":"..."}],\n'
+        '  "owasp_categories_triggered": ["A01:2021"],\n'
+        '  "hardcoded_secrets_found": false\n'
+        "}"
+    )
+    security_context = (
+        context_text
+        + "\n\nSecurity review inputs:\n"
+        + json.dumps({"base": base_context, "code_quality": quality_json}, indent=2)
+    )
+    security_json, provider_sec, security_errors = _request_json_with_retry(
+        stage_name="full_review_security_local",
+        context_text=security_context,
+        schema_prompt=security_prompt,
+        expected_keys=[
+            "summary",
+            "critical_vulnerabilities",
+            "warnings",
+            "recommendations",
+            "owasp_categories_triggered",
+            "hardcoded_secrets_found",
+        ],
+        max_tokens=1500,
+    )
+    if security_errors:
+        _record_validation(
+            "full_review.json",
+            valid=False,
+            source="local-full-review-security-failed",
+            errors=security_errors,
+            metadata={"provider": provider_sec},
+        )
+        return False
+    workspace.write_json("security_deep_dive.json", security_json)
+
+    synthesis_prompt = (
+        "Synthesize final full_review.json from quality, architecture, and security analyses. "
+        "Return JSON only with deduplicated findings and practical recommendations.\n"
+        "Schema:\n"
         "{\n"
         '  "summary": "1-3 sentence executive summary",\n'
-        '  "architecture": [{"title":"...","severity":"high|medium|low|info",'
-        '"file":"...","description":"...","recommendation":"..."}],\n'
-        '  "security": [{"title":"...","severity":"high|medium|low|info",'
-        '"file":"...","description":"...","recommendation":"..."}],\n'
-        '  "performance": [{"title":"...","severity":"high|medium|low|info",'
-        '"file":"...","description":"...","recommendation":"..."}],\n'
-        '  "testing": [{"title":"...","severity":"high|medium|low|info",'
-        '"file":"...","description":"...","recommendation":"..."}]\n'
-        "}\n"
-        "Prioritize changed-code impact and cross-review consistency."
+        '  "architecture": [{"title":"...","severity":"critical|high|medium|low|info","file":"...","description":"...","recommendation":"..."}],\n'
+        '  "security": [{"title":"...","severity":"critical|high|medium|low|info","file":"...","description":"...","recommendation":"..."}],\n'
+        '  "performance": [{"title":"...","severity":"critical|high|medium|low|info","file":"...","description":"...","recommendation":"..."}],\n'
+        '  "testing": [{"title":"...","severity":"critical|high|medium|low|info","file":"...","description":"...","recommendation":"..."}]\n'
+        "}"
     )
-
-    context_material = (
+    synthesis_context = (
         context_text
-        + "\n\nSpecialist + quick-review context:\n"
-        + json.dumps(context_blob, indent=2)
+        + "\n\nSynthesis inputs:\n"
+        + json.dumps(
+            {
+                "base": base_context,
+                "code_quality": quality_json,
+                "architecture": architecture_json,
+                "security": security_json,
+            },
+            indent=2,
+        )
     )
-    parsed, provider, parse_errors = _request_json_with_retry(
-        stage_name="full_review_local",
-        context_text=context_material,
-        schema_prompt=schema_prompt,
+    parsed, provider_syn, parse_errors = _request_json_with_retry(
+        stage_name="full_review_synthesis_local",
+        context_text=synthesis_context,
+        schema_prompt=synthesis_prompt,
         expected_keys=["summary", "architecture", "security", "performance", "testing"],
-        max_tokens=1500,
+        max_tokens=1600,
     )
     if parse_errors:
         _record_validation(
             "full_review.json",
             valid=False,
-            source="local-full-review-retry-failed",
+            source="local-full-review-synthesis-failed",
             errors=parse_errors,
-            metadata={"provider": provider},
+            metadata={"provider": provider_syn},
         )
         return False
 
@@ -1919,14 +2105,14 @@ def _run_full_review_local(env_vars: dict) -> bool:
     _record_validation(
         "full_review.json",
         valid=len(errors) == 0,
-        source="local-full-review",
+        source="local-full-review-multipass",
         errors=errors,
-        metadata={"provider": provider},
+        metadata={"provider": provider_syn},
     )
     return len(errors) == 0
 
 
-def run_specialist_crew(crew_key):
+def run_specialist_crew(crew_key, force_attempt: bool = False):
     """Run a single specialist review crew by registry key.
 
     Args:
@@ -1948,7 +2134,7 @@ def run_specialist_crew(crew_key):
     tracker.set_current_task(f"specialist_{crew_key}")
 
     relevant, relevance_reason = _specialist_relevance(crew_key)
-    if not relevant:
+    if not relevant and not force_attempt:
         workspace = WorkspaceTool()
         output = _build_no_relevant_output(crew_key, relevance_reason)
         workspace.write_json(output_file, output)
@@ -1960,86 +2146,17 @@ def run_specialist_crew(crew_key):
         )
         logger.info(f"ℹ️ {crew_key.title()} review marked not-applicable: {relevance_reason}")
         return True
+    if not relevant and force_attempt:
+        logger.info(
+            f"ℹ️ {crew_key.title()} review forced for full-cycle guardrail check "
+            f"despite limited file-match relevance: {relevance_reason}"
+        )
 
     if os.getenv("PR_NUMBER") == "local":
-        try:
-            crew_instance = crew_class()
-            result = crew_instance.crew().kickoff()
-
-            workspace = WorkspaceTool()
-            source = "local-crew-output"
-            if workspace.exists(output_file):
-                data = workspace.read_json(output_file)
-                data, _ = _sanitize_specialist_artifact(data, crew_key)
-                validation_errors = validate_specialist_output(data, crew_key)
-                if validation_errors:
-                    logger.warning(
-                        f"⚠️ Local {crew_key.title()} output invalid; repairing from result payload"
-                    )
-                    source = "local-parsed-result-repair"
-                    data = synthesize_specialist_output(crew_key, result)
-                    workspace.write_json(output_file, data)
-                    data, _ = _sanitize_specialist_artifact(data, crew_key)
-                    validation_errors = validate_specialist_output(data, crew_key)
-                if validation_errors:
-                    _record_validation(
-                        output_file,
-                        valid=False,
-                        source=source,
-                        errors=validation_errors,
-                        metadata={"crew_key": crew_key},
-                    )
-                    logger.warning(
-                        f"⚠️ Local {crew_key.title()} output failed validation: "
-                        + "; ".join(validation_errors[:3])
-                    )
-                    return False
-
-                findings = _normalize_findings_list(data.get("findings"))
-                counts = _compute_severity_counts(findings)
-                data["findings"] = findings
-                data["severity_counts"] = counts
-                workspace.write_json(output_file, data)
-
-                _record_validation(
-                    output_file,
-                    valid=True,
-                    source=source,
-                    metadata={"crew_key": crew_key, "findings": len(findings)},
-                )
-                logger.info(f"✅ Local specialist {crew_key} completed")
-                return True
-
-            logger.warning(
-                f"⚠️ Local {crew_key.title()} review did not write {output_file}; persisting parsed result"
-            )
-            synthesized = synthesize_specialist_output(crew_key, result)
-            synthesized, _ = _sanitize_specialist_artifact(synthesized, crew_key)
-            workspace.write_json(output_file, synthesized)
-            validation_errors = validate_specialist_output(synthesized, crew_key)
-            _record_validation(
-                output_file,
-                valid=len(validation_errors) == 0,
-                source="local-parsed-result-missing-output",
-                errors=validation_errors,
-                metadata={"crew_key": crew_key},
-            )
-            if not validation_errors:
-                logger.info(f"✅ Local specialist {crew_key} completed (parsed-result recovery)")
-                return True
-            logger.warning(
-                f"⚠️ Local {crew_key.title()} parsed result failed validation; "
-                "falling back to structured local retry"
-            )
-        except Exception as local_crew_error:
-            logger.warning(
-                f"⚠️ Local specialist crew execution failed for {crew_key}: {local_crew_error}; "
-                "falling back to structured local retry"
-            )
-
+        logger.info(f"ℹ️ Local specialist {crew_key}: running structured guardrail review")
         success = _run_specialist_local(crew_key, output_file)
         if success:
-            logger.info(f"✅ Local specialist {crew_key} completed (structured fallback)")
+            logger.info(f"✅ Local specialist {crew_key} completed (structured local)")
         else:
             logger.warning(f"⚠️ Local specialist {crew_key} failed validation")
         return success
@@ -2636,7 +2753,6 @@ def create_fallback_summary(workspace_dir, env_vars, workflows_executed):
                     summary_parts.append("")
 
                 summary_parts.append("</details>")
-                summary_parts.append("---")
 
             summary_parts.append("")
         except Exception as e:
@@ -2752,7 +2868,6 @@ def create_fallback_summary(workspace_dir, env_vars, workflows_executed):
                     summary_parts.append("")
 
                 summary_parts.append("</details>")
-                summary_parts.append("---")
 
             # Get all findings
             critical_issues = quick_data.get("critical", [])
@@ -2783,7 +2898,6 @@ def create_fallback_summary(workspace_dir, env_vars, workflows_executed):
                     summary_parts.append(format_finding_item(issue, "🔴"))
                     summary_parts.append("")
                 summary_parts.append("</details>")
-                summary_parts.append("---")
 
             # WARNINGS - collapsible
             if normalized_warnings:
@@ -2795,7 +2909,6 @@ def create_fallback_summary(workspace_dir, env_vars, workflows_executed):
                     summary_parts.append(format_finding_item(warning, "🟡"))
                     summary_parts.append("")
                 summary_parts.append("</details>")
-                summary_parts.append("---")
 
             # SUGGESTIONS - collapsible
             if normalized_suggestions:
@@ -2807,7 +2920,6 @@ def create_fallback_summary(workspace_dir, env_vars, workflows_executed):
                     summary_parts.append(format_finding_item(suggestion, "🔵"))
                     summary_parts.append("")
                 summary_parts.append("</details>")
-                summary_parts.append("---")
 
             if normalized_positives:
                 summary_parts.append("")
@@ -2818,7 +2930,6 @@ def create_fallback_summary(workspace_dir, env_vars, workflows_executed):
                     summary_parts.append(format_finding_item(positive, "🟢"))
                     summary_parts.append("")
                 summary_parts.append("</details>")
-                summary_parts.append("---")
 
             summary_parts.append("")
         except Exception as e:
@@ -2914,46 +3025,6 @@ def create_fallback_summary(workspace_dir, env_vars, workflows_executed):
         summary_parts.append("Status: Did not run")
         summary_parts.append("")
 
-    for workflow in workflows_executed:
-        if workflow.startswith("specialist-"):
-            crew_key = workflow.replace("specialist-", "")
-            pretty = crew_key.replace("_", " ").title()
-            output_file = SPECIALIST_CREWS.get(crew_key, {}).get("output_file")
-            if output_file and workspace.exists(output_file):
-                try:
-                    specialist_data = workspace.read_json(output_file)
-                    counts = specialist_data.get("severity_counts", {})
-                    high_critical = int(counts.get("critical", 0) or 0) + int(
-                        counts.get("high", 0) or 0
-                    )
-                    total_findings = len(specialist_data.get("findings", []) or [])
-                    if total_findings == 0:
-                        outcome = "no findings"
-                        recommendation = "No action required; keep monitoring domain changes."
-                    else:
-                        outcome = f"{high_critical} high+ / {total_findings} total"
-                        first_recommendation = ""
-                        for finding in specialist_data.get("findings", []) or []:
-                            if isinstance(finding, dict):
-                                first_recommendation = finding.get("recommendation") or finding.get(
-                                    "fix_suggestion", ""
-                                )
-                                if first_recommendation:
-                                    break
-                        recommendation = _summarize_text(first_recommendation, max_len=120)
-                        if not recommendation:
-                            recommendation = "Address top domain findings before merge."
-                except Exception:
-                    outcome = "artifact read error"
-                    recommendation = "Review specialist artifact parsing and rerun."
-            else:
-                outcome = "not generated"
-                recommendation = "Confirm specialist workflow routing and output generation."
-            summary_parts.append(
-                f"| Specialist: {pretty} | Domain-focused risk and compliance review | {outcome} | "
-                f"{recommendation} |"
-            )
-
     summary_parts.append("")
 
     crew_emoji = {
@@ -3005,7 +3076,6 @@ def create_fallback_summary(workspace_dir, env_vars, workflows_executed):
                         summary_parts.append(format_finding_item(finding, "🔴"))
                         summary_parts.append("")
                     summary_parts.append("</details>")
-                    summary_parts.append("---")
                     summary_parts.append("")
 
                 if rest:
@@ -3018,7 +3088,6 @@ def create_fallback_summary(workspace_dir, env_vars, workflows_executed):
                         summary_parts.append(format_finding_item(finding, sev_emoji))
                         summary_parts.append("")
                     summary_parts.append("</details>")
-                    summary_parts.append("---")
                     summary_parts.append("")
             except Exception as e:
                 logger.warning(f"Could not parse {output_file}: {e}")
@@ -3114,6 +3183,7 @@ def generate_cost_breakdown():
             return "\n---\n\n## 💰 Cost Tracking\n\nNo API calls recorded.\n"
 
         crew_breakdown = summary["crew_breakdown"]
+        agent_breakdown = summary.get("agent_breakdown", {})
         total_cost = summary["total_cost"]
 
         crew_rows = sorted(
@@ -3141,6 +3211,29 @@ def generate_cost_breakdown():
                 f"${stats.get('cost', 0.0):.6f} | {share:.1f}% | {avg_speed} |"
             )
 
+        agent_rows = sorted(
+            agent_breakdown.items(),
+            key=lambda item: item[1].get("cost", 0.0),
+            reverse=True,
+        )
+        agent_table = [
+            "| Agent | Calls | Input | Output | Total tokens | Cost | Cost share | Avg speed |",
+            "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+        ]
+        for agent_name, stats in agent_rows:
+            agent_duration = stats.get("duration", 0.0)
+            avg_speed = (
+                f"{stats.get('total_tokens', 0) / agent_duration:.1f} tok/s"
+                if agent_duration > 0
+                else "-"
+            )
+            share = (stats.get("cost", 0.0) / total_cost * 100.0) if total_cost > 0 else 0.0
+            agent_table.append(
+                f"| {agent_name} | {stats.get('calls', 0)} | {stats.get('tokens_in', 0):,} | "
+                f"{stats.get('tokens_out', 0):,} | {stats.get('total_tokens', 0):,} | "
+                f"${stats.get('cost', 0.0):.6f} | {share:.1f}% | {avg_speed} |"
+            )
+
         most_expensive_crew = crew_rows[0][0] if crew_rows else "n/a"
         most_expensive_call = max(tracker.calls, key=lambda call: call.cost, default=None)
 
@@ -3155,15 +3248,25 @@ def generate_cost_breakdown():
         lines.append("### Crew totals")
         lines.extend(crew_table)
         lines.append("")
+        if agent_rows:
+            lines.append("### Agent totals")
+            lines.extend(agent_table)
+            lines.append("")
         lines.append(
             f"- Highest total spend: **{most_expensive_crew}** ({crew_rows[0][1].get('cost', 0.0):.6f} USD)"
             if crew_rows
             else "- Highest total spend: n/a"
         )
+        if agent_rows:
+            lines.append(
+                f"- Highest agent spend: **{agent_rows[0][0]}** "
+                f"({agent_rows[0][1].get('cost', 0.0):.6f} USD)"
+            )
         if most_expensive_call:
             lines.append(
                 f"- Most expensive call: **#{most_expensive_call.call_number}** "
-                f"({most_expensive_call.crew_name}, {most_expensive_call.model}, "
+                f"({most_expensive_call.crew_name} / {most_expensive_call.agent_name}, "
+                f"{most_expensive_call.model}, "
                 f"${most_expensive_call.cost:.6f})"
             )
         lines.append("")
@@ -3173,11 +3276,10 @@ def generate_cost_breakdown():
         lines.append(call_table)
         lines.append("")
         lines.append("</details>")
-        lines.append("---")
         lines.append("")
         lines.append(
             f"**Summary**: {summary['total_calls']} calls across "
-            f"{len(summary['crew_breakdown'])} crews | "
+            f"{len(summary['crew_breakdown'])} crews and {len(agent_rows)} agents | "
             f"Total: {summary['total_tokens']:,} tokens in {summary['total_duration']:.1f}s | "
             f"Avg: {summary['total_tokens'] / summary['total_duration']:.1f} tok/s"
         )
@@ -3446,6 +3548,7 @@ def main():
         specialist_crews_to_run = decision.get("specialist_crews", [])
         if specialist_crews_to_run:
             crew_list = ", ".join(specialist_crews_to_run)
+            force_specialist_attempts = "full-review" in workflows
             logger.info(
                 f"🔬 Running {len(specialist_crews_to_run)} specialist crew(s): {crew_list}"
             )
@@ -3453,7 +3556,7 @@ def main():
                 if crew_key not in SPECIALIST_CREWS:
                     logger.warning(f"⚠️ Unknown specialist crew: {crew_key}")
                     continue
-                success = run_specialist_crew(crew_key)
+                success = run_specialist_crew(crew_key, force_attempt=force_specialist_attempts)
                 workflows_executed.append(f"specialist-{crew_key}")
                 workflow_success[f"specialist-{crew_key}"] = success
                 if not success:

@@ -74,6 +74,12 @@ Licensing baseline is now explicitly codified for reuse/distribution: Apache-2.0
 
 Final executive-summary polish pass removes workflow-step narration from top-of-report and reframes the section around immediate decision support (high-priority count, top risk, and merge-gating action window). Quick-review low-signal placeholders are further pruned from reviewer breakdowns so repeated "no additional details" artifacts do not crowd actionable findings.
 
+Follow-up review-quality pass now ensures local full-review semantics match task intent: local full review runs a four-call multipass pipeline (quality, architecture, security, synthesis) instead of a single synthesis shortcut, so cost reporting reflects actual full-review work. Also removed forced `---` separators after `</details>` in both fallback summary generation and final-summary task contract for cleaner collapsed sections.
+
+Latest summary cleanup removed the duplicate top-level specialist status rows from the workflow guide, so specialist outcomes now appear once in their dedicated specialist sections instead of being repeated earlier in the report.
+
+Latest guardrail hardening adds two operational controls and specialist-quality improvements: `scripts/ci-local.sh` now acquires a process lock (`.ci-local.lock`) to prevent concurrent local runs and always resets `.crewai/workspace` at run start to avoid stale artifacts; specialist local execution now uses structured domain-specific prompts for every full-review cycle, and cost reporting now includes both crew-level and agent-level breakdowns in markdown/terminal summaries.
+
 ### Impact classification
 
 | Dimension         | Level             | Notes                                                                                              |
