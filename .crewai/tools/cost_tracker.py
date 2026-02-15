@@ -455,7 +455,7 @@ class CostTracker:
             f"⚡ Average Speed: {self.get_average_tokens_per_second():.1f} tokens/sec\n"
             f"\n📋 By Crew:\n"
             + "\n".join(crew_lines)
-            + f"\n\n🧠 By Agent:\n"
+            + "\n\n🧠 By Agent:\n"
             + "\n".join(agent_lines)
         )
 
