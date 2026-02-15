@@ -83,6 +83,8 @@ flowchart LR
 - `scripts/ci-local.sh` now enforces single-run locking via `.ci-local.lock` and clears `.crewai/workspace` at startup to prevent stale artifact bleed-through between local runs.
 - Specialist local execution now consistently uses structured domain-focused prompts per crew in full-review mode, reducing generic cross-domain findings and improving specialty signal quality.
 - Cost reporting now includes agent-level attribution in addition to crew-level totals.
+- Introduced complete-repo review mode: `--complete-full-review` in local CI sets `crewai:complete-full-review` and runs full review plus all specialists under complete-repository scope semantics.
+- Router contract updated so GitHub PR labels containing `crewai:complete-full-review` trigger the same full+all-specialist expansion path as `crewai:full-review`.
 
 ---
 
@@ -94,4 +96,4 @@ flowchart LR
 
 ---
 
-_Last updated: 2026-02-14 18:59 EST_
+_Last updated: 2026-02-14 19:12 EST_

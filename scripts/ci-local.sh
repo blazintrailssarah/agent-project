@@ -29,6 +29,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 RUN_DEPLOY=false
 RUN_REVIEW=false
 RUN_FULL_REVIEW=false
+RUN_COMPLETE_FULL_REVIEW=false
 REVIEW_LABELS=""
 SINGLE_STEP=""
 VERBOSE=false
@@ -78,6 +79,11 @@ while [[ $# -gt 0 ]]; do
       RUN_REVIEW=true
       RUN_FULL_REVIEW=true
       shift ;;
+    --complete-full-review)
+      RUN_REVIEW=true
+      RUN_FULL_REVIEW=true
+      RUN_COMPLETE_FULL_REVIEW=true
+      shift ;;
     --crew)
       RUN_REVIEW=true
       REVIEW_LABELS="${REVIEW_LABELS:+$REVIEW_LABELS,}crewai:$2"
@@ -85,11 +91,12 @@ while [[ $# -gt 0 ]]; do
     --verbose)  VERBOSE=true; shift ;;
     --step)     SINGLE_STEP="$2"; shift 2 ;;
     --help|-h)
-      echo "Usage: ./scripts/ci-local.sh [--review] [--full-review] [--crew <name>] [--deploy] [--step <name>] [--verbose]"
+      echo "Usage: ./scripts/ci-local.sh [--review] [--full-review] [--complete-full-review] [--crew <name>] [--deploy] [--step <name>] [--verbose]"
       echo ""
       echo "Flags:"
       echo "  --review        Run quick CrewAI code review (OpenRouter default)"
   echo "  --full-review   Run ALL 10 specialist crews (security, legal, finance, data, etc.)"
+      echo "  --complete-full-review   Run full review + all specialists in complete-repo mode"
       echo "  --crew <name>   Run specific crew(s) — can be repeated (e.g. --crew security --crew legal)"
       echo "  --deploy        Run Cloudflare deploy (requires CF credentials)"
       echo "  --step <name>   Run a single step by name"
@@ -123,7 +130,8 @@ while [[ $# -gt 0 ]]; do
       echo "Examples:"
       echo "  ./scripts/ci-local.sh                                # Full CI (no review)"
       echo "  ./scripts/ci-local.sh --review                       # Quick review"
-  echo "  ./scripts/ci-local.sh --full-review                  # All 10 specialist crews"
+  echo "  ./scripts/ci-local.sh --full-review                  # All 10 specialist crews (diff-focused)"
+      echo "  ./scripts/ci-local.sh --complete-full-review         # Full repo perspective for all specialists"
       echo "  ./scripts/ci-local.sh --crew security                # Just security crew"
       echo "  ./scripts/ci-local.sh --crew security --crew legal   # Multiple specific crews"
       echo "  ./scripts/ci-local.sh --step test-crewai             # Just run CrewAI tests"
@@ -733,7 +741,10 @@ run_phase_4() {
   file_count=$(echo "$changed_files" | grep -c . || echo "0")
 
   local review_labels_json="[]"
-  if $RUN_FULL_REVIEW; then
+  if $RUN_COMPLETE_FULL_REVIEW; then
+    review_labels_json='["crewai:full-review","crewai:complete-full-review"]'
+    echo -e "  ${DIM}Labels: crewai:full-review, crewai:complete-full-review (all specialists, full repo scope)${NC}"
+  elif $RUN_FULL_REVIEW; then
     review_labels_json='["crewai:full-review"]'
     echo -e "  ${DIM}Labels: crewai:full-review (all 10 specialist crews)${NC}"
   elif [[ -n "$REVIEW_LABELS" ]]; then

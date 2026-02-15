@@ -60,6 +60,25 @@ _REPO_FILE_BASENAME_INDEX = None
 _CHANGED_FILE_CANDIDATES = None
 
 
+def _get_review_labels() -> list[str]:
+    diff_json_path = Path(__file__).parent / "workspace" / "diff.json"
+    if not diff_json_path.exists():
+        return []
+    try:
+        data = json.loads(diff_json_path.read_text())
+    except Exception:
+        return []
+    labels = data.get("labels", [])
+    if not isinstance(labels, list):
+        return []
+    return [str(label).strip() for label in labels if isinstance(label, str)]
+
+
+def _is_complete_full_review_mode() -> bool:
+    labels = {label.lower() for label in _get_review_labels()}
+    return "crewai:complete-full-review" in labels
+
+
 class FatalLLMAvailabilityError(RuntimeError):
     pass
 
@@ -340,7 +359,9 @@ def _build_no_relevant_output(crew_key: str, reason: str) -> dict:
     }
 
 
-def _sanitize_specialist_artifact(data: dict, crew_key: str) -> tuple[dict, bool]:
+def _sanitize_specialist_artifact(
+    data: dict, crew_key: str, complete_mode: bool = False
+) -> tuple[dict, bool]:
     sanitized = dict(data) if isinstance(data, dict) else {}
     changed = False
 
@@ -398,7 +419,7 @@ def _sanitize_specialist_artifact(data: dict, crew_key: str) -> tuple[dict, bool
 
         qualified_file = _qualify_repo_file_path(item.get("file", ""))
         normalized_file = qualified_file.lower().lstrip("./") if qualified_file else ""
-        if normalized_file:
+        if normalized_file and not complete_mode:
             file_matches_scope = (
                 normalized_file in changed_file_set
                 or Path(normalized_file).name in changed_basename_set
@@ -553,7 +574,11 @@ def run_router(env_vars):
         workflows = ["ci-log-analysis", "quick-review"]
         specialist = []
 
-        if "crewai:full-review" in labels:
+        normalized_labels = {str(label).strip().lower() for label in labels}
+        if (
+            "crewai:full-review" in normalized_labels
+            or "crewai:complete-full-review" in normalized_labels
+        ):
             workflows.append("full-review")
             specialist = list(SPECIALIST_CREWS.keys())
         else:
@@ -1743,7 +1768,7 @@ def synthesize_specialist_output(crew_key, result):
     return cleaned
 
 
-def _run_specialist_local(crew_key: str, output_file: str) -> bool:
+def _run_specialist_local(crew_key: str, output_file: str, complete_mode: bool = False) -> bool:
     workspace = WorkspaceTool()
     crew_info = SPECIALIST_CREWS[crew_key]
     context_text = _read_local_context_pack(workspace)
@@ -1809,6 +1834,11 @@ def _run_specialist_local(crew_key: str, output_file: str) -> bool:
         + crew_info.get("description", "Review changed code and provide actionable findings.")
         + "\nDomain focus: "
         + domain_focus["focus"]
+        + (
+            "\nReview scope: complete repository state (not only changed files)."
+            if complete_mode
+            else "\nReview scope: changed-code-first with selective broader context."
+        )
         + "\nHard constraints:"
         + "\n- Do NOT report generic code-quality/style/architecture findings unless they directly create "
         + f"{crew_key} domain risk."
@@ -1831,8 +1861,11 @@ def _run_specialist_local(crew_key: str, output_file: str) -> bool:
         + "    }\n"
         + "  ]\n"
         + "}\n"
-        + "Focus on changed code first; "
-        + "include broader context only when it changes domain risk materially."
+        + (
+            "Focus on full repository state and prioritize highest domain risk."
+            if complete_mode
+            else "Focus on changed code first; include broader context only when it changes domain risk materially."
+        )
     )
 
     parsed, provider, parse_errors = _request_json_with_retry(
@@ -1906,6 +1939,8 @@ def _run_specialist_local(crew_key: str, output_file: str) -> bool:
         findings.append(normalized)
 
     parsed["findings"] = findings
+    parsed, _ = _sanitize_specialist_artifact(parsed, crew_key, complete_mode=complete_mode)
+    findings = _normalize_findings_list(parsed.get("findings"))
     parsed["severity_counts"] = _compute_severity_counts(findings)
     if not isinstance(parsed.get("summary"), str) or not parsed.get("summary", "").strip():
         parsed["summary"] = f"{crew_key.title()} review completed with {len(findings)} finding(s)."
@@ -2132,9 +2167,10 @@ def run_specialist_crew(crew_key, force_attempt: bool = False):
 
     tracker = get_tracker()
     tracker.set_current_task(f"specialist_{crew_key}")
+    complete_mode = _is_complete_full_review_mode()
 
     relevant, relevance_reason = _specialist_relevance(crew_key)
-    if not relevant and not force_attempt:
+    if not relevant and not force_attempt and not complete_mode:
         workspace = WorkspaceTool()
         output = _build_no_relevant_output(crew_key, relevance_reason)
         workspace.write_json(output_file, output)
@@ -2146,15 +2182,75 @@ def run_specialist_crew(crew_key, force_attempt: bool = False):
         )
         logger.info(f"ℹ️ {crew_key.title()} review marked not-applicable: {relevance_reason}")
         return True
-    if not relevant and force_attempt:
+    if not relevant and (force_attempt or complete_mode):
         logger.info(
             f"ℹ️ {crew_key.title()} review forced for full-cycle guardrail check "
             f"despite limited file-match relevance: {relevance_reason}"
         )
 
     if os.getenv("PR_NUMBER") == "local":
-        logger.info(f"ℹ️ Local specialist {crew_key}: running structured guardrail review")
-        success = _run_specialist_local(crew_key, output_file)
+        if complete_mode:
+            logger.info(f"ℹ️ Local specialist {crew_key}: running tool-enabled complete-repo review")
+            try:
+                crew_instance = crew_class()
+                result = crew_instance.crew().kickoff()
+                workspace = WorkspaceTool()
+                source = "local-complete-crew-output"
+
+                if workspace.exists(output_file):
+                    data = workspace.read_json(output_file)
+                    data, _ = _sanitize_specialist_artifact(data, crew_key, complete_mode=True)
+                    validation_errors = validate_specialist_output(data, crew_key)
+                    if validation_errors:
+                        source = "local-complete-parsed-result-repair"
+                        data = synthesize_specialist_output(crew_key, result)
+                        data, _ = _sanitize_specialist_artifact(data, crew_key, complete_mode=True)
+                        workspace.write_json(output_file, data)
+                        validation_errors = validate_specialist_output(data, crew_key)
+                    if not validation_errors:
+                        _record_validation(
+                            output_file,
+                            valid=True,
+                            source=source,
+                            metadata={
+                                "crew_key": crew_key,
+                                "findings": len(data.get("findings", [])),
+                            },
+                        )
+                        logger.info(
+                            f"✅ Local specialist {crew_key} completed (complete repo mode)"
+                        )
+                        return True
+
+                synthesized = synthesize_specialist_output(crew_key, result)
+                synthesized, _ = _sanitize_specialist_artifact(
+                    synthesized, crew_key, complete_mode=True
+                )
+                workspace.write_json(output_file, synthesized)
+                validation_errors = validate_specialist_output(synthesized, crew_key)
+                _record_validation(
+                    output_file,
+                    valid=len(validation_errors) == 0,
+                    source="local-complete-parsed-result-missing-output",
+                    errors=validation_errors,
+                    metadata={"crew_key": crew_key},
+                )
+                if not validation_errors:
+                    logger.info(
+                        f"✅ Local specialist {crew_key} completed (complete repo parsed-result)"
+                    )
+                    return True
+            except Exception as complete_error:
+                logger.warning(
+                    f"⚠️ Local specialist complete mode failed for {crew_key}: {complete_error}; "
+                    "falling back to structured complete-mode review"
+                )
+
+        logger.info(
+            f"ℹ️ Local specialist {crew_key}: running structured guardrail review"
+            + (" (complete repo mode)" if complete_mode else "")
+        )
+        success = _run_specialist_local(crew_key, output_file, complete_mode=complete_mode)
         if success:
             logger.info(f"✅ Local specialist {crew_key} completed (structured local)")
         else:
@@ -2169,7 +2265,7 @@ def run_specialist_crew(crew_key, force_attempt: bool = False):
         source = "crew-output"
         if workspace.exists(output_file):
             data = workspace.read_json(output_file)
-            data, _ = _sanitize_specialist_artifact(data, crew_key)
+            data, _ = _sanitize_specialist_artifact(data, crew_key, complete_mode=complete_mode)
             validation_errors = validate_specialist_output(data, crew_key)
             if validation_errors:
                 logger.warning(
@@ -2178,7 +2274,7 @@ def run_specialist_crew(crew_key, force_attempt: bool = False):
                 source = "parsed-result-repair"
                 data = synthesize_specialist_output(crew_key, result)
                 workspace.write_json(output_file, data)
-                data, _ = _sanitize_specialist_artifact(data, crew_key)
+                data, _ = _sanitize_specialist_artifact(data, crew_key, complete_mode=complete_mode)
                 validation_errors = validate_specialist_output(data, crew_key)
             if validation_errors:
                 _record_validation(
@@ -2220,7 +2316,9 @@ def run_specialist_crew(crew_key, force_attempt: bool = False):
                 f"⚠️ {crew_key.title()} review did not write {output_file}; persisting parsed result"
             )
             synthesized = synthesize_specialist_output(crew_key, result)
-            synthesized, _ = _sanitize_specialist_artifact(synthesized, crew_key)
+            synthesized, _ = _sanitize_specialist_artifact(
+                synthesized, crew_key, complete_mode=complete_mode
+            )
             workspace.write_json(output_file, synthesized)
             validation_errors = validate_specialist_output(synthesized, crew_key)
             _record_validation(

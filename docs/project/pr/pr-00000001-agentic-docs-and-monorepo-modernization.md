@@ -80,6 +80,8 @@ Latest summary cleanup removed the duplicate top-level specialist status rows fr
 
 Latest guardrail hardening adds two operational controls and specialist-quality improvements: `scripts/ci-local.sh` now acquires a process lock (`.ci-local.lock`) to prevent concurrent local runs and always resets `.crewai/workspace` at run start to avoid stale artifacts; specialist local execution now uses structured domain-specific prompts for every full-review cycle, and cost reporting now includes both crew-level and agent-level breakdowns in markdown/terminal summaries.
 
+Added complete-repo review mode: local CI now supports `--complete-full-review`, which emits labels `crewai:full-review` + `crewai:complete-full-review` and forces full-review + all specialists with complete-repository scope semantics. Router task contract now recognizes the new label in GitHub Actions too, enabling PR-triggered complete-repo review behavior.
+
 ### Impact classification
 
 | Dimension         | Level             | Notes                                                                                              |

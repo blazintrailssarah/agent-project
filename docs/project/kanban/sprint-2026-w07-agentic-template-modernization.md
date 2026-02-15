@@ -1,7 +1,7 @@
 # Sprint W07 2026 — Kanban Board
 
 _Sprint W07: Feb 10–14, 2026 · opencode repo_
-_Human · Last updated: 2026-02-14 18:59_
+_Human · Last updated: 2026-02-14 19:12_
 
 ---
 
@@ -73,6 +73,7 @@ kanban
         task50["🧪 Local full-review multipass restored + remove forced details separators"]
         task51["🧹 Remove duplicate specialist status rows from top workflow guide"]
         task52["🔒 Local CI lock + workspace reset + specialist domain-focus tightening"]
+        task53["🌐 Add complete-full-review mode (local flag + PR label trigger semantics)"]
 
     column5["🚫 Won't Do"]
         task41["⛔ Keep NVIDIA as default local provider"]
@@ -88,7 +89,7 @@ kanban
 | 📋 **Backlog**     | 2     | —         | Rendering check + pending commit    |
 | 🔄 **In Progress** | 1     | 3         | 🟢 Under limit                      |
 | 🔍 **In Review**   | 0     | —         | —                                   |
-| ✅ **Done**        | 48    | —         | Core docs + CI/review + scaffolding |
+| ✅ **Done**        | 49    | —         | Core docs + CI/review + scaffolding |
 | 🚫 **Won't Do**    | 2     | —         | Explicitly declined with rationale  |
 | 🚫 **Blocked**     | 0     | —         | Clear                               |
 
@@ -273,6 +274,7 @@ _Completed this sprint._
 - **Feb 14:** Replaced local full-review single-shot shortcut with 4-call multipass (quality/architecture/security/synthesis) and removed forced `---` separators after `</details>` in final-summary formatting rules.
 - **Feb 14:** Removed duplicate specialist status lines from the top workflow guide in fallback summaries; specialist status remains in dedicated specialist sections only.
 - **Feb 14:** Added `.ci-local.lock` single-run guard and forced workspace cleanup at local CI start; upgraded specialist local prompts to stronger domain-only focus and extended cost reporting with agent-level attribution.
+- **Feb 14:** Added `--complete-full-review` local mode and `crewai:complete-full-review` routing semantics so full + all specialists can run in complete-repository perspective mode.
 
 ### Carryover from last period
 
