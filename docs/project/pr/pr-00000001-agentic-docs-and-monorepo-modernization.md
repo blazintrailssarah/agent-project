@@ -110,6 +110,12 @@ Verification plan for this follow-up: rerun `./scripts/ci-local.sh --complete-fu
 
 Follow-up completed: pipeline now runs explicit `STEP 5.7: Post-Specialist Synthesis` after specialists and before final summary. Verification rerun (`./scripts/ci-local.sh --complete-full-review`) passed and logs confirm ordering plus successful `post-specialist-synthesis` workflow status.
 
+Current in-progress follow-up: add a terminal LLM executive synthesis call that runs after all crew outputs are available and before final markdown assembly, so the last cost-row call reflects end-of-pipeline synthesis and feeds programmatic executive-summary/priority sections.
+
+Verification plan for this follow-up: rerun `./scripts/ci-local.sh --complete-full-review`, confirm logs include `STEP 6.5: Executive Synthesis`, confirm workflow summary includes `executive-synthesis`, and validate cost table's last call reflects executive synthesis rather than a specialist/refine call.
+
+Follow-up completed: terminal LLM executive synthesis now runs after all specialist and crew artifacts are available, writes `executive_synthesis.json`, and feeds programmatic executive-summary/priority rendering in fallback final summary assembly. Verification rerun passed and cost output now ends with a final-summary synthesis call after specialist calls.
+
 ### Impact classification
 
 | Dimension         | Level             | Notes                                                                                              |

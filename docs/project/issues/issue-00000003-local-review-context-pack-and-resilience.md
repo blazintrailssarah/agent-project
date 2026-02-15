@@ -102,6 +102,10 @@ flowchart LR
 - Verification plan: rerun `./scripts/ci-local.sh --complete-full-review` and validate step ordering/logs plus presence of `post_specialist_synthesis.json` in workspace outputs.
 - Follow-up completed: added deterministic post-specialist synthesis stage and final-summary input wiring for `post_specialist_synthesis.json`.
 - Verification rerun confirmed ordered execution (`STEP 5.7` before `STEP 6`) and successful workflow status for `post-specialist-synthesis`.
+- Follow-up in progress: add terminal LLM executive synthesis (`STEP 6.5`) after all crew artifacts are present; persist `executive_synthesis.json` and feed it into programmatic summary generation.
+- Verification plan: rerun `./scripts/ci-local.sh --complete-full-review` and confirm final cost table last call maps to executive synthesis.
+- Follow-up completed: terminal executive synthesis added and wired into fallback summary generation (`executive_synthesis.json` drives executive-summary and priority-action sections when present).
+- Verification rerun passed: logs show `STEP 6.5: Executive Synthesis`, workflow summary includes `executive-synthesis: ✅ SUCCESS`, and cost table ends with final-summary synthesis call.
 
 ---
 
@@ -115,4 +119,4 @@ flowchart LR
 
 ---
 
-_Last updated: 2026-02-15 13:19 EST_
+_Last updated: 2026-02-15 13:28 EST_

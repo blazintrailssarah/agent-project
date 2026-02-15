@@ -1,7 +1,7 @@
 # Sprint W08 2026 — Kanban Board
 
 _Sprint W08: Feb 15-21, 2026 · opencode repo_
-_Human · Last updated: 2026-02-15 13:17_
+_Human · Last updated: 2026-02-15 13:28_
 
 ---
 
@@ -171,6 +171,8 @@ _Completed in current week (including today items moved from prior board)._
 - **Feb 15:** Completed cost table formatting cleanup; rerun `./scripts/ci-local.sh --complete-full-review` passed with per-call-only table rows in pricing output.
 - **Feb 15:** Began post-specialist synthesis follow-up so end-of-pipeline consolidation has a dedicated artifact before final summary.
 - **Feb 15:** Completed post-specialist synthesis follow-up; full local complete-review rerun passed with explicit `STEP 5.7` between specialists and final summary.
+- **Feb 15:** Started terminal executive-synthesis follow-up to ensure final cost-row call is end-of-pipeline LLM synthesis using all crew outputs.
+- **Feb 15:** Completed terminal executive-synthesis follow-up; complete-full review rerun passed with `STEP 6.5` and final cost row showing final-summary synthesis after specialists.
 
 ### Carryover from last period
 

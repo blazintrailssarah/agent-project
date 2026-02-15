@@ -87,6 +87,7 @@ _LEGACY_ROOT_ARTIFACTS = [
     "quick_review.json",
     "router_decision.json",
     "post_specialist_synthesis.json",
+    "executive_synthesis.json",
     "context_pack.json",
     "diff_context.json",
 ]
@@ -3022,6 +3023,141 @@ def run_post_specialist_synthesis(workflows_executed):
         return False
 
 
+def _build_executive_synthesis_context(
+    workspace: WorkspaceTool, workflows_executed: list[str], max_chars: int = 14000
+) -> str:
+    lines = [
+        "# Review artifact context",
+        "",
+        "## Workflows executed",
+    ]
+    for workflow in workflows_executed:
+        lines.append(f"- {workflow}")
+
+    artifact_files = [
+        "router_decision.json",
+        "ci_summary.json",
+        "quick_review.json",
+        "full_review.json",
+        "post_specialist_synthesis.json",
+        "security_review.json",
+        "legal_review.json",
+        "finance_review.json",
+        "documentation_review.json",
+        "agentic_consistency_review.json",
+        "marketing_review.json",
+        "science_review.json",
+        "government_regulatory_review.json",
+        "strategic_review.json",
+        "data_engineering_review.json",
+        "validation_report.json",
+    ]
+
+    for file_name in artifact_files:
+        if not workspace.exists(file_name):
+            continue
+        try:
+            data = workspace.read_json(file_name)
+            payload = json.dumps(data, ensure_ascii=True)
+        except Exception:
+            payload = workspace.read(file_name)
+        lines.extend(["", f"## {file_name}", payload[:2200]])
+
+    context = "\n".join(lines)
+    if len(context) <= max_chars:
+        return context
+    return context[: max_chars - 200] + "\n...\n[truncated context]"
+
+
+def run_executive_synthesis(workflows_executed):
+    logger.info("=" * 60)
+    logger.info("🧠 STEP 6.5: Executive Synthesis")
+    logger.info("=" * 60)
+
+    workspace = WorkspaceTool()
+    context_text = _build_executive_synthesis_context(workspace, workflows_executed)
+
+    schema_prompt = (
+        "Return JSON with keys: executive_summary, priority_actions, summary_guidance.\n"
+        "executive_summary: array of 3 concise sentences covering outcome, top risk, next action.\n"
+        "priority_actions: array (max 5) of objects with keys: severity, source, title, file, why, action.\n"
+        "summary_guidance: object with keys: first_section, must_read_artifacts, release_recommendation.\n"
+        "Use only evidence from provided artifacts. If no critical/high findings, state that explicitly."
+    )
+
+    parsed, provider, errors = _request_json_with_retry(
+        stage_name="synthesize_final_summary_executive",
+        context_text=context_text,
+        schema_prompt=schema_prompt,
+        expected_keys=["executive_summary", "priority_actions", "summary_guidance"],
+        max_tokens=1200,
+    )
+
+    if not parsed:
+        logger.warning(
+            "⚠️ Executive synthesis failed: "
+            + ("; ".join(errors[:3]) if errors else "unknown error")
+        )
+        return False
+
+    summary_lines = parsed.get("executive_summary", [])
+    if not isinstance(summary_lines, list):
+        summary_lines = []
+    summary_lines = [
+        _summarize_text(str(line), max_len=220) for line in summary_lines[:3] if str(line).strip()
+    ]
+
+    normalized_actions = []
+    for item in parsed.get("priority_actions", [])[:5]:
+        if not isinstance(item, dict):
+            continue
+        severity = str(item.get("severity", "info")).lower()
+        if severity not in {"critical", "high", "medium", "low", "info"}:
+            severity = "info"
+        normalized_actions.append(
+            {
+                "severity": severity,
+                "source": _summarize_text(item.get("source", "Review"), max_len=60),
+                "title": _summarize_text(item.get("title", "Review finding"), max_len=120),
+                "file": _qualify_repo_file_path(item.get("file", "")),
+                "why": _summarize_text(item.get("why", ""), max_len=240),
+                "action": _summarize_text(item.get("action", ""), max_len=240),
+            }
+        )
+
+    guidance = parsed.get("summary_guidance", {})
+    if not isinstance(guidance, dict):
+        guidance = {}
+
+    payload = {
+        "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC"),
+        "provider": provider,
+        "executive_summary": summary_lines,
+        "priority_actions": normalized_actions,
+        "summary_guidance": {
+            "first_section": _summarize_text(
+                guidance.get("first_section", "Executive summary"), max_len=80
+            ),
+            "must_read_artifacts": [
+                _summarize_text(str(entry), max_len=80)
+                for entry in guidance.get("must_read_artifacts", [])[:5]
+                if str(entry).strip()
+            ],
+            "release_recommendation": _summarize_text(
+                guidance.get("release_recommendation", "Proceed with standard validation gates."),
+                max_len=180,
+            ),
+        },
+    }
+
+    workspace.write_json("executive_synthesis.json", payload)
+    logger.info(
+        "✅ Executive synthesis complete: "
+        f"{len(summary_lines)} summary lines, {len(normalized_actions)} priority actions"
+    )
+    return True
+
+
 def format_finding_item(finding, severity_emoji):
     """Format a single finding item with proper structure.
 
@@ -3357,9 +3493,25 @@ def create_fallback_summary(workspace_dir, env_vars, workflows_executed):
     summary_parts.append("")
 
     priority_items = _collect_priority_actions(workspace)
+    executive_synthesis = {}
+    if workspace.exists("executive_synthesis.json"):
+        try:
+            data = workspace.read_json("executive_synthesis.json")
+            if isinstance(data, dict):
+                executive_synthesis = data
+        except Exception as e:
+            logger.warning(f"Could not parse executive_synthesis.json: {e}")
 
     summary_parts.append("## 🧭 Executive summary")
-    if priority_items:
+    executive_lines = executive_synthesis.get("executive_summary", [])
+    if isinstance(executive_lines, list):
+        executive_lines = [str(line).strip() for line in executive_lines if str(line).strip()][:3]
+    else:
+        executive_lines = []
+
+    if executive_lines:
+        summary_parts.extend(executive_lines)
+    elif priority_items:
         critical_count = sum(1 for item in priority_items if item.get("severity") == "critical")
         high_count = sum(1 for item in priority_items if item.get("severity") == "high")
         highest = priority_items[0]
@@ -3387,7 +3539,27 @@ def create_fallback_summary(workspace_dir, env_vars, workflows_executed):
     summary_parts.append("")
 
     summary_parts.append("## 🎯 Priority action items")
-    if priority_items:
+    executive_actions = executive_synthesis.get("priority_actions", [])
+    if isinstance(executive_actions, list) and executive_actions:
+        for index, item in enumerate(executive_actions[:7], start=1):
+            if not isinstance(item, dict):
+                continue
+            severity = str(item.get("severity", "info")).lower()
+            severity_emoji = (
+                "🔴" if severity == "critical" else "🟠" if severity == "high" else "🟡"
+            )
+            source = _summarize_text(item.get("source", "Review"), max_len=50)
+            title = _summarize_text(item.get("title", "Review finding"), max_len=120)
+            file_path = _qualify_repo_file_path(item.get("file", ""))
+            location = f" `{file_path}`" if file_path else ""
+            summary_parts.append(f"{index}. {severity_emoji} **[{source}] {title}**{location}")
+            why = _summarize_text(item.get("why", ""), max_len=280)
+            action = _summarize_text(item.get("action", ""), max_len=280)
+            if why:
+                summary_parts.append(f"   - Why it matters: {why}")
+            if action:
+                summary_parts.append(f"   - Recommended action: {action}")
+    elif priority_items:
         for index, item in enumerate(priority_items[:7], start=1):
             severity_emoji = "🔴" if item["severity"] == "critical" else "🟠"
             location = f" `{item['file']}`" if item["file"] else ""
@@ -3894,6 +4066,7 @@ def create_fallback_summary(workspace_dir, env_vars, workflows_executed):
             "quick_review.json",
             "full_review.json",
             "post_specialist_synthesis.json",
+            "executive_synthesis.json",
             "security_review.json",
             "legal_review.json",
             "finance_review.json",
@@ -4375,6 +4548,14 @@ def main():
         if not summary_success:
             logger.warning("⚠️ Final summary had issues, will use fallback...")
 
+        executive_success = run_executive_synthesis(workflows_executed)
+        workflows_executed.append("executive-synthesis")
+        workflow_success["executive-synthesis"] = executive_success
+        if not executive_success:
+            logger.warning(
+                "⚠️ Executive synthesis had issues, falling back to deterministic summary."
+            )
+
         # Read final markdown from workspace with validation
         workspace = WorkspaceTool()
 
@@ -4409,9 +4590,9 @@ def main():
         has_deep_review = "full-review" in workflows_executed or any(
             workflow.startswith("specialist-") for workflow in workflows_executed
         )
-        if has_deep_review:
+        if has_deep_review or executive_success:
             logger.info(
-                "🔄 Deep review detected; rebuilding final_summary.md from all review artifacts"
+                "🔄 Rebuilding final_summary.md from review artifacts with executive synthesis"
             )
             final_markdown = create_fallback_summary(workspace_dir, env_vars, workflows_executed)
 

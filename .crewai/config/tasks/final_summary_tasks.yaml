@@ -8,20 +8,21 @@ synthesize_summary:
     3. WorkspaceTool(operation="read", filename="router_decision.json", content="")
     4. WorkspaceTool(operation="read", filename="full_review.json", content="")
     5. WorkspaceTool(operation="read", filename="post_specialist_synthesis.json", content="")
-    6. WorkspaceTool(operation="read", filename="diff_context.json", content="")
+    6. WorkspaceTool(operation="read", filename="executive_synthesis.json", content="")
+    7. WorkspaceTool(operation="read", filename="diff_context.json", content="")
 
     SPECIALIST CREW OUTPUTS (read each if it exists):
-    7.  WorkspaceTool(operation="read", filename="security_review.json", content="")
-    8.  WorkspaceTool(operation="read", filename="legal_review.json", content="")
-    9.  WorkspaceTool(operation="read", filename="finance_review.json", content="")
-    10. WorkspaceTool(operation="read", filename="documentation_review.json", content="")
-    11. WorkspaceTool(operation="read", filename="agentic_consistency_review.json", content="")
-    12. WorkspaceTool(operation="read", filename="marketing_review.json", content="")
-    13. WorkspaceTool(operation="read", filename="science_review.json", content="")
-    14. WorkspaceTool(operation="read", filename="government_regulatory_review.json", content="")
-    15. WorkspaceTool(operation="read", filename="strategic_review.json", content="")
-    16. WorkspaceTool(operation="read", filename="data_engineering_review.json", content="")
-    17. WorkspaceTool(operation="read", filename="validation_report.json", content="")
+    8.  WorkspaceTool(operation="read", filename="security_review.json", content="")
+    9.  WorkspaceTool(operation="read", filename="legal_review.json", content="")
+    10. WorkspaceTool(operation="read", filename="finance_review.json", content="")
+    11. WorkspaceTool(operation="read", filename="documentation_review.json", content="")
+    12. WorkspaceTool(operation="read", filename="agentic_consistency_review.json", content="")
+    13. WorkspaceTool(operation="read", filename="marketing_review.json", content="")
+    14. WorkspaceTool(operation="read", filename="science_review.json", content="")
+    15. WorkspaceTool(operation="read", filename="government_regulatory_review.json", content="")
+    16. WorkspaceTool(operation="read", filename="strategic_review.json", content="")
+    17. WorkspaceTool(operation="read", filename="data_engineering_review.json", content="")
+    18. WorkspaceTool(operation="read", filename="validation_report.json", content="")
 
     MARKDOWN STYLE RULES (from AGENTS.md / agentic/markdown_style_guide.md):
     You MUST follow these formatting rules in the output markdown:
