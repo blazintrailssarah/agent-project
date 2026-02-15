@@ -3858,7 +3858,6 @@ def _fmt_running(tokens_in: int, tokens_out: int, total_tokens: int, cost: float
 
 
 def _cost_table_row(
-    row_type: str,
     crew: str,
     agent: str,
     call: str,
@@ -3876,7 +3875,7 @@ def _cost_table_row(
     if bold_cost:
         cost_cell = f"**{cost_cell}**"
     return (
-        f"| {row_type} | {crew} | {agent} | {call} | {tokens_in:,} | {tokens_out:,} | "
+        f"| {crew} | {agent} | {call} | {tokens_in:,} | {tokens_out:,} | "
         f"{total_tokens:,} | {cost_cell} | {crew_running} | {agent_running} | {global_running} |"
     )
 
@@ -3904,9 +3903,6 @@ def generate_cost_breakdown():
             key=lambda item: item[1].get("cost", 0.0),
             reverse=True,
         )
-
-        max_crew_cost = crew_rows[0][1].get("cost", 0.0) if crew_rows else 0.0
-        max_agent_cost = agent_rows[0][1].get("cost", 0.0) if agent_rows else 0.0
 
         lines = [
             "",
@@ -3937,8 +3933,8 @@ def generate_cost_breakdown():
         lines.extend(
             [
                 "",
-                "| Row | Crew | Agent | Call | Input | Output | Tokens | Cost | Crew running (in/out/tok/$) | Agent running (in/out/tok/$) | Global running (in/out/tok/$) |",
-                "| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | --- | --- | --- |",
+                "| Crew | Agent | Call | Input | Output | Tokens | Cost | Crew running (in/out/tok/$) | Agent running (in/out/tok/$) | Global running (in/out/tok/$) |",
+                "| --- | --- | ---: | ---: | ---: | ---: | ---: | --- | --- | --- |",
             ]
         )
 
@@ -3975,7 +3971,6 @@ def generate_cost_breakdown():
 
             lines.append(
                 _cost_table_row(
-                    row_type="Call",
                     crew=call.crew_name,
                     agent=call.agent_name,
                     call=f"#{call.call_number}",
@@ -3998,107 +3993,6 @@ def generate_cost_breakdown():
                     global_running=_fmt_running(global_in, global_out, global_tokens, global_cost),
                 )
             )
-
-        crew_rollup_in = 0
-        crew_rollup_out = 0
-        crew_rollup_tokens = 0
-        crew_rollup_cost = 0.0
-        for crew_name, stats in crew_rows:
-            row_in = int(stats.get("tokens_in", 0) or 0)
-            row_out = int(stats.get("tokens_out", 0) or 0)
-            row_tokens = int(stats.get("total_tokens", 0) or 0)
-            row_cost = float(stats.get("cost", 0.0) or 0.0)
-            crew_rollup_in += row_in
-            crew_rollup_out += row_out
-            crew_rollup_tokens += row_tokens
-            crew_rollup_cost += row_cost
-            lines.append(
-                _cost_table_row(
-                    row_type="Crew total",
-                    crew=crew_name,
-                    agent="-",
-                    call="-",
-                    tokens_in=row_in,
-                    tokens_out=row_out,
-                    total_tokens=row_tokens,
-                    cost=row_cost,
-                    crew_running=_fmt_running(
-                        crew_rollup_in,
-                        crew_rollup_out,
-                        crew_rollup_tokens,
-                        crew_rollup_cost,
-                    ),
-                    global_running=_fmt_running(
-                        crew_rollup_in,
-                        crew_rollup_out,
-                        crew_rollup_tokens,
-                        crew_rollup_cost,
-                    ),
-                    bold_cost=row_cost == max_crew_cost,
-                )
-            )
-
-        agent_rollup_in = 0
-        agent_rollup_out = 0
-        agent_rollup_tokens = 0
-        agent_rollup_cost = 0.0
-        for agent_name, stats in agent_rows:
-            row_in = int(stats.get("tokens_in", 0) or 0)
-            row_out = int(stats.get("tokens_out", 0) or 0)
-            row_tokens = int(stats.get("total_tokens", 0) or 0)
-            row_cost = float(stats.get("cost", 0.0) or 0.0)
-            agent_rollup_in += row_in
-            agent_rollup_out += row_out
-            agent_rollup_tokens += row_tokens
-            agent_rollup_cost += row_cost
-            lines.append(
-                _cost_table_row(
-                    row_type="Agent total",
-                    crew="-",
-                    agent=agent_name,
-                    call="-",
-                    tokens_in=row_in,
-                    tokens_out=row_out,
-                    total_tokens=row_tokens,
-                    cost=row_cost,
-                    agent_running=_fmt_running(
-                        agent_rollup_in,
-                        agent_rollup_out,
-                        agent_rollup_tokens,
-                        agent_rollup_cost,
-                    ),
-                    global_running=_fmt_running(
-                        agent_rollup_in,
-                        agent_rollup_out,
-                        agent_rollup_tokens,
-                        agent_rollup_cost,
-                    ),
-                    bold_cost=row_cost == max_agent_cost,
-                )
-            )
-
-        grand_running = _fmt_running(
-            int(summary["total_tokens_in"]),
-            int(summary["total_tokens_out"]),
-            int(summary["total_tokens"]),
-            float(summary["total_cost"]),
-        )
-        lines.append(
-            _cost_table_row(
-                row_type="Grand total",
-                crew="ALL",
-                agent="ALL",
-                call="-",
-                tokens_in=int(summary["total_tokens_in"]),
-                tokens_out=int(summary["total_tokens_out"]),
-                total_tokens=int(summary["total_tokens"]),
-                cost=float(summary["total_cost"]),
-                crew_running=grand_running,
-                agent_running=grand_running,
-                global_running=grand_running,
-                bold_cost=True,
-            )
-        )
 
         lines.append("")
         return "\n".join(lines)

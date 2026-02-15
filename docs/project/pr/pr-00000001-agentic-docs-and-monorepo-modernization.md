@@ -100,6 +100,10 @@ Post-sync verification: after updating source-of-truth records and README/metada
 
 Runtime-artifact hygiene hardening was also applied in this continuation: `.tools/` is now ignored to prevent local binary downloads from being tracked, and a fresh `./scripts/ci-local.sh --complete-full-review` rerun confirmed `.crewai/workspace` outputs remain runtime-local (untracked) while intended repo files remain commit candidates.
 
+Current in-progress follow-up: refine pricing table output in `.crewai/main.py` so final summary cost section shows only per-call rows (no `Row` discriminator column and no appended Crew/Agent/Grand rollup rows) while preserving top-level cost summary bullets.
+
+Follow-up completed: cost breakdown table now renders without the `Row` column and without appended Crew/Agent/Grand rollup blocks. Verification rerun with `./scripts/ci-local.sh --complete-full-review` passed, and local review output confirms only per-call rows are shown beneath the summary bullets.
+
 ### Impact classification
 
 | Dimension         | Level             | Notes                                                                                              |

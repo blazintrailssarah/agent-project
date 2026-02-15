@@ -95,6 +95,9 @@ flowchart LR
 - Local context-pack generation now includes local CI markdown artifacts and link-check markdown content so CrewAI can review broken-link evidence directly from workspace files.
 - `.gitignore` now explicitly ignores `.tools/` so local runtime helper binaries (for example downloaded `lychee`) never enter version control.
 - Verification rerun (`./scripts/ci-local.sh --complete-full-review`) passed after ignore hardening and produced expected untracked workspace outputs only.
+- Follow-up in progress: simplify generated cost table display by removing the `Row` column and suppressing appended Crew/Agent/Grand rollup rows from the final markdown output.
+- Follow-up completed: pricing table now shows only per-call rows (no `Row` discriminator column and no subtotal blocks).
+- Verification rerun after formatting update: `./scripts/ci-local.sh --complete-full-review` passed end-to-end.
 
 ---
 
@@ -108,4 +111,4 @@ flowchart LR
 
 ---
 
-_Last updated: 2026-02-15 13:03 EST_
+_Last updated: 2026-02-15 13:12 EST_

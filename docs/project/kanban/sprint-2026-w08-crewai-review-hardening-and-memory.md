@@ -167,6 +167,8 @@ _Completed in current week (including today items moved from prior board)._
 - **Feb 15:** `./scripts/ci-local.sh --complete-full-review` passed after identity updates; only final source-of-truth closeout remains.
 - **Feb 15:** Post-sync `./scripts/ci-local.sh --step link-check` rerun passed after record updates.
 - **Feb 15:** Added `.tools/` ignore hardening and confirmed runtime workspace/tool artifacts remain untracked after full local complete-review rerun.
+- **Feb 15:** Started follow-up formatting cleanup for cost breakdown table output (remove `Row` column and extra total-row blocks in final summary).
+- **Feb 15:** Completed cost table formatting cleanup; rerun `./scripts/ci-local.sh --complete-full-review` passed with per-call-only table rows in pricing output.
 
 ### Carryover from last period
 
