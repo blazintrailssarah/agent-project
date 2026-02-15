@@ -250,11 +250,30 @@ jobs:
           commits = load_json(workspace / "commits.json")
           diff_meta = load_json(workspace / "diff.json")
 
+          scope = scope if isinstance(scope, dict) else {}
+          diff_meta = diff_meta if isinstance(diff_meta, dict) else {}
+
+          commit_messages = []
+          if isinstance(commits, dict):
+              raw_messages = commits.get("commit_messages", [])
+              if isinstance(raw_messages, list):
+                  commit_messages = [str(m) for m in raw_messages if str(m).strip()]
+          elif isinstance(commits, list):
+              for entry in commits:
+                  if isinstance(entry, dict):
+                      msg = str(entry.get("message", "")).strip()
+                      if msg:
+                          commit_messages.append(msg)
+                  else:
+                      text = str(entry).strip()
+                      if text:
+                          commit_messages.append(text)
+
           pack = {
               "contract_version": "2026-02-14",
               "purpose": "compact_review_context",
               "scope": scope,
-              "commit_messages": commits.get("commit_messages", []),
+              "commit_messages": commit_messages,
               "diff_meta": {
                   "files_changed": diff_meta.get("files_changed", 0),
                   "additions": diff_meta.get("additions", 0),
@@ -277,7 +296,7 @@ jobs:
               "",
               "## Commit messages",
           ]
-          for msg in commits.get("commit_messages", [])[:8]:
+          for msg in commit_messages[:8]:
               lines.append("- " + str(msg))
 
           lines.extend([

@@ -34,6 +34,13 @@ def test_specialist_relevance_for_data_engineering_ignores_unrelated_changes(mon
     assert relevant is False
 
 
+def test_specialist_relevance_complete_mode_relaxes_filters(monkeypatch):
+    monkeypatch.setattr(main, "_CHANGED_FILE_CANDIDATES", ["src/ui/button.tsx"])
+    relevant, reason = main._specialist_relevance("data_engineering", complete_mode=True)
+    assert relevant is True
+    assert "complete full review mode" in reason.lower()
+
+
 def test_build_no_relevant_output_is_explicit():
     data = main._build_no_relevant_output("data_engineering", "No SQL/schema files changed.")
     assert data["findings"] == []

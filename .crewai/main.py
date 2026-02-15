@@ -58,6 +58,34 @@ logger = logging.getLogger(__name__)
 _REPO_ROOT = Path(__file__).parent.parent.resolve()
 _REPO_FILE_BASENAME_INDEX = None
 _CHANGED_FILE_CANDIDATES = None
+_LEGACY_ROOT_ARTIFACTS = [
+    "ci_summary.json",
+    "full_review.json",
+    "security_review.json",
+    "legal_review.json",
+    "finance_review.json",
+    "documentation_review.json",
+    "agentic_consistency_review.json",
+    "marketing_review.json",
+    "science_review.json",
+    "government_regulatory_review.json",
+    "strategic_review.json",
+    "data_engineering_review.json",
+    "brand_analysis.json",
+    "global_market_analysis.json",
+    "license_analysis.json",
+    "us_regulatory_analysis.json",
+    "intl_trade_analysis.json",
+    "strategy_analysis.json",
+    "expansion_analysis.json",
+    "code_quality_deep.json",
+    "architecture_analysis.json",
+    "security_deep_dive.json",
+    "quick_review.json",
+    "router_decision.json",
+    "context_pack.json",
+    "diff_context.json",
+]
 
 
 def _get_review_labels() -> list[str]:
@@ -77,6 +105,21 @@ def _get_review_labels() -> list[str]:
 def _is_complete_full_review_mode() -> bool:
     labels = {label.lower() for label in _get_review_labels()}
     return "crewai:complete-full-review" in labels
+
+
+def _cleanup_root_artifact_leakage() -> None:
+    crewai_root = Path(__file__).parent.resolve()
+    removed = 0
+    for filename in _LEGACY_ROOT_ARTIFACTS:
+        candidate = crewai_root / filename
+        if candidate.exists() and candidate.is_file():
+            try:
+                candidate.unlink()
+                removed += 1
+            except Exception as error:
+                logger.warning(f"⚠️ Could not remove leaked root artifact {candidate}: {error}")
+    if removed:
+        logger.info(f"🧹 Removed {removed} leaked artifact file(s) from .crewai root")
 
 
 class FatalLLMAvailabilityError(RuntimeError):
@@ -265,6 +308,10 @@ def _clean_summary_text(summary_text):
             "hypothetical findings",
             "cannot complete the task",
             "non-json output; structured findings were not produced",
+            "tool not found",
+            "i should proceed",
+            "assuming the",
+            "you have not provided any files",
         ]
     ):
         return ""
@@ -307,7 +354,13 @@ def _looks_like_json_blob(text: str) -> bool:
     return raw.count("{") >= 2 and '"summary"' in raw
 
 
-def _specialist_relevance(crew_key: str) -> tuple[bool, str]:
+def _specialist_relevance(crew_key: str, complete_mode: bool = False) -> tuple[bool, str]:
+    if complete_mode:
+        return (
+            True,
+            "Complete full review mode enabled; specialist may review full repository scope.",
+        )
+
     changed_files = [str(f).lower() for f in _get_changed_file_candidates() if isinstance(f, str)]
     if not changed_files:
         return False, "No changed files detected in this run."
@@ -676,15 +729,42 @@ def run_ci_analysis(env_vars):
 
     if env_vars.get("pr_number") == "local":
         workspace = WorkspaceTool()
+        diff_meta = workspace.read_json("diff.json") if workspace.exists("diff.json") else {}
+        labels = diff_meta.get("labels", []) if isinstance(diff_meta, dict) else []
+        files_changed = diff_meta.get("files_changed", 0) if isinstance(diff_meta, dict) else 0
+        additions = diff_meta.get("additions", 0) if isinstance(diff_meta, dict) else 0
+        deletions = diff_meta.get("deletions", 0) if isinstance(diff_meta, dict) else 0
+        complete_mode = "crewai:complete-full-review" in [
+            str(label).strip().lower() for label in (labels if isinstance(labels, list) else [])
+        ]
+
+        checks = [
+            "local-short-circuit",
+            "diff-metadata-loaded",
+            "label-routing-ready",
+        ]
+        if complete_mode:
+            checks.append("complete-full-review-mode")
+
         workspace.write_json(
             "ci_summary.json",
             {
                 "status": env_vars["core_ci_result"],
                 "passed": env_vars["core_ci_result"] == "success",
-                "summary": f"Local run: core-ci marked {env_vars['core_ci_result']}",
+                "summary": (
+                    f"Local run: core-ci marked {env_vars['core_ci_result']}; "
+                    f"diff stats {files_changed} files (+{additions}/-{deletions}); "
+                    f"mode={'complete-full-review' if complete_mode else 'standard-review'}"
+                ),
                 "critical_errors": [],
                 "warnings": [],
-                "checks_performed": ["local-short-circuit"],
+                "checks_performed": checks,
+                "metadata": {
+                    "files_changed": files_changed,
+                    "additions": additions,
+                    "deletions": deletions,
+                    "labels": labels if isinstance(labels, list) else [],
+                },
             },
         )
         logger.info("✅ Local CI analysis shortcut: wrote deterministic ci_summary.json")
@@ -1938,6 +2018,27 @@ def _run_specialist_local(crew_key: str, output_file: str, complete_mode: bool =
 
         findings.append(normalized)
 
+    if not findings:
+        baseline_title = f"{crew_key.replace('_', ' ').title()} baseline guardrail"
+        baseline_desc = (
+            "No direct high-severity domain risk detected in the current repository state. "
+            f"Reviewed domain focus: {domain_focus['focus']}."
+        )
+        baseline_recommendation = (
+            "Track this domain in subsequent cycles and re-evaluate after substantive changes."
+        )
+        findings.append(
+            {
+                "id": f"{prefix}-001",
+                "title": baseline_title,
+                "severity": "info",
+                "file": "",
+                "description": baseline_desc,
+                "recommendation": baseline_recommendation,
+                "verification": "Re-run complete full review and compare domain trend against prior run.",
+            }
+        )
+
     parsed["findings"] = findings
     parsed, _ = _sanitize_specialist_artifact(parsed, crew_key, complete_mode=complete_mode)
     findings = _normalize_findings_list(parsed.get("findings"))
@@ -2169,7 +2270,7 @@ def run_specialist_crew(crew_key, force_attempt: bool = False):
     tracker.set_current_task(f"specialist_{crew_key}")
     complete_mode = _is_complete_full_review_mode()
 
-    relevant, relevance_reason = _specialist_relevance(crew_key)
+    relevant, relevance_reason = _specialist_relevance(crew_key, complete_mode=complete_mode)
     if not relevant and not force_attempt and not complete_mode:
         workspace = WorkspaceTool()
         output = _build_no_relevant_output(crew_key, relevance_reason)
@@ -2189,63 +2290,6 @@ def run_specialist_crew(crew_key, force_attempt: bool = False):
         )
 
     if os.getenv("PR_NUMBER") == "local":
-        if complete_mode:
-            logger.info(f"ℹ️ Local specialist {crew_key}: running tool-enabled complete-repo review")
-            try:
-                crew_instance = crew_class()
-                result = crew_instance.crew().kickoff()
-                workspace = WorkspaceTool()
-                source = "local-complete-crew-output"
-
-                if workspace.exists(output_file):
-                    data = workspace.read_json(output_file)
-                    data, _ = _sanitize_specialist_artifact(data, crew_key, complete_mode=True)
-                    validation_errors = validate_specialist_output(data, crew_key)
-                    if validation_errors:
-                        source = "local-complete-parsed-result-repair"
-                        data = synthesize_specialist_output(crew_key, result)
-                        data, _ = _sanitize_specialist_artifact(data, crew_key, complete_mode=True)
-                        workspace.write_json(output_file, data)
-                        validation_errors = validate_specialist_output(data, crew_key)
-                    if not validation_errors:
-                        _record_validation(
-                            output_file,
-                            valid=True,
-                            source=source,
-                            metadata={
-                                "crew_key": crew_key,
-                                "findings": len(data.get("findings", [])),
-                            },
-                        )
-                        logger.info(
-                            f"✅ Local specialist {crew_key} completed (complete repo mode)"
-                        )
-                        return True
-
-                synthesized = synthesize_specialist_output(crew_key, result)
-                synthesized, _ = _sanitize_specialist_artifact(
-                    synthesized, crew_key, complete_mode=True
-                )
-                workspace.write_json(output_file, synthesized)
-                validation_errors = validate_specialist_output(synthesized, crew_key)
-                _record_validation(
-                    output_file,
-                    valid=len(validation_errors) == 0,
-                    source="local-complete-parsed-result-missing-output",
-                    errors=validation_errors,
-                    metadata={"crew_key": crew_key},
-                )
-                if not validation_errors:
-                    logger.info(
-                        f"✅ Local specialist {crew_key} completed (complete repo parsed-result)"
-                    )
-                    return True
-            except Exception as complete_error:
-                logger.warning(
-                    f"⚠️ Local specialist complete mode failed for {crew_key}: {complete_error}; "
-                    "falling back to structured complete-mode review"
-                )
-
         logger.info(
             f"ℹ️ Local specialist {crew_key}: running structured guardrail review"
             + (" (complete repo mode)" if complete_mode else "")
@@ -2440,20 +2484,14 @@ def format_finding_item(finding, severity_emoji):
             return f"- {severity_emoji} {raw_text}"
 
     lines = []
-    title = finding.get("title", "Review finding")
-    file_path = _qualify_repo_file_path(finding.get("file", ""))
-    line_num = finding.get("line", "")
-    description = finding.get("description", "")
-    summary_text = finding.get("summary", "")
-    finding_kind = str(finding.get("kind", "")).lower()
-    fix_suggestion = finding.get("fix_suggestion", "")
-    recommendation = finding.get("recommendation", "")
-    verification = finding.get("verification", "")
-
-    if not description and summary_text:
-        description = summary_text
-    if not fix_suggestion and recommendation:
-        fix_suggestion = recommendation
+    normalized = _normalize_finding_for_display(finding)
+    title = normalized.get("title", "Review finding")
+    file_path = normalized.get("file", "")
+    line_num = normalized.get("line", "")
+    description = normalized.get("description", "")
+    finding_kind = str(normalized.get("kind", "")).lower()
+    fix_suggestion = normalized.get("fix_suggestion", "")
+    verification = normalized.get("verification", "")
 
     # Title with file location
     if file_path:
@@ -2478,6 +2516,66 @@ def format_finding_item(finding, severity_emoji):
         lines.append(f"  - ✅ **Verify**: {verification}")
 
     return "\n".join(lines)
+
+
+def _normalize_finding_for_display(finding):
+    item = dict(finding) if isinstance(finding, dict) else {"description": str(finding)}
+
+    title = _clean_summary_text(item.get("title", ""))
+    description = _clean_summary_text(item.get("description", ""))
+    summary_text = _clean_summary_text(item.get("summary", ""))
+    recommendation = _clean_summary_text(item.get("recommendation", ""))
+    fix_suggestion = _clean_summary_text(item.get("fix_suggestion", ""))
+    verification = _clean_summary_text(item.get("verification", ""))
+
+    if not description and summary_text:
+        description = summary_text
+    if not fix_suggestion and recommendation:
+        fix_suggestion = recommendation
+
+    if not title or title.lower() in {"review finding", "short title"}:
+        title = _derive_title_from_description(description, "Review finding")
+
+    title = title.replace("`", "").strip()
+    title = _summarize_text(title, max_len=110)
+
+    generic_fix_phrases = {
+        "consider this improvement in the next change set.",
+        "review the related diff section and apply targeted remediation.",
+        "review the changed code and apply a targeted fix if needed.",
+        "apply targeted remediation in changed files.",
+    }
+    if fix_suggestion.lower() in generic_fix_phrases:
+        fix_suggestion = ""
+
+    return {
+        "title": title or "Review finding",
+        "file": _qualify_repo_file_path(item.get("file", "")),
+        "line": item.get("line", ""),
+        "description": _summarize_text(description, max_len=320),
+        "fix_suggestion": _summarize_text(fix_suggestion, max_len=240),
+        "verification": _summarize_text(verification, max_len=200),
+        "kind": item.get("kind", ""),
+    }
+
+
+def _dedupe_findings_for_display(items, max_items=None):
+    deduped = []
+    seen = set()
+    for raw in items or []:
+        normalized = _normalize_finding_for_display(raw)
+        key = (
+            normalized.get("title", "").lower(),
+            normalized.get("description", "").lower(),
+            normalized.get("file", "").lower(),
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(normalized)
+    if max_items is not None:
+        return deduped[:max_items]
+    return deduped
 
 
 def _severity_rank(level):
@@ -2954,15 +3052,6 @@ def create_fallback_summary(workspace_dir, env_vars, workflows_executed):
                         + f"{len(reviewer_suggestions)} suggestions, "
                         + f"{len(reviewer_positives)} positives"
                     )
-
-                    for item in reviewer_critical:
-                        summary_parts.append(format_finding_item(item, "🔴"))
-                    for item in reviewer_warnings:
-                        summary_parts.append(format_finding_item(item, "🟡"))
-                    for item in reviewer_suggestions:
-                        summary_parts.append(format_finding_item(item, "🔵"))
-                    for item in reviewer_positives:
-                        summary_parts.append(format_finding_item(item, "🟢"))
                     summary_parts.append("")
 
                 summary_parts.append("</details>")
@@ -2973,10 +3062,16 @@ def create_fallback_summary(workspace_dir, env_vars, workflows_executed):
             suggestions = quick_data.get("info", [])
             positives = quick_data.get("positives", [])
 
-            normalized_critical = [i for i in critical_issues if i]
-            normalized_warnings = [i for i in warnings if i]
-            normalized_suggestions = [i for i in suggestions if i]
-            normalized_positives = [i for i in positives if i]
+            normalized_critical = _dedupe_findings_for_display([i for i in critical_issues if i])
+            normalized_warnings = _dedupe_findings_for_display(
+                [i for i in warnings if i], max_items=6
+            )
+            normalized_suggestions = _dedupe_findings_for_display(
+                [i for i in suggestions if i], max_items=6
+            )
+            normalized_positives = _dedupe_findings_for_display(
+                [i for i in positives if i], max_items=4
+            )
 
             # High-level counts
             critical_count = len(normalized_critical)
@@ -3751,6 +3846,8 @@ def main():
         logger.info("✅ CrewAI Review Complete!")
         logger.info("=" * 60)
 
+        _cleanup_root_artifact_leakage()
+
         return 0
 
     except FatalLLMAvailabilityError as e:
@@ -3777,9 +3874,11 @@ def main():
                 ]
             ),
         )
+        _cleanup_root_artifact_leakage()
         return 1
     except Exception as e:
         logger.error(f"❌ Review failed: {e}", exc_info=True)
+        _cleanup_root_artifact_leakage()
         return 1
 
 

@@ -288,9 +288,37 @@ release_run_lock() {
 
 clean_workspace() {
   local workspace_dir="${REPO_ROOT}/.crewai/workspace"
+  local crewai_root="${REPO_ROOT}/.crewai"
   if [[ -d "$workspace_dir" ]]; then
     rm -rf "$workspace_dir"
   fi
+  rm -f \
+    "${crewai_root}/ci_summary.json" \
+    "${crewai_root}/full_review.json" \
+    "${crewai_root}/security_review.json" \
+    "${crewai_root}/legal_review.json" \
+    "${crewai_root}/finance_review.json" \
+    "${crewai_root}/documentation_review.json" \
+    "${crewai_root}/agentic_consistency_review.json" \
+    "${crewai_root}/marketing_review.json" \
+    "${crewai_root}/science_review.json" \
+    "${crewai_root}/government_regulatory_review.json" \
+    "${crewai_root}/strategic_review.json" \
+    "${crewai_root}/data_engineering_review.json" \
+    "${crewai_root}/brand_analysis.json" \
+    "${crewai_root}/global_market_analysis.json" \
+    "${crewai_root}/license_analysis.json" \
+    "${crewai_root}/us_regulatory_analysis.json" \
+    "${crewai_root}/intl_trade_analysis.json" \
+    "${crewai_root}/strategy_analysis.json" \
+    "${crewai_root}/expansion_analysis.json" \
+    "${crewai_root}/code_quality_deep.json" \
+    "${crewai_root}/architecture_analysis.json" \
+    "${crewai_root}/security_deep_dive.json" \
+    "${crewai_root}/quick_review.json" \
+    "${crewai_root}/router_decision.json" \
+    "${crewai_root}/context_pack.json" \
+    "${crewai_root}/diff_context.json"
   mkdir -p "${workspace_dir}/trace"
 }
 

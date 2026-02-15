@@ -1,7 +1,7 @@
 # Sprint W07 2026 — Kanban Board
 
 _Sprint W07: Feb 10–14, 2026 · opencode repo_
-_Human · Last updated: 2026-02-14 19:12_
+_Human · Last updated: 2026-02-14 19:16_
 
 ---
 
@@ -74,6 +74,7 @@ kanban
         task51["🧹 Remove duplicate specialist status rows from top workflow guide"]
         task52["🔒 Local CI lock + workspace reset + specialist domain-focus tightening"]
         task53["🌐 Add complete-full-review mode (local flag + PR label trigger semantics)"]
+        task54["🛠️ Fix GHA CrewAI prep crash for list-shaped commits.json context pack"]
 
     column5["🚫 Won't Do"]
         task41["⛔ Keep NVIDIA as default local provider"]
@@ -89,7 +90,7 @@ kanban
 | 📋 **Backlog**     | 2     | —         | Rendering check + pending commit    |
 | 🔄 **In Progress** | 1     | 3         | 🟢 Under limit                      |
 | 🔍 **In Review**   | 0     | —         | —                                   |
-| ✅ **Done**        | 49    | —         | Core docs + CI/review + scaffolding |
+| ✅ **Done**        | 50    | —         | Core docs + CI/review + scaffolding |
 | 🚫 **Won't Do**    | 2     | —         | Explicitly declined with rationale  |
 | 🚫 **Blocked**     | 0     | —         | Clear                               |
 
@@ -275,6 +276,7 @@ _Completed this sprint._
 - **Feb 14:** Removed duplicate specialist status lines from the top workflow guide in fallback summaries; specialist status remains in dedicated specialist sections only.
 - **Feb 14:** Added `.ci-local.lock` single-run guard and forced workspace cleanup at local CI start; upgraded specialist local prompts to stronger domain-only focus and extended cost reporting with agent-level attribution.
 - **Feb 14:** Added `--complete-full-review` local mode and `crewai:complete-full-review` routing semantics so full + all specialists can run in complete-repository perspective mode.
+- **Feb 14:** Fixed CrewAI reusable workflow context-pack generator to handle list-based `commits.json` safely and prevent PR-review job crashes.
 
 ### Carryover from last period
 

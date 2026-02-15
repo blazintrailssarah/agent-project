@@ -85,6 +85,7 @@ flowchart LR
 - Cost reporting now includes agent-level attribution in addition to crew-level totals.
 - Introduced complete-repo review mode: `--complete-full-review` in local CI sets `crewai:complete-full-review` and runs full review plus all specialists under complete-repository scope semantics.
 - Router contract updated so GitHub PR labels containing `crewai:complete-full-review` trigger the same full+all-specialist expansion path as `crewai:full-review`.
+- Fixed reusable review workflow context-pack parsing to support list-shaped `commits.json` output, eliminating GitHub Actions failure `AttributeError: 'list' object has no attribute 'get'` in PR data preparation.
 
 ---
 
@@ -96,4 +97,4 @@ flowchart LR
 
 ---
 
-_Last updated: 2026-02-14 19:12 EST_
+_Last updated: 2026-02-14 19:16 EST_

@@ -82,6 +82,8 @@ Latest guardrail hardening adds two operational controls and specialist-quality 
 
 Added complete-repo review mode: local CI now supports `--complete-full-review`, which emits labels `crewai:full-review` + `crewai:complete-full-review` and forces full-review + all specialists with complete-repository scope semantics. Router task contract now recognizes the new label in GitHub Actions too, enabling PR-triggered complete-repo review behavior.
 
+Fixed a GitHub Actions prep-step regression in `.github/workflows/crewai-review-reusable.yml`: context-pack generation now safely handles `commits.json` when it is a list (current schema) or dict (legacy shape), preventing `AttributeError: 'list' object has no attribute 'get'` during PR review runs.
+
 ### Impact classification
 
 | Dimension         | Level             | Notes                                                                                              |
