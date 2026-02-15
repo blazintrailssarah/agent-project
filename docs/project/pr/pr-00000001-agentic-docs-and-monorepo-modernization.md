@@ -104,6 +104,12 @@ Current in-progress follow-up: refine pricing table output in `.crewai/main.py` 
 
 Follow-up completed: cost breakdown table now renders without the `Row` column and without appended Crew/Agent/Grand rollup blocks. Verification rerun with `./scripts/ci-local.sh --complete-full-review` passed, and local review output confirms only per-call rows are shown beneath the summary bullets.
 
+Current in-progress follow-up: add an explicit post-specialist synthesis stage so a dedicated synthesis artifact is generated after all specialist crews run (before final summary), addressing ordering clarity between full-review synthesis and end-of-pipeline consolidation.
+
+Verification plan for this follow-up: rerun `./scripts/ci-local.sh --complete-full-review` and confirm logs show post-specialist synthesis between specialist execution and final summary, with `post_specialist_synthesis.json` present in workspace artifacts.
+
+Follow-up completed: pipeline now runs explicit `STEP 5.7: Post-Specialist Synthesis` after specialists and before final summary. Verification rerun (`./scripts/ci-local.sh --complete-full-review`) passed and logs confirm ordering plus successful `post-specialist-synthesis` workflow status.
+
 ### Impact classification
 
 | Dimension         | Level             | Notes                                                                                              |

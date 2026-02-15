@@ -86,6 +86,7 @@ _LEGACY_ROOT_ARTIFACTS = [
     "security_deep_dive.json",
     "quick_review.json",
     "router_decision.json",
+    "post_specialist_synthesis.json",
     "context_pack.json",
     "diff_context.json",
 ]
@@ -2956,6 +2957,71 @@ def run_final_summary(env_vars, workflows_executed):
         return False
 
 
+def run_post_specialist_synthesis(workflows_executed):
+    """Create a deterministic synthesis artifact after specialists complete.
+
+    This runs after specialist crews (and suppression filtering) and before final summary.
+    """
+    logger.info("=" * 60)
+    logger.info("🧩 STEP 5.7: Post-Specialist Synthesis")
+    logger.info("=" * 60)
+
+    workspace = WorkspaceTool()
+    generated_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC")
+
+    try:
+        rollup_rows = _specialist_rollup_rows(workspace)
+        severity_totals = {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0}
+        for row in rollup_rows:
+            for level in severity_totals:
+                severity_totals[level] += int(row.get(level, 0) or 0)
+
+        priority_items = _collect_priority_actions(workspace)
+        top_priority = priority_items[:5]
+
+        source_files = []
+        for file_name in [
+            "full_review.json",
+            "security_review.json",
+            "legal_review.json",
+            "finance_review.json",
+            "documentation_review.json",
+            "agentic_consistency_review.json",
+            "marketing_review.json",
+            "science_review.json",
+            "government_regulatory_review.json",
+            "strategic_review.json",
+            "data_engineering_review.json",
+            "validation_report.json",
+        ]:
+            if workspace.exists(file_name):
+                source_files.append(file_name)
+
+        payload = {
+            "generated_at": generated_at,
+            "workflows_executed": list(workflows_executed),
+            "summary": (
+                "Post-specialist synthesis complete. "
+                f"{len(top_priority)} priority item(s) extracted across "
+                f"{len(source_files)} artifact(s)."
+            ),
+            "priority_actions": top_priority,
+            "severity_totals": severity_totals,
+            "specialist_rollup": rollup_rows,
+            "source_files": source_files,
+        }
+
+        workspace.write_json("post_specialist_synthesis.json", payload)
+        logger.info(
+            "✅ Post-specialist synthesis complete: "
+            f"{len(top_priority)} priority items, {len(rollup_rows)} specialist rows"
+        )
+        return True
+    except Exception as e:
+        logger.warning(f"⚠️ Post-specialist synthesis failed: {e}")
+        return False
+
+
 def format_finding_item(finding, severity_emoji):
     """Format a single finding item with proper structure.
 
@@ -3827,6 +3893,7 @@ def create_fallback_summary(workspace_dir, env_vars, workflows_executed):
             "ci_summary.json",
             "quick_review.json",
             "full_review.json",
+            "post_specialist_synthesis.json",
             "security_review.json",
             "legal_review.json",
             "finance_review.json",
@@ -4289,6 +4356,12 @@ def main():
 
         # STEP 5.5: Apply memory suppressions to review findings
         _apply_memory_suppressions(memory, workspace_dir)
+
+        synthesis_success = run_post_specialist_synthesis(workflows_executed)
+        workflows_executed.append("post-specialist-synthesis")
+        workflow_success["post-specialist-synthesis"] = synthesis_success
+        if not synthesis_success:
+            logger.warning("⚠️ Post-specialist synthesis had issues, but continuing...")
 
         # STEP 6: Final summary (always run) - pass workflow count
         stale_summary_file = workspace_dir / "final_summary.md"

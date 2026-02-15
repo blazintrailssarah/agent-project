@@ -98,6 +98,10 @@ flowchart LR
 - Follow-up in progress: simplify generated cost table display by removing the `Row` column and suppressing appended Crew/Agent/Grand rollup rows from the final markdown output.
 - Follow-up completed: pricing table now shows only per-call rows (no `Row` discriminator column and no subtotal blocks).
 - Verification rerun after formatting update: `./scripts/ci-local.sh --complete-full-review` passed end-to-end.
+- Follow-up in progress: introduce a dedicated post-specialist synthesis step (after all specialist crews, before final summary) and persist its artifact for final-summary consumption.
+- Verification plan: rerun `./scripts/ci-local.sh --complete-full-review` and validate step ordering/logs plus presence of `post_specialist_synthesis.json` in workspace outputs.
+- Follow-up completed: added deterministic post-specialist synthesis stage and final-summary input wiring for `post_specialist_synthesis.json`.
+- Verification rerun confirmed ordered execution (`STEP 5.7` before `STEP 6`) and successful workflow status for `post-specialist-synthesis`.
 
 ---
 
@@ -111,4 +115,4 @@ flowchart LR
 
 ---
 
-_Last updated: 2026-02-15 13:12 EST_
+_Last updated: 2026-02-15 13:19 EST_
