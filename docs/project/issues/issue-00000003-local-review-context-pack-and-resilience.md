@@ -106,6 +106,12 @@ flowchart LR
 - Verification plan: rerun `./scripts/ci-local.sh --complete-full-review` and confirm final cost table last call maps to executive synthesis.
 - Follow-up completed: terminal executive synthesis added and wired into fallback summary generation (`executive_synthesis.json` drives executive-summary and priority-action sections when present).
 - Verification rerun passed: logs show `STEP 6.5: Executive Synthesis`, workflow summary includes `executive-synthesis: ✅ SUCCESS`, and cost table ends with final-summary synthesis call.
+- Follow-up in progress: documentation hardening for synthesis stages with Mermaid diagrams and flow-mode behavior coverage (quick-only, full-review, with/without specialists).
+- Verification plan for documentation hardening: run link-check and complete-full-review to validate both markdown integrity and orchestration evidence alignment.
+- Follow-up completed: documentation now includes Mermaid diagrams for orchestration and artifact flow plus ADR-007 for terminal executive synthesis policy.
+- Verification reruns passed: `./scripts/ci-local.sh --step link-check` and `./scripts/ci-local.sh --complete-full-review` both green.
+- Follow-up in progress: replace remaining ASCII directory-structure block in `.crewai/README.md` with Mermaid hierarchy diagram.
+- Follow-up completed: `.crewai/README.md` directory structure now uses Mermaid hierarchy diagram instead of ASCII tree.
 
 ---
 
@@ -119,4 +125,4 @@ flowchart LR
 
 ---
 
-_Last updated: 2026-02-15 13:28 EST_
+_Last updated: 2026-02-15 13:37 EST_

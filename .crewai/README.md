@@ -27,11 +27,85 @@ This directory contains a CrewAI-powered code review system that runs automatica
 
 ### Crew pipeline
 
+```mermaid
+flowchart LR
+accTitle: CrewAI orchestration with synthesis stages
+accDescr: Execution order from router through review crews, specialist crews, post-specialist synthesis, final summary, and terminal executive synthesis.
+
+    router([🧭 Router]) --> ci[📊 CI log analysis]
+    ci --> quick[⚡ Quick review]
+    quick --> full_gate{Run full review?}
+    full_gate -->|Yes| full[🔍 Full review]
+    full_gate -->|No| specialist_gate
+    full --> specialist_gate{Run specialist crews?}
+    specialist_gate -->|Yes| specialists[🔬 Specialist crews]
+    specialist_gate -->|No| suppressions
+    specialists --> suppressions[🧠 Apply memory suppressions]
+    suppressions --> post_synth[🧩 Post-specialist synthesis]
+    post_synth --> final_summary[📋 Final summary]
+    final_summary --> exec_synth[🧠 Executive synthesis]
+    exec_synth --> final_md[📝 Programmatic final_summary.md]
+
+    classDef primary fill:#dbeafe,stroke:#2563eb,stroke-width:2px,color:#1e3a5f
+    classDef success fill:#dcfce7,stroke:#16a34a,stroke-width:2px,color:#14532d
+    classDef neutral fill:#f3f4f6,stroke:#6b7280,stroke-width:2px,color:#1f2937
+
+    class router,ci,quick,full,specialists primary
+    class post_synth,final_summary,exec_synth success
+    class final_md,suppressions neutral
 ```
-Router → CI Log Analysis → Quick Review → [Full Review] → [Specialist Crews] → Final Summary
-                                              ↑                    ↑
-                                        (if label:               (if labels or
-                                         full-review)             autodetect)
+
+### Synthesis timing and scope
+
+```mermaid
+flowchart TB
+accTitle: Review artifact and synthesis flow
+accDescr: Artifact flow showing how core and specialist outputs feed post-specialist synthesis, executive synthesis, and deterministic final markdown assembly.
+
+    subgraph core ["📚 Core crew artifacts"]
+        router_json[📝 router_decision.json]
+        ci_json[📝 ci_summary.json]
+        quick_json[📝 quick_review.json]
+        full_json[📝 full_review.json]
+    end
+
+    subgraph specialist ["🔬 Specialist artifacts"]
+        specialist_json[📝 *_review.json]
+        validation_json[📝 validation_report.json]
+    end
+
+    post_json[🧩 post_specialist_synthesis.json]
+    exec_json[🧠 executive_synthesis.json]
+    final_md[📝 final_summary.md]
+
+    router_json --> post_json
+    ci_json --> post_json
+    quick_json --> post_json
+    full_json --> post_json
+    specialist_json --> post_json
+    validation_json --> post_json
+
+    post_json --> exec_json
+    router_json --> exec_json
+    ci_json --> exec_json
+    quick_json --> exec_json
+    full_json --> exec_json
+    specialist_json --> exec_json
+    validation_json --> exec_json
+
+    exec_json --> final_md
+    post_json --> final_md
+    full_json --> final_md
+    quick_json --> final_md
+    ci_json --> final_md
+
+    classDef primary fill:#dbeafe,stroke:#2563eb,stroke-width:2px,color:#1e3a5f
+    classDef accent fill:#ede9fe,stroke:#7c3aed,stroke-width:2px,color:#3b0764
+    classDef neutral fill:#f3f4f6,stroke:#6b7280,stroke-width:2px,color:#1f2937
+
+    class router_json,ci_json,quick_json,full_json,specialist_json,validation_json neutral
+    class post_json,exec_json accent
+    class final_md primary
 ```
 
 **Always-run crews:** Router, CI Log Analysis, Quick Review, Final Summary
@@ -41,6 +115,15 @@ Router → CI Log Analysis → Quick Review → [Full Review] → [Specialist Cr
 **`crewai:full-review` label:** Enables full review plus broader specialist selection (mode-aware)
 
 **`crewai:complete-full-review` label:** Runs ALL specialist crews with complete-repository scope
+
+### Flow compatibility matrix
+
+| Flow mode                                       | Core crews | Specialist crews | Post-specialist synthesis | Executive synthesis | Final markdown assembly |
+| ----------------------------------------------- | ---------- | ---------------- | ------------------------- | ------------------- | ----------------------- |
+| Quick-only (default labels absent)              | ✅         | Optional (auto)  | ✅                        | ✅                  | ✅                      |
+| Full review (explicit label)                    | ✅         | Optional/broader | ✅                        | ✅                  | ✅                      |
+| Complete full review (all domains)              | ✅         | ✅ all 10        | ✅                        | ✅                  | ✅                      |
+| Specialist-only (explicit specialist label set) | ✅         | ✅ selected      | ✅                        | ✅                  | ✅                      |
 
 ### Specialist crews
 
@@ -61,77 +144,62 @@ Router → CI Log Analysis → Quick Review → [Full Review] → [Specialist Cr
 
 ## 📁 Directory structure
 
-```
-.crewai/
-├── main.py                          # Entry point and orchestration
-├── pyproject.toml                   # Python dependencies
-├── .env.example                     # Environment variable template
-├── config/
-│   ├── agents.yaml                  # 27 agent definitions
-│   └── tasks/
-│       ├── router_tasks.yaml        # 1 task
-│       ├── ci_log_analysis_tasks.yaml  # 4 tasks (3 agents)
-│       ├── quick_review_tasks.yaml  # 3 tasks (3 agents)
-│       ├── full_review_tasks.yaml   # 4 tasks (3 agents)
-│       ├── security_review_tasks.yaml
-│       ├── legal_review_tasks.yaml  # 4 tasks (4 agents)
-│       ├── finance_review_tasks.yaml
-│       ├── documentation_review_tasks.yaml
-│       ├── agentic_review_tasks.yaml
-│       ├── marketing_review_tasks.yaml  # 3 tasks (3 agents)
-│       ├── science_review_tasks.yaml
-│       ├── government_review_tasks.yaml
-│       ├── strategy_review_tasks.yaml   # 3 tasks (3 agents)
-│       ├── data_engineering_review_tasks.yaml
-│       └── final_summary_tasks.yaml
-├── crews/
-│   ├── __init__.py
-│   ├── router_crew.py
-│   ├── ci_log_analysis_crew.py
-│   ├── quick_review_crew.py
-│   ├── full_review_crew.py
-│   ├── security_review_crew.py
-│   ├── legal_review_crew.py
-│   ├── finance_review_crew.py
-│   ├── documentation_review_crew.py
-│   ├── agentic_review_crew.py
-│   ├── marketing_review_crew.py
-│   ├── science_review_crew.py
-│   ├── government_review_crew.py
-│   ├── strategy_review_crew.py
-│   ├── data_engineering_review_crew.py
-│   └── final_summary_crew.py
-├── tools/
-│   ├── workspace_tool.py            # File I/O for crew workspace
-│   ├── cost_tracker.py              # API call cost tracking
-│   ├── memory_manager.py            # Persistent review memory (JSON default, mem0 optional)
-│   ├── github_tools.py              # Git diff and commit tools
-│   ├── pr_metadata_tool.py          # PR metadata extraction
-│   ├── ci_tools.py                  # CI log analysis tools
-│   └── diff_parser.py               # Diff parsing utilities
-├── utils/
-│   ├── model_config.py              # LLM configuration and rate limiting
-│   └── specialist_output.py         # Crew registry, output schema validation, autodetect
-├── memory/
-│   ├── memory.json                  # Persistent review memory (local)
-│   └── suppressions.json            # Finding suppression rules
-├── adr/
-│   ├── README.md                    # CrewAI subsystem decision index
-│   ├── ADR-001-crewai-decision-log-scope.md
-│   ├── ADR-002-provider-priority-and-failover.md
-│   ├── ADR-003-local-quick-review-multipass.md
-│   ├── ADR-004-review-scope-contract-and-tiering.md
-│   └── ADR-005-output-validation-and-data-engineering-specialist.md
-├── workspace/                       # Runtime workspace (created per run, gitignored)
-└── tests/
-    ├── conftest.py
-    ├── test_workspace_tool.py
-    ├── test_cost_tracker.py
-    ├── test_github_tools.py
-    ├── test_pr_metadata_tool.py
-    ├── test_ci_output_parser_tool.py
-    ├── test_specialist_output.py    # Registry, validation, autodetect tests
-    └── test_crew_integrity.py       # Cross-reference and structure tests
+```mermaid
+flowchart TB
+accTitle: CrewAI subsystem directory hierarchy
+accDescr: Top-level and key nested files in the .crewai subsystem, grouped by config, crews, tools, utilities, memory, ADRs, workspace, and tests.
+
+    root[📁 .crewai]
+
+    root --> main_py[📝 main.py]
+    root --> pyproject[📦 pyproject.toml]
+    root --> env_example[⚙️ .env.example]
+
+    root --> config_dir[📁 config]
+    config_dir --> agents_yaml[📝 agents.yaml]
+    config_dir --> tasks_dir[📁 tasks]
+    tasks_dir --> core_tasks[📝 router/ci/quick/full tasks]
+    tasks_dir --> specialist_tasks[📝 specialist task files]
+    tasks_dir --> final_tasks[📝 final_summary_tasks.yaml]
+
+    root --> crews_dir[📁 crews]
+    crews_dir --> core_crews[📝 router/ci/quick/full/final crews]
+    crews_dir --> specialist_crews[📝 domain specialist crews]
+
+    root --> tools_dir[📁 tools]
+    tools_dir --> workspace_tool[📝 workspace_tool.py]
+    tools_dir --> cost_tracker[📝 cost_tracker.py]
+    tools_dir --> memory_manager[📝 memory_manager.py]
+    tools_dir --> github_tools[📝 github_tools.py]
+    tools_dir --> ci_tools[📝 ci_tools.py]
+    tools_dir --> diff_parser[📝 diff_parser.py]
+
+    root --> utils_dir[📁 utils]
+    utils_dir --> model_config[📝 model_config.py]
+    utils_dir --> specialist_output[📝 specialist_output.py]
+
+    root --> memory_dir[📁 memory]
+    memory_dir --> memory_json[💾 memory.json]
+    memory_dir --> suppressions_json[💾 suppressions.json]
+
+    root --> adr_dir[📁 adr]
+    adr_dir --> adr_index[📝 README.md]
+    adr_dir --> adr_set[📝 ADR-001 ... ADR-007]
+
+    root --> workspace_dir[📁 workspace]
+    workspace_dir --> runtime_outputs[📝 runtime artifacts gitignored]
+
+    root --> tests_dir[📁 tests]
+    tests_dir --> test_core[🧪 tool and parser tests]
+    tests_dir --> test_specialist[🧪 specialist and integrity tests]
+
+    classDef primary fill:#dbeafe,stroke:#2563eb,stroke-width:2px,color:#1e3a5f
+    classDef neutral fill:#f3f4f6,stroke:#6b7280,stroke-width:2px,color:#1f2937
+    classDef accent fill:#ede9fe,stroke:#7c3aed,stroke-width:2px,color:#3b0764
+
+    class root,config_dir,crews_dir,tools_dir,utils_dir,memory_dir,adr_dir,workspace_dir,tests_dir primary
+    class main_py,pyproject,env_example,agents_yaml,tasks_dir,core_tasks,specialist_tasks,final_tasks,core_crews,specialist_crews,workspace_tool,cost_tracker,memory_manager,github_tools,ci_tools,diff_parser,model_config,specialist_output,memory_json,suppressions_json,adr_index,adr_set,runtime_outputs,test_core,test_specialist neutral
+    class workspace_dir,runtime_outputs accent
 ```
 
 ---
@@ -276,23 +344,25 @@ Specialist behavior is explicitly non-simulated:
 - If no relevant changed files are detected for a specialist domain, that specialist writes a valid "not applicable" result with zero findings.
 - Simulated/hypothetical findings are treated as low-signal and suppressed by quality filters.
 
-| File                                | Written by       | Schema                                                |
-| ----------------------------------- | ---------------- | ----------------------------------------------------- |
-| `router_decision.json`              | Router           | Workflows, specialist crews, autodetect suggestions   |
-| `ci_summary.json`                   | CI Log Analysis  | Failed jobs, error evidence, fix recommendations      |
-| `quick_review.json`                 | Quick Review     | Critical issues, warnings, suggestions                |
-| `full_review.json`                  | Full Review      | Architecture, security, performance, testing findings |
-| `security_review.json`              | Security         | OWASP findings with SEC- prefixed IDs                 |
-| `legal_review.json`                 | Legal            | Multi-jurisdiction findings with LEGAL- prefixed IDs  |
-| `finance_review.json`               | Finance          | Financial control findings with FIN- prefixed IDs     |
-| `documentation_review.json`         | Documentation    | Doc quality findings with DOC- prefixed IDs           |
-| `agentic_consistency_review.json`   | Agentic          | Convention findings with AGENT- prefixed IDs          |
-| `marketing_review.json`             | Marketing        | Copy and GTM findings with MKT- prefixed IDs          |
-| `science_review.json`               | Science          | Reproducibility findings with SCI- prefixed IDs       |
-| `government_regulatory_review.json` | Government       | Accessibility findings with GOV- prefixed IDs         |
-| `strategic_review.json`             | Strategy         | Business impact findings with STRAT- prefixed IDs     |
-| `data_engineering_review.json`      | Data Engineering | Data platform findings with DATA- prefixed IDs        |
-| `final_summary.md`                  | Final Summary    | Markdown rollup of all crew outputs                   |
+| File                                | Written by       | Schema                                                     |
+| ----------------------------------- | ---------------- | ---------------------------------------------------------- |
+| `router_decision.json`              | Router           | Workflows, specialist crews, autodetect suggestions        |
+| `ci_summary.json`                   | CI Log Analysis  | Failed jobs, error evidence, fix recommendations           |
+| `quick_review.json`                 | Quick Review     | Critical issues, warnings, suggestions                     |
+| `full_review.json`                  | Full Review      | Architecture, security, performance, testing findings      |
+| `post_specialist_synthesis.json`    | Orchestrator     | Consolidated specialist rollup and priority extraction     |
+| `executive_synthesis.json`          | Orchestrator LLM | Terminal executive synthesis from all artifacts            |
+| `security_review.json`              | Security         | OWASP findings with SEC- prefixed IDs                      |
+| `legal_review.json`                 | Legal            | Multi-jurisdiction findings with LEGAL- prefixed IDs       |
+| `finance_review.json`               | Finance          | Financial control findings with FIN- prefixed IDs          |
+| `documentation_review.json`         | Documentation    | Doc quality findings with DOC- prefixed IDs                |
+| `agentic_consistency_review.json`   | Agentic          | Convention findings with AGENT- prefixed IDs               |
+| `marketing_review.json`             | Marketing        | Copy and GTM findings with MKT- prefixed IDs               |
+| `science_review.json`               | Science          | Reproducibility findings with SCI- prefixed IDs            |
+| `government_regulatory_review.json` | Government       | Accessibility findings with GOV- prefixed IDs              |
+| `strategic_review.json`             | Strategy         | Business impact findings with STRAT- prefixed IDs          |
+| `data_engineering_review.json`      | Data Engineering | Data platform findings with DATA- prefixed IDs             |
+| `final_summary.md`                  | Final assembler  | Programmatic markdown rollup guided by synthesis artifacts |
 
 ### Standardized specialist output schema
 

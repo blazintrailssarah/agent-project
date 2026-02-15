@@ -116,6 +116,16 @@ Verification plan for this follow-up: rerun `./scripts/ci-local.sh --complete-fu
 
 Follow-up completed: terminal LLM executive synthesis now runs after all specialist and crew artifacts are available, writes `executive_synthesis.json`, and feeds programmatic executive-summary/priority rendering in fallback final summary assembly. Verification rerun passed and cost output now ends with a final-summary synthesis call after specialist calls.
 
+Current in-progress follow-up: expand subsystem documentation to fully reflect the new synthesis stack (`STEP 5.7` and `STEP 6.5`) with Mermaid diagrams showing orchestration order and artifact flow, including behavior across quick-only, full-review, and specialist-enabled runs.
+
+Verification plan for documentation hardening: run `./scripts/ci-local.sh --step link-check` for markdown/link integrity, then rerun `./scripts/ci-local.sh --complete-full-review` to validate end-to-end review behavior and cost output still match documented ordering.
+
+Documentation hardening completed: `.crewai/README.md` now includes Mermaid orchestration and artifact-flow diagrams for synthesis stages, flow compatibility matrix, updated artifact inventory, and ADR list expansion. ADR-007 was added for terminal executive synthesis stage rationale. Verification passed via `./scripts/ci-local.sh --step link-check` and `./scripts/ci-local.sh --complete-full-review`.
+
+Current in-progress follow-up: replace remaining ASCII directory-tree block in `.crewai/README.md` with a Mermaid representation to fully align subsystem docs with AGENTS/style-guide diagram requirements.
+
+Follow-up completed: replaced the `.crewai/README.md` ASCII directory tree with an accessible Mermaid hierarchy diagram (`accTitle` + `accDescr`, class-based styling only) and retained subsystem structure coverage in diagram form.
+
 ### Impact classification
 
 | Dimension         | Level             | Notes                                                                                              |
