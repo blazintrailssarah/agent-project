@@ -28,7 +28,7 @@ VSCode --> AgentTools --> LocalCI --> Memory
 end
 
 subgraph SourceControl["📦 Source Control & Standards"]
-    direction TB
+    direction LR
     AgentsMD["📋 AGENTS.md<br/>Entry Point"]
     Standards["📚 Agentic Standards<br/>Style Guides & Templates"]
     ADRs["🏛️ Architecture Decisions<br/>agentic/adr/"]
@@ -50,10 +50,8 @@ Lint --> TypeCheck --> Test
 end
 
 subgraph Deploy["🚀 Deploy Phase"]
-direction LR
-Build["📦 Build"]
-Cloudflare["☁️ Cloudflare Pages"]
-Build --> Cloudflare
+  direction LR
+  Build["📦 Build"] --> Cloudflare["☁️ Cloudflare Pages"]
 end
 
 subgraph Review["👥 Review Phase"]
@@ -62,7 +60,9 @@ CrewAI["🤖 CrewAI Review"]
 Quick["⚡ Quick Mode"]
 Full["🔬 Full Mode"]
 Complete["🎯 Complete-Full Mode"]
-CrewAI --> Quick --> Full --> Complete
+CrewAI --> Quick
+CrewAI --> Full
+CrewAI --> Complete
 end
 
 Validation --> Deploy
