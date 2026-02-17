@@ -28,62 +28,66 @@ kanban
 
     column3["🔍 In Review"]
 
-    column4["✅ Done"]
-        task6["📊 Mermaid style guide + 23 type files"]
-        task7["📝 Markdown style guide + 9 templates"]
-        task8["🗂️ Everything is Code philosophy"]
-        task9["📋 New ADRs for project decisions"]
-        task3["🧹 Legacy file cleanup (10 files)"]
-        task4["📄 AGENTS.md created at repo root"]
-        task5["🤖 CrewAI review bug fixes (5/5)"]
-        task11["📓 notebooks/ + src/ scaffolding added"]
-        task12["♻️ Idempotent script guide + read-in wiring"]
-        task13["🧪 Local --review rerun passes end-to-end"]
-        task15["💰 Local pricing/cost breakdown shown in terminal output"]
-        task16["⚡ Fail-fast timeout guard for no-response/out-of-credit paths"]
-        task17["🧾 Cost tracker parity verified (non-empty audit table)"]
-        task18["🧹 markdownlint excludes .crewai/workspace artifacts"]
-        task19["✅ Full ./scripts/ci-local.sh --review pass verified"]
-        task20["📚 AGENTS completion gate + ADR-004 source-of-truth sync"]
-        task21["🔁 Live progress sync loop enforced in AGENTS/workflow docs"]
-        task22["🧪 ci-local pre-push rule + hosted-env skip rationale policy"]
-        task23["⚡ NVIDIA timeout handling hardened with explicit error surfacing"]
-        task24["🧠 Local quick-review now runs 3 reviewer passes with per-pass summaries"]
-        task25["📐 Local pricing/cost panel now renders aligned terminal columns"]
-        task26["🗂️ Monorepo layout modernized: website moved to apps/web"]
-        task27["🏗️ New workspace scaffold: apps/services/packages/data-sql"]
-        task28["📚 Federated ADR governance added (global + subsystem logs)"]
-        task29["🤖 CrewAI local ADR log created with initial subsystem ADRs"]
-        task30["🧭 Global baseline ADR added for monorepo decision map"]
-        task31["🔁 CrewAI provider chain clarified (NVIDIA -> OpenRouter)"]
-        task32["🧱 CI regrouped into stage gates with CrewAI review last"]
-        task33["🧪 Local CI parity rerun passed after stage-gate regrouping"]
-        task34["🧩 CI README Mermaid parse error fixed and phase naming normalized"]
-        task35["🔒 CI/deploy concurrency guards added and stage-gate dependencies clarified"]
-        task36["🧪 Post-hardening local CI parity rerun completed; quick-review instability remains tracked"]
-        task37["🧼 Phase-1 commitlint ELIFECYCLE lifecycle noise removed in local CI"]
-        task38["🧪 Full local CI rerun passed after commitlint UX polish"]
-        task39["⚡ Local provider baseline switched to OpenRouter default with explicit NVIDIA opt-in"]
-        task40["📦 Full-review and specialist outputs now always materialize structured JSON artifacts"]
-        task43["🧠 Specialists now run with selective repo tools + parsed-result recovery"]
-        task44["🚫 Specialists now emit explicit not-applicable outputs instead of simulated findings"]
-        task45["🧾 Final summary UX overhaul: executive-first layout + optimized cost section"]
-        task46["🎯 Quick-review signal polish: remove low-value fallback noise"]
-        task47["🧠 Final sweep: scoped specialist findings + clean persistent memory baseline"]
-        task48["⚖️ License policy finalized: Apache-2.0 + NOTICE attribution baseline"]
-        task49["🧭 Executive summary rewrite: action-first, less workflow narration"]
-        task50["🧪 Local full-review multipass restored + remove forced details separators"]
-        task51["🧹 Remove duplicate specialist status rows from top workflow guide"]
-        task52["🔒 Local CI lock + workspace reset + specialist domain-focus tightening"]
-        task53["🌐 Add complete-full-review mode (local flag + PR label trigger semantics)"]
-        task54["🛠️ Fix GHA CrewAI prep crash for list-shaped commits.json context pack"]
-        task55["🧠 Add persistent memory CLI + prompt-memory propagation"]
-        task56["⚖️ Fix legal metadata drift: pyproject license aligned to Apache-2.0"]
+column4["✅ Done"]
+task6["📊 Mermaid style guide + 23 type files"]
+task7["📝 Markdown style guide + 9 templates"]
+task8["🗂️ Everything is Code philosophy"]
+task9["📋 New ADRs for project decisions"]
+task3["🧹 Legacy file cleanup (10 files)"]
+task4["📄 AGENTS.md created at repo root"]
+task5["🤖 CrewAI review bug fixes (5/5)"]
+task11["📓 notebooks/ + src/ scaffolding added"]
+task12["♻️ Idempotent script guide + read-in wiring"]
+task13["🧪 Local --review rerun passes end-to-end"]
+task15["💰 Local pricing/cost breakdown shown in terminal output"]
+task16["⚡ Fail-fast timeout guard for no-response/out-of-credit paths"]
+task17["🧾 Cost tracker parity verified (non-empty audit table)"]
+task18["🧹 markdownlint excludes .crewai/workspace artifacts"]
+task19["✅ Full ./scripts/ci-local.sh --review pass verified"]
+task20["📚 AGENTS completion gate + ADR-004 source-of-truth sync"]
+task21["🔁 Live progress sync loop enforced in AGENTS/workflow docs"]
+task22["🧪 ci-local pre-push rule + hosted-env skip rationale policy"]
+task23["⚡ NVIDIA timeout handling hardened with explicit error surfacing"]
+task24["🧠 Local quick-review now runs 3 reviewer passes with per-pass summaries"]
+task25["📐 Local pricing/cost panel now renders aligned terminal columns"]
+task26["🗂️ Monorepo layout modernized: website moved to apps/web"]
+task27["🏗️ New workspace scaffold: apps/services/packages/data-sql"]
+task28["📚 Federated ADR governance added (global + subsystem logs)"]
+task29["🤖 CrewAI local ADR log created with initial subsystem ADRs"]
+task30["🧭 Global baseline ADR added for monorepo decision map"]
+task31["🔁 CrewAI provider chain clarified (NVIDIA -> OpenRouter)"]
+task32["🧱 CI regrouped into stage gates with CrewAI review last"]
+task33["🧪 Local CI parity rerun passed after stage-gate regrouping"]
+task34["🧩 CI README Mermaid parse error fixed and phase naming normalized"]
+task35["🔒 CI/deploy concurrency guards added and stage-gate dependencies clarified"]
+task36["🧪 Post-hardening local CI parity rerun completed; quick-review instability remains tracked"]
+task37["🧼 Phase-1 commitlint ELIFECYCLE lifecycle noise removed in local CI"]
+task38["🧪 Full local CI rerun passed after commitlint UX polish"]
+task39["⚡ Local provider baseline switched to OpenRouter default with explicit NVIDIA opt-in"]
+task40["📦 Full-review and specialist outputs now always materialize structured JSON artifacts"]
+task43["🧠 Specialists now run with selective repo tools + parsed-result recovery"]
+task44["🚫 Specialists now emit explicit not-applicable outputs instead of simulated findings"]
+task45["🧾 Final summary UX overhaul: executive-first layout + optimized cost section"]
+task46["🎯 Quick-review signal polish: remove low-value fallback noise"]
+task47["🧠 Final sweep: scoped specialist findings + clean persistent memory baseline"]
+task48["⚖️ License policy finalized: Apache-2.0 + NOTICE attribution baseline"]
+task49["🧭 Executive summary rewrite: action-first, less workflow narration"]
+task50["🧪 Local full-review multipass restored + remove forced details separators"]
+task51["🧹 Remove duplicate specialist status rows from top workflow guide"]
+task52["🔒 Local CI lock + workspace reset + specialist domain-focus tightening"]
+task53["🌐 Add complete-full-review mode (local flag + PR label trigger semantics)"]
+task54["🛠️ Fix GHA CrewAI prep crash for list-shaped commits.json context pack"]
+task55["🧠 Add persistent memory CLI + prompt-memory propagation"]
+task56["⚖️ Fix legal metadata drift: pyproject license aligned to Apache-2.0"]
 
-    column5["🚫 Won't Do"]
-        task41["⛔ Keep NVIDIA as default local provider"]
-        task42["⛔ Depend only on CrewAI tool-write side effects for local artifacts"]
+column5["🚫 Blocked"]
+
+column6["🚫 Won't Do"]
+task41["⛔ Keep NVIDIA as default local provider"]
+task42["⛔ Depend only on CrewAI tool-write side effects for local artifacts"]
 ```
+
+> ⚠️ Always show all 6 columns — Even if a column has no items, include it with a placeholder. This makes the board structure explicit and ensures categories are never forgotten. Use a placeholder like [No items yet] when a column is empty.
 
 ---
 
@@ -95,8 +99,10 @@ kanban
 | 🔄 **In Progress** | 0     | 3         | Moved to Sprint W08 board           |
 | 🔍 **In Review**   | 0     | —         | —                                   |
 | ✅ **Done**        | 50    | —         | Core docs + CI/review + scaffolding |
-| 🚫 **Won't Do**    | 2     | —         | Explicitly declined with rationale  |
 | 🚫 **Blocked**     | 0     | —         | Clear                               |
+| 🚫 **Won't Do**    | 2     | —         | Explicitly declined with rationale  |
+
+> ⚠️ **Always include all 6 columns** — Each column represents a workflow state. Even if count is 0, keep the row visible. This prevents categories from being overlooked.
 
 ---
 
@@ -124,7 +130,7 @@ flowchart LR
 
 ## 📋 Backlog
 
-_Prioritized top-to-bottom. Top items are next to be pulled._
+_Prioritized top-to-bottom. Top items are next to be pulled. Include at least one placeholder item if empty._
 
 > 🔄 **Moved to Sprint W08:** All remaining backlog items were rolled into `docs/project/kanban/sprint-2026-w08-crewai-review-hardening-and-memory.md` for active tracking.
 
@@ -136,29 +142,33 @@ _Prioritized top-to-bottom. Top items are next to be pulled._
 
 ## 🔄 In Progress
 
+_Items currently being worked on. Include at least one placeholder item if empty._
+
 > 🔄 **Moved to Sprint W08:** In-progress execution was carried forward to the new weekly board.
 
 | Item                    | Assignee | Started | Expected | Days in column | Aging | Status                                       |
 | ----------------------- | -------- | ------- | -------- | -------------- | ----- | -------------------------------------------- |
 | _(Moved to Sprint W08)_ | —        | —       | —        | —              | —     | Active in-progress tracking now lives in W08 |
 
-> ⚠️ **WIP limit:** 1 / 3. Under limit.
-
 > 💡 **Aging indicator:** 🟢 Under expected time · 🟡 At expected time · 🔴 Over expected time — items aging red need attention or re-scoping.
+
+> ⚠️ **WIP limit:** 0 / 3. Under limit.
 
 ---
 
 ## 🔍 In Review
 
-| Item                   | Author | Reviewer | PR  | Days in review | Aging | Status |
-| ---------------------- | ------ | -------- | --- | -------------- | ----- | ------ |
-| _(No items in review)_ |        |          |     |                |       |        |
+_Items awaiting or in code review. Include at least one placeholder item if empty._
+
+| Item | Author | Reviewer | PR  | Days in review | Aging | Status           |
+| ---- | ------ | -------- | --- | -------------- | ----- | ---------------- |
+|      |        |          |     |                |       | _[No items yet]_ |
 
 ---
 
 ## ✅ Done
 
-_Completed this sprint._
+_Completed this period. Include at least one placeholder item if empty._
 
 | Item                                                                                                                         | Assignee   | Completed | Cycle time | PR                                                                 |
 | ---------------------------------------------------------------------------------------------------------------------------- | ---------- | --------- | ---------- | ------------------------------------------------------------------ |
@@ -199,18 +209,24 @@ _Completed this sprint._
 
 ## 🚫 Blocked
 
-| Item                             | Assignee | Blocked since | Blocked by | Escalated to | Unblock action |
-| -------------------------------- | -------- | ------------- | ---------- | ------------ | -------------- |
-| _(No blocked items this sprint)_ |          |               |            |              |                |
+_Items that cannot proceed. Always include at least the placeholder — blocked items are high-signal and should never be hidden._
+
+| Item | Assignee | Blocked since | Blocked by | Escalated to | Unblock action       |
+| ---- | -------- | ------------- | ---------- | ------------ | -------------------- |
+|      |          |               |            |              | _[No blocked items]_ |
+
+> 🔴 **0 items blocked.** Clear sprint.
 
 ---
 
 ## 🚫 Won't Do
 
-| Item                                                        | Decision date | Reason                                                                                       | Linked issue                                                                         |
-| ----------------------------------------------------------- | ------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| Keep NVIDIA as default local provider                       | 2026-02-14    | Default-path speed/reliability was better with OpenRouter baseline; NVIDIA remains opt-in.   | [#2](../issues/issue-00000002-provider-priority-fail-fast-review-cost-visibility.md) |
-| Depend only on CrewAI tool-write side effects for artifacts | 2026-02-14    | Local reliability required resilient structured persistence plus validation-ledger tracking. | [#3](../issues/issue-00000003-local-review-context-pack-and-resilience.md)           |
+_Explicitly out of scope for this board period. Capture rationale so these decisions are transparent and auditable. Include placeholder if empty._
+
+| Item                                                        | Date decided | Decision owner | Rationale                                                                                    | Revisit trigger                                     |
+| ----------------------------------------------------------- | ------------ | -------------- | -------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| Keep NVIDIA as default local provider                       | 2026-02-14   | Human + AI     | Default-path speed/reliability was better with OpenRouter baseline; NVIDIA remains opt-in.   | Revisit if OpenRouter reliability degrades          |
+| Depend only on CrewAI tool-write side effects for artifacts | 2026-02-14   | Human + AI     | Local reliability required resilient structured persistence plus validation-ledger tracking. | Revisit if CrewAI persistence becomes deterministic |
 
 ### Why these were declined
 

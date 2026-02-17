@@ -144,62 +144,88 @@ accDescr: Artifact flow showing how core and specialist outputs feed post-specia
 
 ## 📁 Directory structure
 
-```mermaid
-flowchart TB
-accTitle: CrewAI subsystem directory hierarchy
-accDescr: Top-level and key nested files in the .crewai subsystem, grouped by config, crews, tools, utilities, memory, ADRs, workspace, and tests.
-
-    root[📁 .crewai]
-
-    root --> main_py[📝 main.py]
-    root --> pyproject[📦 pyproject.toml]
-    root --> env_example[⚙️ .env.example]
-
-    root --> config_dir[📁 config]
-    config_dir --> agents_yaml[📝 agents.yaml]
-    config_dir --> tasks_dir[📁 tasks]
-    tasks_dir --> core_tasks[📝 router/ci/quick/full tasks]
-    tasks_dir --> specialist_tasks[📝 specialist task files]
-    tasks_dir --> final_tasks[📝 final_summary_tasks.yaml]
-
-    root --> crews_dir[📁 crews]
-    crews_dir --> core_crews[📝 router/ci/quick/full/final crews]
-    crews_dir --> specialist_crews[📝 domain specialist crews]
-
-    root --> tools_dir[📁 tools]
-    tools_dir --> workspace_tool[📝 workspace_tool.py]
-    tools_dir --> cost_tracker[📝 cost_tracker.py]
-    tools_dir --> memory_manager[📝 memory_manager.py]
-    tools_dir --> github_tools[📝 github_tools.py]
-    tools_dir --> ci_tools[📝 ci_tools.py]
-    tools_dir --> diff_parser[📝 diff_parser.py]
-
-    root --> utils_dir[📁 utils]
-    utils_dir --> model_config[📝 model_config.py]
-    utils_dir --> specialist_output[📝 specialist_output.py]
-
-    root --> memory_dir[📁 memory]
-    memory_dir --> memory_json[💾 memory.json]
-    memory_dir --> suppressions_json[💾 suppressions.json]
-
-    root --> adr_dir[📁 adr]
-    adr_dir --> adr_index[📝 README.md]
-    adr_dir --> adr_set[📝 ADR-001 ... ADR-007]
-
-    root --> workspace_dir[📁 workspace]
-    workspace_dir --> runtime_outputs[📝 runtime artifacts gitignored]
-
-    root --> tests_dir[📁 tests]
-    tests_dir --> test_core[🧪 tool and parser tests]
-    tests_dir --> test_specialist[🧪 specialist and integrity tests]
-
-    classDef primary fill:#dbeafe,stroke:#2563eb,stroke-width:2px,color:#1e3a5f
-    classDef neutral fill:#f3f4f6,stroke:#6b7280,stroke-width:2px,color:#1f2937
-    classDef accent fill:#ede9fe,stroke:#7c3aed,stroke-width:2px,color:#3b0764
-
-    class root,config_dir,crews_dir,tools_dir,utils_dir,memory_dir,adr_dir,workspace_dir,tests_dir primary
-    class main_py,pyproject,env_example,agents_yaml,tasks_dir,core_tasks,specialist_tasks,final_tasks,core_crews,specialist_crews,workspace_tool,cost_tracker,memory_manager,github_tools,ci_tools,diff_parser,model_config,specialist_output,memory_json,suppressions_json,adr_index,adr_set,runtime_outputs,test_core,test_specialist neutral
-    class workspace_dir,runtime_outputs accent
+```
+.crewai/
+├── README.md                 # This file — subsystem overview
+├── main.py                   # CLI entrypoint
+├── pyproject.toml            # Python dependencies
+├── pytest.ini               # Test configuration
+├── .env.example             # Environment template
+│
+├── config/                  # Agent and task definitions
+│   ├── agents.yaml          # 27 agent definitions
+│   └── tasks/               # 29 task definitions
+│       ├── agentic_review_tasks.yaml
+│       ├── ci_log_analysis_tasks.yaml
+│       ├── data_engineering_review_tasks.yaml
+│       ├── documentation_review_tasks.yaml
+│       ├── finance_review_tasks.yaml
+│       ├── final_summary_tasks.yaml
+│       ├── full_review_tasks.yaml
+│       ├── government_review_tasks.yaml
+│       ├── legal_review_tasks.yaml
+│       ├── marketing_review_tasks.yaml
+│       ├── quick_review_tasks.yaml
+│       ├── router_tasks.yaml
+│       ├── science_review_tasks.yaml
+│       ├── security_review_tasks.yaml
+│       └── strategy_review_tasks.yaml
+│
+├── crews/                   # Crew implementations (14 crews)
+│   ├── agentic_review_crew.py
+│   ├── ci_log_analysis_crew.py
+│   ├── data_engineering_review_crew.py
+│   ├── documentation_review_crew.py
+│   ├── finance_review_crew.py
+│   ├── final_summary_crew.py
+│   ├── full_review_crew.py
+│   ├── government_review_crew.py
+│   ├── legal_review_crew.py
+│   ├── marketing_review_crew.py
+│   ├── quick_review_crew.py
+│   ├── router_crew.py
+│   ├── science_review_crew.py
+│   ├── security_review_crew.py
+│   └── strategy_review_crew.py
+│
+├── tools/                   # Shared tools
+│   ├── ci_output_parser_tool.py
+│   ├── ci_tools.py
+│   ├── commit_summarizer_tool.py
+│   ├── cost_tracker.py
+│   ├── diff_parser.py
+│   ├── github_tools.py
+│   ├── memory_cli.py
+│   ├── memory_manager.py
+│   ├── pr_metadata_tool.py
+│   ├── related_files_tool.py
+│   └── workspace_tool.py
+│
+├── utils/                   # Utility modules
+│   ├── model_config.py
+│   └── specialist_output.py
+│
+├── memory/                  # Persistent review memory
+│   ├── memory.json
+│   ├── suppressions.json
+│   └── sql/
+│       └── memory_seed.sql
+│
+├── adr/                     # Architecture decision records
+│   ├── README.md
+│   └── ADR-001 ... ADR-007
+│
+├── workspace/               # Runtime outputs (gitignored)
+└── tests/                   # Test suite
+    ├── test_cost_tracker.py
+    ├── test_github_tools.py
+    ├── test_memory_cli.py
+    ├── test_memory_manager.py
+    ├── test_pr_metadata_tool.py
+    ├── test_specialist_output.py
+    ├── test_specialist_quality.py
+    ├── test_workspace_tool.py
+    └── ...
 ```
 
 ---

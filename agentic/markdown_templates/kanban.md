@@ -53,23 +53,24 @@ _Kanban board showing current work distribution across backlog, in-progress, rev
 
 ```mermaid
 kanban
-    Backlog
-        task1[Deploy monitoring]
-        task2[Write API docs]
-        task3[Refactor auth flow]
-    In Progress
-        task4[Build user dashboard]
-        task5[Fix payment timeout]
-    Review
-        task6[Add export feature]
-    Done
-        task7[Set up CI pipeline]
-        task8[Database migration]
-    Blocked
-        task9[Waiting for security approval]
-    Won't Do
-        task10[Drop mobile support in this sprint]
+Backlog
+task1[Deploy monitoring]
+task2[Write API docs]
+In Progress
+task3[Build user dashboard]
+task4[Fix payment timeout]
+In Review
+task5[Add export feature]
+Done
+task5[Set up CI pipeline]
+task6[Database migration]
+Blocked
+task7[Waiting for security approval]
+Won't Do
+task8[Drop mobile support in this sprint]
 ```
+
+> ⚠️ Always show all 6 columns — Even if a column has no items, include it with a placeholder. This makes the board structure explicit and ensures categories are never forgotten. Use a placeholder like [No items yet] when a column is empty.
 
 ---
 
@@ -84,27 +85,30 @@ kanban
 | 🚫 **Blocked**     | [N]   | —         | [See blocked section below]                    |
 | 🚫 **Won't Do**    | [N]   | —         | [Explicitly declined with rationale]           |
 
+> ⚠️ **Always include all 6 columns** — Each column represents a workflow state. Even if count is 0, keep the row visible. This prevents categories from being overlooked.
+
 ---
 
 ## 📋 Backlog
 
-_Prioritized top-to-bottom. Top items are next to be pulled._
+_Prioritized top-to-bottom. Top items are next to be pulled. Include at least one placeholder item if empty._
 
-| #   | Item              | Priority  | Estimate | Assignee     | Notes                   |
-| --- | ----------------- | --------- | -------- | ------------ | ----------------------- |
-| 1   | [Work item title] | 🔴 High   | [S/M/L]  | [Person]     | [Context or dependency] |
-| 2   | [Work item title] | 🟡 Medium | [Size]   | [Person]     | [Notes]                 |
-| 3   | [Work item title] | 🟡 Medium | [Size]   | [Unassigned] | [Notes]                 |
-| 4   | [Work item title] | 🟢 Low    | [Size]   | [Unassigned] | [Notes]                 |
+| #   | Item              | Priority  | Estimate | Assignee | Notes                   |
+| --- | ----------------- | --------- | -------- | -------- | ----------------------- |
+| 1   | [Work item title] | 🔴 High   | [S/M/L]  | [Person] | [Context or dependency] |
+| 2   | [Work item title] | 🟡 Medium | [Size]   | [Person] | [Notes]                 |
+|     | _[No items yet]_  |           |          |          |                         |
 
 ---
 
 ## 🔄 In Progress
 
-| Item        | Assignee | Started | Expected | Days in column | Aging | Status                  |
-| ----------- | -------- | ------- | -------- | -------------- | ----- | ----------------------- |
-| [Work item] | [Person] | [Date]  | [Date]   | [N]            | 🟢    | 🟢 On track             |
-| [Work item] | [Person] | [Date]  | [Date]   | [N]            | 🟡    | 🟡 Slower than expected |
+_Items currently being worked on. Include at least one placeholder item if empty._
+
+| Item        | Assignee | Started | Expected | Days in column | Aging | Status           |
+| ----------- | -------- | ------- | -------- | -------------- | ----- | ---------------- |
+| [Work item] | [Person] | [Date]  | [Date]   | [N]            | 🟢    | 🟢 On track      |
+|             |          |         |          |                |       | _[No items yet]_ |
 
 > 💡 **Aging indicator:** 🟢 Under expected time · 🟡 At expected time · 🔴 Over expected time — items aging red need attention or re-scoping.
 
@@ -114,28 +118,34 @@ _Prioritized top-to-bottom. Top items are next to be pulled._
 
 ## 🔍 In Review
 
+_Items awaiting or in code review. Include at least one placeholder item if empty._
+
 | Item        | Author   | Reviewer | PR                                                                                   | Days in review | Aging | Status                                           |
 | ----------- | -------- | -------- | ------------------------------------------------------------------------------------ | -------------- | ----- | ------------------------------------------------ |
 | [Work item] | [Person] | [Person] | [#NNN](../../docs/project/pr/pr-00000001-agentic-docs-and-monorepo-modernization.md) | [N]            | 🟢    | [Awaiting review / Changes requested / Approved] |
+|             |          |          |                                                                                      |                |       | _[No items yet]_                                 |
 
 ---
 
 ## ✅ Done
 
-_Completed this period._
+_Completed this period. Include at least one placeholder item if empty._
 
 | Item        | Assignee | Completed | Cycle time | PR                                                                                   |
 | ----------- | -------- | --------- | ---------- | ------------------------------------------------------------------------------------ |
 | [Work item] | [Person] | [Date]    | [N days]   | [#NNN](../../docs/project/pr/pr-00000001-agentic-docs-and-monorepo-modernization.md) |
-| [Work item] | [Person] | [Date]    | [N days]   | [#NNN](../../docs/project/pr/pr-00000001-agentic-docs-and-monorepo-modernization.md) |
+|             |          |           |            | _[No items completed this period]_                                                   |
 
 ---
 
 ## 🚫 Blocked
 
+_Items that cannot proceed. Always include at least the placeholder — blocked items are high-signal and should never be hidden._
+
 | Item        | Assignee | Blocked since | Blocked by                                              | Escalated to  | Unblock action         |
 | ----------- | -------- | ------------- | ------------------------------------------------------- | ------------- | ---------------------- |
 | [Work item] | [Person] | [Date]        | [What's blocking — dependency, decision, external team] | [Person/team] | [What needs to happen] |
+|             |          |               |                                                         |               | _[No blocked items]_   |
 
 > 🔴 **[N] items blocked.** [Summary of what's needed to unblock them.]
 
@@ -143,12 +153,12 @@ _Completed this period._
 
 ## 🚫 Won't Do
 
-_Explicitly out of scope for this board period. Capture rationale so these decisions are transparent and auditable._
+_Explicitly out of scope for this board period. Capture rationale so these decisions are transparent and auditable. Include placeholder if empty._
 
-| Item        | Date decided | Decision owner | Rationale                                           | Revisit trigger                      |
-| ----------- | ------------ | -------------- | --------------------------------------------------- | ------------------------------------ |
-| [Work item] | [Date]       | [Person/team]  | [Why this is intentionally excluded right now]      | [What change would reopen this item] |
-| [Work item] | [Date]       | [Person/team]  | [Tradeoff, dependency, or risk-based justification] | [Concrete condition to reconsider]   |
+| Item        | Date decided | Decision owner | Rationale                                      | Revisit trigger                      |
+| ----------- | ------------ | -------------- | ---------------------------------------------- | ------------------------------------ |
+| [Work item] | [Date]       | [Person/team]  | [Why this is intentionally excluded right now] | [What change would reopen this item] |
+|             |              |                | _[No items explicitly declined]_               |                                      |
 
 ---
 

@@ -17,22 +17,26 @@ _Kanban board showing Sprint W08 rollover state from W07 plus today-completed it
 
 ```mermaid
 kanban
-    column1["📋 Backlog"]
-        task1["🔍 Verify Mermaid rendering on GitHub (light + dark)"]
-        task2["✅ Commit and push current uncommitted reliability updates"]
+column1["📋 Backlog"]
+task1["🔍 Verify Mermaid rendering on GitHub (light + dark)"]
+task2["✅ Commit and push current uncommitted reliability updates"]
 
-    column2["🔧 In Progress"]
-        task3["🧾 Finalize source-of-truth records and publish updates"]
+column2["🔧 In Progress"]
+task3["🧾 Finalize source-of-truth records and publish updates"]
 
-    column3["🔍 In Review"]
+column3["🔍 In Review"]
 
-    column4["✅ Done"]
-        task4["🧠 Persistent memory CLI + prompt-memory propagation"]
-        task5["⚖️ Root license metadata aligned to Apache-2.0"]
-        task6["📄 README + package descriptions aligned to agent-project positioning"]
+column4["✅ Done"]
+task4["🧠 Persistent memory CLI + prompt-memory propagation"]
+task5["⚖️ Root license metadata aligned to Apache-2.0"]
+task6["📄 README + package descriptions aligned to agent-project positioning"]
 
-    column5["🚫 Blocked"]
+column5["🚫 Blocked"]
+
+column6["🚫 Won't Do"]
 ```
+
+> ⚠️ Always show all 6 columns — Even if a column has no items, include it with a placeholder. This makes the board structure explicit and ensures categories are never forgotten. Use a placeholder like [No items yet] when a column is empty.
 
 ---
 
@@ -43,8 +47,11 @@ kanban
 | 📋 **Backlog**     | 2     | —         | Rolled from W07                 |
 | 🔄 **In Progress** | 1     | 3         | 🟢 Under limit                  |
 | 🔍 **In Review**   | 0     | —         | —                               |
-| ✅ **Done**        | 4     | —         | W08 closeout items accumulating |
+| ✅ **Done**        | 3     | —         | W08 closeout items accumulating |
 | 🚫 **Blocked**     | 0     | —         | Clear                           |
+| 🚫 **Won't Do**    | 0     | —         | —                               |
+
+> ⚠️ **Always include all 6 columns** — Each column represents a workflow state. Even if count is 0, keep the row visible. This prevents categories from being overlooked.
 
 ---
 
@@ -90,7 +97,7 @@ gantt
 
 ## 📋 Backlog
 
-_Prioritized top-to-bottom. Top items are next to be pulled._
+_Prioritized top-to-bottom. Top items are next to be pulled. Include at least one placeholder item if empty._
 
 | #   | Item                                                    | Priority | Estimate | Assignee | Notes                                                                  |
 | --- | ------------------------------------------------------- | -------- | -------- | -------- | ---------------------------------------------------------------------- |
@@ -101,27 +108,31 @@ _Prioritized top-to-bottom. Top items are next to be pulled._
 
 ## 🔄 In Progress
 
+_Items currently being worked on. Include at least one placeholder item if empty._
+
 | Item                                                 | Assignee   | Started | Expected | Days in column | Aging | Status                                                                            |
 | ---------------------------------------------------- | ---------- | ------- | -------- | -------------- | ----- | --------------------------------------------------------------------------------- |
 | Finalize source-of-truth records and publish updates | Human + AI | Feb 14  | Feb 15   | 1              | 🟡    | 🟡 Complete-full local CI and post-sync link-check passed; branch publish pending |
 
-> ⚠️ **WIP limit:** 1 / 3. Under limit.
+> 💡 **Aging indicator:** 🟢 Under expected time · 🟡 At expected time · 🔴 Over expected time — items aging red need attention or re-scoping.
 
-> 💡 **Aging indicator:** 🟢 Under expected time · 🟡 At expected time · 🔴 Over expected time.
+> ⚠️ **WIP limit:** 1 / 3. Under limit.
 
 ---
 
 ## 🔍 In Review
 
-| Item                   | Author | Reviewer | PR  | Days in review | Aging | Status |
-| ---------------------- | ------ | -------- | --- | -------------- | ----- | ------ |
-| _(No items in review)_ |        |          |     |                |       |        |
+_Items awaiting or in code review. Include at least one placeholder item if empty._
+
+| Item | Author | Reviewer | PR  | Days in review | Aging | Status           |
+| ---- | ------ | -------- | --- | -------------- | ----- | ---------------- |
+|      |        |          |     |                |       | _[No items yet]_ |
 
 ---
 
 ## ✅ Done
 
-_Completed in current week (including today items moved from prior board)._
+_Completed this period. Include at least one placeholder item if empty._
 
 | Item                                                                                                                                                | Assignee   | Completed | Cycle time | PR                                                                 |
 | --------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | --------- | ---------- | ------------------------------------------------------------------ |
@@ -133,9 +144,23 @@ _Completed in current week (including today items moved from prior board)._
 
 ## 🚫 Blocked
 
-| Item                             | Assignee | Blocked since | Blocked by | Escalated to | Unblock action |
-| -------------------------------- | -------- | ------------- | ---------- | ------------ | -------------- |
-| _(No blocked items this sprint)_ |          |               |            |              |                |
+_Items that cannot proceed. Always include at least the placeholder — blocked items are high-signal and should never be hidden._
+
+| Item | Assignee | Blocked since | Blocked by | Escalated to | Unblock action       |
+| ---- | -------- | ------------- | ---------- | ------------ | -------------------- |
+|      |          |               |            |              | _[No blocked items]_ |
+
+> 🔴 **0 items blocked.** All work is progressing.
+
+---
+
+## 🚫 Won't Do
+
+_Explicitly out of scope for this board period. Capture rationale so these decisions are transparent and auditable. Include placeholder if empty._
+
+| Item | Date decided | Decision owner | Rationale                        | Revisit trigger |
+| ---- | ------------ | -------------- | -------------------------------- | --------------- |
+|      |              |                | _[No items explicitly declined]_ |                 |
 
 ---
 
