@@ -53,21 +53,21 @@ _Kanban board showing current work distribution across backlog, in-progress, rev
 
 ```mermaid
 kanban
-Backlog
-task1[🔧 Deploy monitoring]
-task2[📝 Write API docs]
-In Progress
-task3[⚙️ Build user dashboard]
-task4[🐛 Fix payment timeout]
-In Review
-task5[👀 Add export feature]
-Done
-task6[🚀 Set up CI pipeline]
-task7[📊 Database migration]
-Blocked
-task8[⛔ Waiting for security approval]
-Won't Do
-task9[❌ Drop mobile support in this sprint]
+    Backlog
+        task1[🔧 Deploy monitoring]
+        task2[📝 Write API docs]
+    In Progress
+        task3[⚙️ Build user dashboard]
+        task4[🐛 Fix payment timeout]
+    In Review
+        task5[👀 Add export feature]
+    Done
+        task6[🚀 Set up CI pipeline]
+        task7[📊 Database migration]
+    Blocked
+        task8[⛔ Waiting for security approval]
+    Won't Do
+        task9[❌ Drop mobile support in this sprint]
 ```
 
 > ⚠️ Always show all 6 columns — Even if a column has no items, include it with a placeholder. This makes the board structure explicit and ensures categories are never forgotten. Use a placeholder like [No items yet] when a column is empty.

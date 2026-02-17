@@ -16,21 +16,18 @@ _Kanban board showing the current sprint's work items distributed across four wo
 
 ```mermaid
 kanban
-    column1["📋 Backlog"]
-        task1["🔐 Upgrade auth library"]
-        task2["🛡️ Add rate limiting"]
-        task3["📚 Write API docs"]
-
-    column2["🔧 In Progress"]
-        task4["📊 Build dashboard"]
-        task5["🐛 Fix login bug"]
-
-    column3["🔍 In Review"]
-        task6["💰 Refactor payments"]
-
-column4["✅ Done"]
-task7["📊 Deploy monitoring"]
-task8["⚙️ Update CI pipeline"]
+Backlog
+  task1[🔐 Upgrade auth library]
+  task2[🛡️ Add rate limiting]
+  task3[📚 Write API docs]
+In Progress
+  task4[📊 Build dashboard]
+  task5[🐛 Fix login bug]
+In Review
+  task6[💰 Refactor payments]
+Done
+  task7[📊 Deploy monitoring]
+  task8[⚙️ Update CI pipeline]
 ```
 
 > ⚠️ **Tip:** Each task gets ONE domain emoji at the start — this is your primary visual signal for categorization. Column emoji indicates workflow state.
@@ -55,24 +52,19 @@ _Description of the workflow columns and what the board represents. Always show 
 
 ```mermaid
 kanban
-col1["📋 Backlog"]
-item1["🔧 Task description"]
-item2["📝 Task description"]
-
-col2["🔧 In Progress"]
-item3["⚙️ Task description"]
-
-col3["🔍 In Review"]
-item4["👀 Task description"]
-
-col4["✅ Done"]
-item5["🚀 Task description"]
-
-col5["🚫 Blocked"]
-item6["⛔ Task description"]
-
-col6["🚫 Won't Do"]
-item7["❌ Task description"]
+Backlog
+  task1[🔧 Task description]
+  task2[📝 Task description]
+In Progress
+  task3[⚙️ Task description]
+In Review
+  task4[👀 Task description]
+Done
+  task5[🚀 Task description]
+Blocked
+  task6[⛔ Task description]
+Won't Do
+  task7[❌ Task description]
 ```
 
 > ⚠️ Always include all 6 columns — Backlog, In Progress, In Review, Done, Blocked, Won't Do. Even if a column is empty, include a placeholder item like [No items yet] to make the structure explicit.
@@ -85,29 +77,24 @@ _Sprint W07 board for the Payments Team showing a realistic distribution of work
 
 ```mermaid
 kanban
-column1["📋 Backlog"]
-b1["📊 Add pool monitoring to auth"]
-b2["🔍 Evaluate PgBouncer"]
-b3["📝 Update runbook for pool alerts"]
-
-column2["🔧 In Progress"]
-ip1["📊 Build merchant dashboard MVP"]
-ip2["📚 Write v2 API migration guide"]
-ip3["🔐 Add OAuth2 PKCE flow"]
-
-column3["🔍 In Review"]
-r1["🛡️ Request validation middleware"]
-
-column4["✅ Done"]
-d1["🛡️ Rate limiting on /v2/charges"]
-d2["🐛 Fix pool exhaustion errors"]
-d3["📊 Pool utilization alerts"]
-
-column5["🚫 Blocked"]
-bl1["🔄 Auth service pool config"]
-
-column6["🚫 Won't Do"]
-w1["❌ Mobile SDK in this sprint"]
+Backlog
+  b1[📊 Add pool monitoring to auth]
+  b2[🔍 Evaluate PgBouncer]
+  b3[📝 Update runbook for pool alerts]
+In Progress
+  ip1[📊 Build merchant dashboard MVP]
+  ip2[📚 Write v2 API migration guide]
+  ip3[🔐 Add OAuth2 PKCE flow]
+In Review
+  r1[🛡️ Request validation middleware]
+Done
+  d1[🛡️ Rate limiting on /v2/charges]
+  d2[🐛 Fix pool exhaustion errors]
+  d3[📊 Pool utilization alerts]
+Blocked
+  bl1[🔄 Auth service pool config]
+Won't Do
+  w1[❌ Mobile SDK in this sprint]
 ```
 
 Tips for complex kanban diagrams:

@@ -18,15 +18,15 @@ _Kanban board showing Sprint W08 rollover state from W07 plus today-completed it
 ```mermaid
 kanban
 Backlog
-task1["🔍 Verify Mermaid rendering on GitHub (light + dark)"]
-task2["✅ Commit and push current uncommitted reliability updates"]
+  task1[🔍 Verify Mermaid rendering on GitHub (light + dark)]
+  task2[✅ Commit and push current uncommitted reliability updates]
 In Progress
-task3["🧾 Finalize source-of-truth records and publish updates"]
+  task3[🧾 Finalize source-of-truth records and publish updates]
 In Review
 Done
-task4["🧠 Persistent memory CLI + prompt-memory propagation"]
-task5["⚖️ Root license metadata aligned to Apache-2.0"]
-task6["📄 README + package descriptions aligned to agent-project positioning"]
+  task4[🧠 Persistent memory CLI + prompt-memory propagation]
+  task5[⚖️ Root license metadata aligned to Apache-2.0]
+  task6[📄 README + package descriptions aligned to agent-project positioning]
 Blocked
 Won't Do
 ```
