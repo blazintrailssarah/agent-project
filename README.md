@@ -22,7 +22,7 @@ subgraph LocalDevelopment["💻 Local Development Environment"]
     AgentTools["🤖 Agent Tools<br/>OpenCode / Claude Code / Roo Code / Copilot"]
     LocalCI["⚡ Local CI Runner<br/>./scripts/ci-local.sh"]
     Memory["🧠 Review Memory<br/>./scripts/memory.sh"]
-    
+
     AgentTools --> LocalCI
     LocalCI --> Memory
 end
@@ -33,7 +33,7 @@ subgraph SourceControl["📦 Source Control & Standards"]
     Standards["📚 Agentic Standards<br/>Style Guides & Templates"]
     ADRs["🏛️ Architecture Decisions<br/>agentic/adr/"]
     Tracking["📊 Project Tracking<br/>docs/project/"]
-    
+
     AgentsMD --> Standards
     Standards --> ADRs
     Standards --> Tracking
@@ -46,23 +46,23 @@ subgraph CI_CD["🔄 CI/CD Pipeline"]
         TypeCheck["🔍 Type Check"]
         Test["🧪 Tests"]
     end
-    
+
     subgraph Review["👥 Review Phase"]
         CrewAI["🤖 CrewAI Review"]
         Quick["⚡ Quick Mode"]
         Full["🔬 Full Mode"]
         Complete["🎯 Complete-Full Mode"]
-        
+
         CrewAI --> Quick
         CrewAI --> Full
         CrewAI --> Complete
     end
-    
+
     subgraph Deploy["🚀 Deploy Phase"]
         Build["📦 Build"]
         Website["🌐 Deploy Website"]
     end
-    
+
     Validation --> Review
     Review --> Deploy
 end
@@ -72,7 +72,7 @@ subgraph GitHubPlatform["☁️ GitHub Platform"]
     Actions["🔷 GitHub Actions<br/>.github/workflows/"]
     Secrets["🔐 Key Management<br/>GitHub Secrets"]
     Pages["📄 GitHub Pages<br/>Website Hosting"]
-    
+
     Actions --> Secrets
     Actions --> Pages
 end
@@ -131,15 +131,16 @@ pnpm install
 
 This template is designed for teams using any AI coding agent:
 
-| Tool | How It Works |
-|------|--------------|
-| **OpenCode** | Reads `AGENTS.md` at startup, follows instructions for PRs, issues, and kanban |
-| **Claude Code** | Ingests repo rules from `AGENTS.md`, applies conventions automatically |
-| **Roo Code** | Uses `AGENTS.md` as system context for all operations |
-| **GitHub Copilot** | References `AGENTS.md` for code style and conventions |
-| **Perplexity/Other Web Agents** | Point to `AGENTS.md` URL as entrypoint |
+| Tool                            | How It Works                                                                   |
+| ------------------------------- | ------------------------------------------------------------------------------ |
+| **OpenCode**                    | Reads `AGENTS.md` at startup, follows instructions for PRs, issues, and kanban |
+| **Claude Code**                 | Ingests repo rules from `AGENTS.md`, applies conventions automatically         |
+| **Roo Code**                    | Uses `AGENTS.md` as system context for all operations                          |
+| **GitHub Copilot**              | References `AGENTS.md` for code style and conventions                          |
+| **Perplexity/Other Web Agents** | Point to `AGENTS.md` URL as entrypoint                                         |
 
 **Perfect for teams that want:**
+
 - ✅ Auditable, repo-native process standards (not UI-only metadata)
 - ✅ AI agents that follow the same rules as humans
 - ✅ Versioned project tracking in git
@@ -185,6 +186,7 @@ class PR1,PR2,I1,I2,K1,K2,A1,A2 file
 ```
 
 **Why this matters:**
+
 - **Portable:** Your project history travels with the repo
 - **Versioned:** Git tracks every change with attribution
 - **Accessible:** Both humans and agents read the same files
@@ -265,7 +267,7 @@ subgraph Phase3["Phase 3: Review"]
     Quick["⚡ Quick Mode"]
     Full["🔬 Full Mode"]
     Complete["🎯 Complete-Full"]
-    
+
     Review --> Quick
     Review --> Full
     Review --> Complete
@@ -281,11 +283,11 @@ class Phase3,Review,Quick,Full,Complete review
 
 ### Review Modes Explained
 
-| Mode | Command | What It Does | When to Use |
-|------|---------|--------------|-------------|
-| **Quick** | `./scripts/ci-local.sh --review` | Fast triage-oriented review | Day-to-day iteration |
-| **Full** | `./scripts/ci-local.sh --full-review --step review` | Deeper synthesis + specialists | Risky or broad changes |
-| **Complete-Full** | `./scripts/ci-local.sh --complete-full-review --step review` | All specialists, full-repo scope | Pre-merge hardening |
+| Mode              | Command                                                      | What It Does                     | When to Use            |
+| ----------------- | ------------------------------------------------------------ | -------------------------------- | ---------------------- |
+| **Quick**         | `./scripts/ci-local.sh --review`                             | Fast triage-oriented review      | Day-to-day iteration   |
+| **Full**          | `./scripts/ci-local.sh --full-review --step review`          | Deeper synthesis + specialists   | Risky or broad changes |
+| **Complete-Full** | `./scripts/ci-local.sh --complete-full-review --step review` | All specialists, full-repo scope | Pre-merge hardening    |
 
 **Layered assurance:** Speed when you need flow, depth when you need confidence, complete coverage when touching multiple risk domains.
 
@@ -338,16 +340,16 @@ class docs,scripts docs
 
 ### Key Directories
 
-| Directory | Purpose | Key Files |
-|-----------|---------|-----------|
-| `agentic/` | Agent framework and standards | `AGENTS.md`, `instructions.md`, style guides |
-| `.crewai/` | CrewAI review system | Agent definitions, task contracts, crews |
-| `apps/` | Deployable applications | `web/`, `api/`, `cli/` |
-| `services/` | Background services/workers | Long-running processes |
-| `packages/` | Shared libraries/modules | Reusable code |
-| `data/sql/` | Database schemas/migrations | SQL files |
-| `docs/project/` | Project tracking | PRs, issues, kanban boards |
-| `scripts/` | CI and utility scripts | `ci-local.sh`, `memory.sh` |
+| Directory       | Purpose                       | Key Files                                    |
+| --------------- | ----------------------------- | -------------------------------------------- |
+| `agentic/`      | Agent framework and standards | `AGENTS.md`, `instructions.md`, style guides |
+| `.crewai/`      | CrewAI review system          | Agent definitions, task contracts, crews     |
+| `apps/`         | Deployable applications       | `web/`, `api/`, `cli/`                       |
+| `services/`     | Background services/workers   | Long-running processes                       |
+| `packages/`     | Shared libraries/modules      | Reusable code                                |
+| `data/sql/`     | Database schemas/migrations   | SQL files                                    |
+| `docs/project/` | Project tracking              | PRs, issues, kanban boards                   |
+| `scripts/`      | CI and utility scripts        | `ci-local.sh`, `memory.sh`                   |
 
 ---
 
@@ -392,6 +394,7 @@ class CrewAI,DeployTarget runtime
 ```
 
 **Required Secrets:**
+
 - `OPENROUTER_API_KEY` - For CrewAI reviews (or `NVIDIA_API_KEY` for NVIDIA NIM)
 - Deployment tokens for your hosting platform (Vercel, AWS, etc.)
 
@@ -462,16 +465,16 @@ Add organization-specific context:
 
 Start here based on what you're doing:
 
-| If you want to... | Start here |
-|-------------------|------------|
-| **Use an agent** | [`AGENTS.md`](AGENTS.md) |
-| **Understand the framework** | [`agentic/README.md`](agentic/README.md) |
-| **Customize CI/CD** | [`.github/workflows/README.md`](.github/workflows/README.md) |
-| **Add specialists** | [`.crewai/README.md`](.crewai/README.md) |
-| **Create a PR** | [`docs/project/pr/`](docs/project/pr/) |
-| **Track work** | [`docs/project/kanban/`](docs/project/kanban/) |
-| **Document decisions** | [`agentic/adr/`](agentic/adr/) |
-| **Run scripts** | [`scripts/README.md`](scripts/README.md) |
+| If you want to...            | Start here                                                   |
+| ---------------------------- | ------------------------------------------------------------ |
+| **Use an agent**             | [`AGENTS.md`](AGENTS.md)                                     |
+| **Understand the framework** | [`agentic/README.md`](agentic/README.md)                     |
+| **Customize CI/CD**          | [`.github/workflows/README.md`](.github/workflows/README.md) |
+| **Add specialists**          | [`.crewai/README.md`](.crewai/README.md)                     |
+| **Create a PR**              | [`docs/project/pr/`](docs/project/pr/)                       |
+| **Track work**               | [`docs/project/kanban/`](docs/project/kanban/)               |
+| **Document decisions**       | [`agentic/adr/`](agentic/adr/)                               |
+| **Run scripts**              | [`scripts/README.md`](scripts/README.md)                     |
 
 ---
 
