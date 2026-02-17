@@ -68,8 +68,8 @@ Cloudflare["☁️ Cloudflare Pages"]
 Build --> Cloudflare
 end
 
-    Validation --> Review
-    Review --> Deploy
+    Validation --> Deploy
+    Deploy --> Review
 end
 
 subgraph GitHubPlatform["☁️ GitHub Platform"]

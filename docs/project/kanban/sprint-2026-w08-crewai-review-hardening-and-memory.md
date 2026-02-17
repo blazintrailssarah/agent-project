@@ -18,7 +18,7 @@ _Kanban board showing Sprint W08 rollover state from W07 plus today-completed it
 ```mermaid
 kanban
 Backlog
-  task1[🔍 Verify Mermaid rendering on GitHub (light + dark)]
+  task1["🔍 Verify Mermaid rendering on GitHub (light + dark)"]
   task2[✅ Commit and push current uncommitted reliability updates]
 In Progress
   task3[🧾 Finalize source-of-truth records and publish updates]
@@ -96,7 +96,7 @@ _Prioritized top-to-bottom. Top items are next to be pulled. Include at least on
 
 | #   | Item                                                    | Priority | Estimate | Assignee | Notes                                                                  |
 | --- | ------------------------------------------------------- | -------- | -------- | -------- | ---------------------------------------------------------------------- |
-| 1   | Verify Mermaid rendering on GitHub (light + dark)       | 🔴 High  | S        | Human    | Push branch, check architecture/requirement/C4/radar/treemap diagrams  |
+| 1   | Verify Mermaid rendering on GitHub (light + dark)     "  | 🔴 High  | S        | Human    | Push branch, check architecture/requirement/C4/radar/treemap diagrams  |
 | 2   | Commit and push current uncommitted reliability updates | 🔴 High  | S        | Human    | Include provider routing, fail-fast timeout, memory/router/doc updates |
 
 ---
