@@ -19,16 +19,13 @@ _Kanban board showing Sprint W07 work distribution across workflow columns, incl
 
 ```mermaid
 kanban
-    column1["📋 Backlog"]
-        task1["🔍 Verify Mermaid rendering on GitHub"]
-        task14["✅ Commit and push current uncommitted work"]
-
-    column2["🔧 In Progress"]
-        task10["🧾 Finalize source-of-truth records and publish branch updates"]
-
-    column3["🔍 In Review"]
-
-column4["✅ Done"]
+Backlog
+task1["🔍 Verify Mermaid rendering on GitHub"]
+task14["✅ Commit and push current uncommitted work"]
+In Progress
+task10["🧾 Finalize source-of-truth records and publish branch updates"]
+In Review
+Done
 task6["📊 Mermaid style guide + 23 type files"]
 task7["📝 Markdown style guide + 9 templates"]
 task8["🗂️ Everything is Code philosophy"]
@@ -79,15 +76,13 @@ task53["🌐 Add complete-full-review mode (local flag + PR label trigger semant
 task54["🛠️ Fix GHA CrewAI prep crash for list-shaped commits.json context pack"]
 task55["🧠 Add persistent memory CLI + prompt-memory propagation"]
 task56["⚖️ Fix legal metadata drift: pyproject license aligned to Apache-2.0"]
-
-column5["🚫 Blocked"]
-
-column6["🚫 Won't Do"]
+Blocked
+Won't Do
 task41["⛔ Keep NVIDIA as default local provider"]
 task42["⛔ Depend only on CrewAI tool-write side effects for local artifacts"]
 ```
 
-> ⚠️ Always show all 6 columns — Even if a column has no items, include it with a placeholder. This makes the board structure explicit and ensures categories are never forgotten. Use a placeholder like [No items yet] when a column is empty.
+> ⚠️ **Always show all 6 columns** — Even if a column has no items, include it with a placeholder. This makes the board structure explicit and ensures categories are never forgotten. Use a placeholder like `[No items yet]` when a column is empty.
 
 ---
 

@@ -17,26 +17,21 @@ _Kanban board showing Sprint W08 rollover state from W07 plus today-completed it
 
 ```mermaid
 kanban
-column1["📋 Backlog"]
+Backlog
 task1["🔍 Verify Mermaid rendering on GitHub (light + dark)"]
 task2["✅ Commit and push current uncommitted reliability updates"]
-
-column2["🔧 In Progress"]
+In Progress
 task3["🧾 Finalize source-of-truth records and publish updates"]
-
-column3["🔍 In Review"]
-
-column4["✅ Done"]
+In Review
+Done
 task4["🧠 Persistent memory CLI + prompt-memory propagation"]
 task5["⚖️ Root license metadata aligned to Apache-2.0"]
 task6["📄 README + package descriptions aligned to agent-project positioning"]
-
-column5["🚫 Blocked"]
-
-column6["🚫 Won't Do"]
+Blocked
+Won't Do
 ```
 
-> ⚠️ Always show all 6 columns — Even if a column has no items, include it with a placeholder. This makes the board structure explicit and ensures categories are never forgotten. Use a placeholder like [No items yet] when a column is empty.
+> ⚠️ **Always show all 6 columns** — Even if a column has no items, include it with a placeholder. This makes the board structure explicit and ensures categories are never forgotten. Use a placeholder like `[No items yet]` when a column is empty.
 
 ---
 
