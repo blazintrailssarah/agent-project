@@ -40,34 +40,33 @@ subgraph SourceControl["📦 Source Control & Standards"]
 end
 
 subgraph CI_CD["🔄 CI/CD Pipeline"]
-    direction TB
-    subgraph Validation["✅ Validation Phase"]
-        Lint["📝 Lint & Format"]
-        TypeCheck["🔍 Type Check"]
-        Test["🧪 Tests"]
-    end
-
-    subgraph Review["👥 Review Phase"]
-        CrewAI["🤖 CrewAI Review"]
-        Quick["⚡ Quick Mode"]
-        Full["🔬 Full Mode"]
-        Complete["🎯 Complete-Full Mode"]
-
-        CrewAI --> Quick
-        CrewAI --> Full
-        CrewAI --> Complete
-    end
+direction TB
+subgraph Validation["✅ Validation Phase"]
+direction LR
+Lint["📝 Lint & Format"]
+TypeCheck["🔍 Type Check"]
+Test["🧪 Tests"]
+Lint --> TypeCheck --> Test
+end
 
 subgraph Deploy["🚀 Deploy Phase"]
 direction LR
 Build["📦 Build"]
 Cloudflare["☁️ Cloudflare Pages"]
-
 Build --> Cloudflare
 end
 
-    Validation --> Deploy
-    Deploy --> Review
+subgraph Review["👥 Review Phase"]
+direction LR
+CrewAI["🤖 CrewAI Review"]
+Quick["⚡ Quick Mode"]
+Full["🔬 Full Mode"]
+Complete["🎯 Complete-Full Mode"]
+CrewAI --> Quick --> Full --> Complete
+end
+
+Validation --> Deploy
+Deploy --> Review
 end
 
 subgraph GitHubPlatform["☁️ GitHub Platform"]
