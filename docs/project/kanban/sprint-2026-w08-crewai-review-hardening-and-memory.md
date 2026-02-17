@@ -96,7 +96,7 @@ _Prioritized top-to-bottom. Top items are next to be pulled. Include at least on
 
 | #   | Item                                                    | Priority | Estimate | Assignee | Notes                                                                  |
 | --- | ------------------------------------------------------- | -------- | -------- | -------- | ---------------------------------------------------------------------- |
-| 1   | Verify Mermaid rendering on GitHub (light + dark)     "  | 🔴 High  | S        | Human    | Push branch, check architecture/requirement/C4/radar/treemap diagrams  |
+| 1   | Verify Mermaid rendering on GitHub (light + dark) "     | 🔴 High  | S        | Human    | Push branch, check architecture/requirement/C4/radar/treemap diagrams  |
 | 2   | Commit and push current uncommitted reliability updates | 🔴 High  | S        | Human    | Include provider routing, fail-fast timeout, memory/router/doc updates |
 
 ---
