@@ -18,15 +18,13 @@ accTitle: Agent Project System Architecture
 accDescr: Complete architecture showing local development, CI/CD pipelines, agent workflows, and deployment paths.
 
 subgraph LocalDevelopment["💻 Local Development Environment"]
-direction TB
+direction LR
 VSCode["📝 VS Code<br/>IDE + Terminal"]
 AgentTools["🤖 Agent Tools<br/>OpenCode / Claude Code / Roo Code / Copilot"]
 LocalCI["⚡ Local CI Runner<br/>./scripts/ci-local.sh"]
 Memory["🧠 Review Memory<br/>./scripts/memory.sh"]
 
-VSCode --> AgentTools
-AgentTools --> LocalCI
-LocalCI --> Memory
+VSCode --> AgentTools --> LocalCI --> Memory
 end
 
 subgraph SourceControl["📦 Source Control & Standards"]
@@ -73,13 +71,9 @@ end
 end
 
 subgraph GitHubPlatform["☁️ GitHub Platform"]
-direction TB
 Actions["🔷 GitHub Actions<br/>CI/CD Workflows"]
 Secrets["🔐 Key Management<br/>Repository Secrets"]
 PRs["👥 PRs & Reviews<br/>Collaboration Hub"]
-
-Actions --> Secrets
-Actions --> PRs
 end
 
 LocalDevelopment --> SourceControl
