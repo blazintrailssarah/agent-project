@@ -1,7 +1,9 @@
 # Sprint W08 2026 — Kanban Board
 
 _Sprint W08: Feb 15-21, 2026 · opencode repo_
-_Human · Last updated: 2026-02-15 13:37_
+_Human · Last updated: 2026-02-17_
+
+> 🎯 **Current status:** PR-#1 ready to merge. Cloudflare production deploy deferred to tomorrow (tracked in separate project board).
 
 ---
 
@@ -18,15 +20,17 @@ _Kanban board showing Sprint W08 rollover state from W07 plus today-completed it
 ```mermaid
 kanban
 Backlog
-  task1["🔍 Verify Mermaid rendering on GitHub (light + dark)"]
-  task2[✅ Commit and push current uncommitted reliability updates]
+  task1["🔍 Verify Mermaid rendering on GitHub (light + dark) — post-merge"]
 In Progress
-  task3[🧾 Finalize source-of-truth records and publish updates]
+  task2["🔄 Merge PR-#1 via GitHub UI (ready now)"]
 In Review
 Done
+  task3[✅ Finalize source-of-truth records and publish updates]
   task4[🧠 Persistent memory CLI + prompt-memory propagation]
   task5[⚖️ Root license metadata aligned to Apache-2.0]
   task6[📄 README + package descriptions aligned to agent-project positioning]
+  task7[🚀 Deploy label added, CI triggered]
+  task8[📋 Cloudflare deploy tracking issue created]
 Blocked
 Won't Do
 ```
@@ -37,14 +41,14 @@ Won't Do
 
 ## 🚦 Board Status
 
-| Column             | Count | WIP Limit | Status                          |
-| ------------------ | ----- | --------- | ------------------------------- |
-| 📋 **Backlog**     | 2     | —         | Rolled from W07                 |
-| 🔄 **In Progress** | 1     | 3         | 🟢 Under limit                  |
-| 🔍 **In Review**   | 0     | —         | —                               |
-| ✅ **Done**        | 3     | —         | W08 closeout items accumulating |
-| 🚫 **Blocked**     | 0     | —         | Clear                           |
-| 🚫 **Won't Do**    | 0     | —         | —                               |
+| Column             | Count | WIP Limit | Status                              |
+| ------------------ | ----- | --------- | ----------------------------------- |
+| 📋 **Backlog**     | 1     | —         | Post-merge verification             |
+| 🔄 **In Progress** | 1     | 3         | 🟢 Under limit — merge ready        |
+| 🔍 **In Review**   | 0     | —         | —                                   |
+| ✅ **Done**        | 6     | —         | PR-#1 complete, deploy tracked sep. |
+| 🚫 **Blocked**     | 0     | —         | Clear                               |
+| 🚫 **Won't Do**    | 0     | —         | —                                   |
 
 > ⚠️ **Always include all 6 columns** — Each column represents a workflow state. Even if count is 0, keep the row visible. This prevents categories from being overlooked.
 
@@ -198,6 +202,7 @@ _Explicitly out of scope for this board period. Capture rationale so these decis
 - **Feb 15:** Completed docs hardening with Mermaid pipeline diagrams + ADR-007; link-check and complete-full-review reruns both passed.
 - **Feb 15:** Started final docs cleanup to replace remaining ASCII directory tree in `.crewai/README.md` with Mermaid hierarchy diagram.
 - **Feb 15:** Completed ASCII-to-Mermaid replacement for `.crewai/README.md` directory structure and revalidated full local review pipeline.
+- **Feb 17:** PR-#1 declared ready for merge — Cloudflare production deploy deferred to tomorrow with dedicated tracking issue and kanban board created.
 
 ### Carryover from last period
 
@@ -215,11 +220,14 @@ _Explicitly out of scope for this board period. Capture rationale so these decis
 ## 🔗 References
 
 - [Previous board: Sprint W07](./sprint-2026-w07-agentic-template-modernization.md)
+- [Issue-#1: Agentic documentation system](../issues/issue-00000001-agentic-documentation-system.md) — ✅ Resolved, merging now
 - [Issue-#2: Provider priority + fail-fast + local pricing visibility](../issues/issue-00000002-provider-priority-fail-fast-review-cost-visibility.md)
 - [Issue-#3: Local review context pack and resilience](../issues/issue-00000003-local-review-context-pack-and-resilience.md)
 - [Issue-#4: Memory backend self-hosted and SQL seed](../issues/issue-00000004-memory-backend-self-hosted-and-sql-seed.md)
-- [PR-#1: Agentic documentation system + repo cleanup](../pr/pr-00000001-agentic-docs-and-monorepo-modernization.md)
+- [Issue-#5: Cloudflare deploy follow-up](../issues/issue-00000005-cloudflare-deploy-follow-up.md) — Deploy tracking
+- [PR-#1: Agentic documentation system + repo cleanup](../pr/pr-00000001-agentic-docs-and-monorepo-modernization.md) — Ready to merge
+- [Cloudflare Deploy Board](./project-cloudflare-pages-deploy.md) — Deployment tracking
 
 ---
 
-_Next update: 2026-02-15 · Board owner: Human_
+_Next update: After PR-#1 merge · Board owner: Human_

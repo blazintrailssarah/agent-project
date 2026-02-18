@@ -2,13 +2,13 @@
 
 | Field               | Value                                                                                                                                                                                                                                                                                                       |
 | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **PR**              | Planned (not yet created in GitHub UI)                                                                                                                                                                                                                                                                      |
+| **PR**              | [#1](https://github.com/SuperiorByteWorks-LLC/agent-project/pull/1)                                                                                                                                                                                                                                         |
 | **Author**          | Clayton Young ([@borealBytes](https://github.com/borealBytes))                                                                                                                                                                                                                                              |
 | **Date**            | 2026-02-13                                                                                                                                                                                                                                                                                                  |
-| **Status**          | Open                                                                                                                                                                                                                                                                                                        |
+| **Status**          | **Ready to merge** — merge manually via GitHub UI                                                                                                                                                                                                                                                           |
 | **Branch**          | `feat/agentic-pr-doc-url-policy` → `main`                                                                                                                                                                                                                                                                   |
 | **Related issues**  | [#1](../issues/issue-00000001-agentic-documentation-system.md), [#2](../issues/issue-00000002-provider-priority-fail-fast-review-cost-visibility.md), [#3](../issues/issue-00000003-local-review-context-pack-and-resilience.md), [#4](../issues/issue-00000004-memory-backend-self-hosted-and-sql-seed.md) |
-| **Deploy strategy** | Standard (docs + local CI tooling updates, no production deploy path changes)                                                                                                                                                                                                                               |
+| **Deploy strategy** | **Merging now** — Cloudflare Pages deploy deferred to tomorrow (see follow-up issue)                                                                                                                                                                                                                        |
 
 ---
 
@@ -134,6 +134,12 @@ Follow-up completed: replaced the `.crewai/README.md` ASCII directory tree with 
 | **Scope**         | Broad             | 36+ new files, 10 rewritten/cleaned files, 1 deleted dir, plus CrewAI/local CI reliability updates |
 | **Reversibility** | Easily reversible | Revert commit removes all new files, no migration needed                                           |
 | **Security**      | None              | No code, config, or credential changes                                                             |
+
+### Merge readiness
+
+**Status:** ✅ Ready to merge manually via GitHub UI
+
+**Deployment note:** Cloudflare Pages production deployment will be handled as a follow-up task tomorrow. The `deploy-preview` job was triggered with the `Deploy: Website Preview` label and CI is running, but production deploy is intentionally deferred. See follow-up issue for Cloudflare deployment tracking.
 
 ---
 
