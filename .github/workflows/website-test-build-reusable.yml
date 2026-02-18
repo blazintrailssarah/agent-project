@@ -1,4 +1,4 @@
-name: Test & Build Website
+name: Test-Build / Website
 
 on:
   workflow_call:
@@ -10,17 +10,18 @@ on:
     outputs:
       build_artifact:
         description: 'Name of the build artifact'
-        value: ${{ jobs.test-build.outputs.artifact_name }}
+        value: ${{ jobs.website-test-build.outputs.artifact_name }}
       should_deploy:
         description: 'Whether deployment should proceed'
-        value: ${{ jobs.test-build.outputs.should_deploy }}
+        value: ${{ jobs.website-test-build.outputs.should_deploy }}
 
 permissions:
   contents: read
   pull-requests: write
 
 jobs:
-  test-build:
+  website-test-build:
+    name: Execute Website Test-Build
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -30,7 +31,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: website
+        working-directory: apps/web
 
     steps:
       - name: Checkout
@@ -86,15 +87,15 @@ jobs:
           git rev-parse "$BASE" >/dev/null 2>&1 && echo "  ✓ Base commit exists" || echo "  ✗ Base commit missing"
           git rev-parse "$HEAD" >/dev/null 2>&1 && echo "  ✓ Head commit exists" || echo "  ✗ Head commit missing"
 
-          # Check for website/ directory changes across the entire diff
+          # Check for apps/web directory changes across the entire diff
           echo "🔍 Running diff..."
-          CHANGED_FILES=$(git diff --name-only "$BASE".."HEAD" | grep '^website/' || true)
+          CHANGED_FILES=$(git diff --name-only "$BASE".."HEAD" | grep '^apps/web/' || true)
 
           if [ -z "$CHANGED_FILES" ]; then
-            echo "⏭️  No website files changed - skipping tests and build"
+            echo "⏭️  No apps/web files changed - skipping tests and build"
             echo "should_run=false" >> $GITHUB_OUTPUT
           else
-            echo "✅ Website files changed:"
+            echo "✅ apps/web files changed:"
             echo "$CHANGED_FILES" | head -n 5
             if [ $(echo "$CHANGED_FILES" | wc -l) -gt 5 ]; then
               echo "... and $(( $(echo "$CHANGED_FILES" | wc -l) - 5 )) more"
@@ -145,7 +146,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: website-build
-          path: website/dist
+          path: apps/web/dist
           retention-days: 7
           if-no-files-found: error
 
@@ -156,15 +157,15 @@ jobs:
           echo "## 🏗️ Website Build" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          if [ -d "website/dist" ]; then
+          if [ -d "apps/web/dist" ]; then
             echo "✅ **Build successful!**" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "### Build Artifacts" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
 
             # Calculate build size
-            BUILD_SIZE=$(du -sh website/dist | cut -f1)
-            FILE_COUNT=$(find website/dist -type f | wc -l)
+            BUILD_SIZE=$(du -sh apps/web/dist | cut -f1)
+            FILE_COUNT=$(find apps/web/dist -type f | wc -l)
 
             echo "- **Size**: $BUILD_SIZE" >> $GITHUB_STEP_SUMMARY
             echo "- **Files**: $FILE_COUNT" >> $GITHUB_STEP_SUMMARY
@@ -179,7 +180,7 @@ jobs:
         run: |
           echo "## 🏗️ Website Build" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "⏭️ **Skipped** - No website files changed" >> $GITHUB_STEP_SUMMARY
+          echo "⏭️ **Skipped** - No apps/web files changed" >> $GITHUB_STEP_SUMMARY
 
       - name: Save summary for capture
         if: always()

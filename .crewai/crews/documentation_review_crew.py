@@ -5,6 +5,8 @@ import logging
 from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 
+from tools.github_tools import CommitDiffTool, CommitInfoTool, FileContentTool
+from tools.related_files_tool import RelatedFilesTool
 from tools.workspace_tool import WorkspaceTool
 from utils.model_config import get_llm, get_rate_limiter
 
@@ -26,7 +28,13 @@ class DocumentationReviewCrew:
     def docs_curator(self) -> Agent:
         return Agent(
             config=self.agents_config["docs_curator"],
-            tools=[WorkspaceTool()],
+            tools=[
+                WorkspaceTool(),
+                FileContentTool,
+                RelatedFilesTool,
+                CommitInfoTool,
+                CommitDiffTool,
+            ],
             llm=self.llm,
             function_calling_llm=self.llm,
             max_iter=10,
@@ -39,6 +47,7 @@ class DocumentationReviewCrew:
         return Task(
             config=self.tasks_config["review_documentation"],
             agent=self.docs_curator(),
+            output_file="documentation_review.json",
         )
 
     @crew

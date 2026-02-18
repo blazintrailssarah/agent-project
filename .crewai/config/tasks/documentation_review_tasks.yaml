@@ -4,8 +4,17 @@ review_documentation:
 
     STEP 1: Read the diff and context
     - Call WorkspaceTool(operation="read", filename="diff.txt", content="")
+    - Call WorkspaceTool(operation="read", filename="context_pack.md", content="")
+      (if it exists)
     - Call WorkspaceTool(operation="read", filename="diff_context.json", content="")
       (if it exists)
+    - Call WorkspaceTool(operation="read", filename="changed_files_index.json", content="")
+      (if it exists)
+
+    STEP 1b: Selective repo reads for doc accuracy
+    - Use RelatedFilesTool(changed_files=[...], repository=<workspace path>) to identify docs tied to changed code
+    - Use FileContentTool(file_path=<target>, repository=<repo>, ref="HEAD") to verify referenced APIs/flows
+    - Use CommitInfoTool(commit_sha=<head sha>, repository=<repo>) when release notes/changelog intent is unclear
 
     STEP 2: Analyze documentation quality
     Focus on CHANGED files. Check for:
@@ -48,11 +57,12 @@ review_documentation:
     }
 
     RULES:
-    - Only flag issues related to CHANGED files
+    - Prioritize CHANGED files and near-by docs; include unchanged docs only if they conflict with changed behavior
     - ID prefix must be DOC-
     - severity_counts must match the actual findings list
     - If no docs changed, return empty findings with info summary
     - Output must be valid JSON
+    - Final response must be JSON only (no markdown, no prose, no code fences)
 
   expected_output: |
     "Documentation review complete: documentation_review.json written with [N] findings"

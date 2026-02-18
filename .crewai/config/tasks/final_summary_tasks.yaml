@@ -7,18 +7,22 @@ synthesize_summary:
     2. WorkspaceTool(operation="read", filename="quick_review.json", content="")
     3. WorkspaceTool(operation="read", filename="router_decision.json", content="")
     4. WorkspaceTool(operation="read", filename="full_review.json", content="")
-    5. WorkspaceTool(operation="read", filename="diff_context.json", content="")
+    5. WorkspaceTool(operation="read", filename="post_specialist_synthesis.json", content="")
+    6. WorkspaceTool(operation="read", filename="executive_synthesis.json", content="")
+    7. WorkspaceTool(operation="read", filename="diff_context.json", content="")
 
     SPECIALIST CREW OUTPUTS (read each if it exists):
-    6.  WorkspaceTool(operation="read", filename="security_review.json", content="")
-    7.  WorkspaceTool(operation="read", filename="legal_review.json", content="")
-    8.  WorkspaceTool(operation="read", filename="finance_review.json", content="")
-    9.  WorkspaceTool(operation="read", filename="documentation_review.json", content="")
-    10. WorkspaceTool(operation="read", filename="agentic_consistency_review.json", content="")
-    11. WorkspaceTool(operation="read", filename="marketing_review.json", content="")
-    12. WorkspaceTool(operation="read", filename="science_review.json", content="")
-    13. WorkspaceTool(operation="read", filename="government_regulatory_review.json", content="")
-    14. WorkspaceTool(operation="read", filename="strategic_review.json", content="")
+    8.  WorkspaceTool(operation="read", filename="security_review.json", content="")
+    9.  WorkspaceTool(operation="read", filename="legal_review.json", content="")
+    10. WorkspaceTool(operation="read", filename="finance_review.json", content="")
+    11. WorkspaceTool(operation="read", filename="documentation_review.json", content="")
+    12. WorkspaceTool(operation="read", filename="agentic_consistency_review.json", content="")
+    13. WorkspaceTool(operation="read", filename="marketing_review.json", content="")
+    14. WorkspaceTool(operation="read", filename="science_review.json", content="")
+    15. WorkspaceTool(operation="read", filename="government_regulatory_review.json", content="")
+    16. WorkspaceTool(operation="read", filename="strategic_review.json", content="")
+    17. WorkspaceTool(operation="read", filename="data_engineering_review.json", content="")
+    18. WorkspaceTool(operation="read", filename="validation_report.json", content="")
 
     MARKDOWN STYLE RULES (from AGENTS.md / agentic/markdown_style_guide.md):
     You MUST follow these formatting rules in the output markdown:
@@ -26,7 +30,7 @@ synthesize_summary:
     - H2 headings get exactly ONE emoji at the start: "## 🛡️ Security review"
     - H3 and H4 headings get NO emoji
     - Sentence case for headings: "## 🛡️ Security review" not "## 🛡️ Security Review"
-    - Use <details> for collapsible sections; ALWAYS put --- after every </details>
+    - Use <details> for collapsible sections
     - Tables: always include a header row, bold the key column, concise cells
     - Use `code formatting` for file paths, commands, config values
     - Bold sparingly — key terms only, never entire sentences
@@ -42,6 +46,14 @@ synthesize_summary:
     _PR #{pr_number} · {sha} · {repository} · {time}_
 
     ---
+
+    EXECUTIVE SUMMARY (top-level, 2-4 sentences):
+    ## 🧭 Executive summary
+    Provide 2-4 actionable sentences that tell the reader:
+    - what happened in this run,
+    - what to read first next,
+    - what to do next.
+    Keep it concise and decision-oriented.
 
     PRIORITY ACTION ITEMS (always visible, top of document):
     ## 🎯 Priority action items
@@ -67,7 +79,7 @@ synthesize_summary:
 
     For each specialist crew that ran, add a section with its corresponding emoji:
     - 🛡️ Security | ⚖️ Legal | 💰 Finance | 📚 Documentation
-    - 🤖 Agentic | 📢 Marketing | 🔬 Science | 🏛️ Government | 📊 Strategy
+    - 🤖 Agentic | 📢 Marketing | 🔬 Science | 🏛️ Government | 📊 Strategy | 🗄️ Data engineering
 
     For each specialist section include:
     ### Summary
@@ -77,12 +89,12 @@ synthesize_summary:
     Use <details open> with a bold red-circle header showing the count.
     For each finding show the title in bold, file path in backticks,
     then the description, then a fix line with 💡 prefix and the recommendation.
-    Close with </details> then --- on the next line.
+    Close with </details>.
 
     ### Other findings
     Use <details> (collapsed) with a bold header showing medium/low/info counts.
     Same format as above but collapsed by default.
-    Close with </details> then --- on the next line.
+    Close with </details>.
 
     ## 💡 Router suggestions
     Include autodetect suggestions if present.
@@ -101,7 +113,7 @@ synthesize_summary:
     SUCCESS CRITERIA:
     - Follows ALL markdown style rules listed above
     - Exactly one H1, emoji on H2 only, no emoji on H3/H4
-    - --- after every </details> block
+    - No required horizontal rule after </details> blocks
     - All available JSON files read
     - Final markdown >1000 characters
     - Covers all executed crews

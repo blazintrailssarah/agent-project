@@ -5,6 +5,8 @@ import logging
 from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 
+from tools.github_tools import CommitDiffTool, CommitInfoTool, FileContentTool
+from tools.related_files_tool import RelatedFilesTool
 from tools.workspace_tool import WorkspaceTool
 from utils.model_config import get_llm, get_rate_limiter
 
@@ -26,7 +28,13 @@ class StrategyReviewCrew:
     def strategy_consultant(self) -> Agent:
         return Agent(
             config=self.agents_config["strategy_consultant"],
-            tools=[WorkspaceTool()],
+            tools=[
+                WorkspaceTool(),
+                FileContentTool,
+                RelatedFilesTool,
+                CommitInfoTool,
+                CommitDiffTool,
+            ],
             llm=self.llm,
             function_calling_llm=self.llm,
             max_iter=10,
@@ -38,7 +46,13 @@ class StrategyReviewCrew:
     def global_expansion_analyst(self) -> Agent:
         return Agent(
             config=self.agents_config["global_expansion_analyst"],
-            tools=[WorkspaceTool()],
+            tools=[
+                WorkspaceTool(),
+                FileContentTool,
+                RelatedFilesTool,
+                CommitInfoTool,
+                CommitDiffTool,
+            ],
             llm=self.llm,
             function_calling_llm=self.llm,
             max_iter=12,
@@ -50,7 +64,13 @@ class StrategyReviewCrew:
     def competitive_intel_analyst(self) -> Agent:
         return Agent(
             config=self.agents_config["competitive_intel_analyst"],
-            tools=[WorkspaceTool()],
+            tools=[
+                WorkspaceTool(),
+                FileContentTool,
+                RelatedFilesTool,
+                CommitInfoTool,
+                CommitDiffTool,
+            ],
             llm=self.llm,
             function_calling_llm=self.llm,
             max_iter=10,
@@ -77,6 +97,7 @@ class StrategyReviewCrew:
         return Task(
             config=self.tasks_config["synthesize_strategic_review"],
             agent=self.competitive_intel_analyst(),
+            output_file="strategic_review.json",
         )
 
     @crew

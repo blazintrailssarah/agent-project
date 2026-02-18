@@ -210,7 +210,7 @@ flowchart LR
 ## Node Naming & Labels
 
 | Rule                  | ✅ Good                    | ❌ Bad                              |
-| --------------------- | -------------------------- | ----------------------------------- | --- | ---- | ----------------------------- | --- |
+| --------------------- | -------------------------- | ----------------------------------- | --- | ----- | ----------------------------- | --- |
 | `snake_case` IDs      | `run_tests`, `deploy_prod` | `A`, `B`, `node1`                   |
 | IDs match labels      | `open_pr` → "Open PR"      | `x` → "Open PR"                     |
 | Specific names        | `check_unit_tests`         | `check`                             |
@@ -219,7 +219,7 @@ flowchart LR
 | 3–6 word labels       | `[📥 Fetch raw data]`      | `[Raw data is fetched from source]` |
 | Active voice          | `[🧪 Run tests]`           | `[Tests are run]`                   |
 | Sentence case         | `[Start pipeline]`         | `[Start Pipeline]`                  |
-| Edge labels 1–4 words | `-->                       | All green                           |`   | `--> | All tests passed successfully |`   |
+| Edge labels 1–4 words | `-->                       | All green                           |     |`---> | All tests passed successfully |     |
 
 ---
 
@@ -337,7 +337,7 @@ Not every diagram is simple, and that's fine. The goal is **clarity at every sca
 - You need both the big picture AND the details
 - The overview shows subgraph-level blocks with key connections
 - Each detail diagram zooms into one subgraph with full internal structure
-- Link them: _"See [Build phase detail](#build-phase) for the full compilation flow."_
+- Link them: _"See [Managing complexity](#managing-complexity) for the full scaling guidance."_
 
 ### Best practices at any scale
 

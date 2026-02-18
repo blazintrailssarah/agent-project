@@ -65,13 +65,31 @@
 │   └── adr/                         # Architecture Decision Records
 │       ├── ADR-001-agent-optimized-documentation-system.md
 │       ├── ADR-002-mermaid-diagram-standards.md
-│       └── ADR-003-everything-is-code.md
+│       ├── ADR-003-everything-is-code.md
+│       ├── ADR-004-task-completion-source-of-truth-sync.md
+│       ├── ADR-005-polyglot-monorepo-workspace-layout.md
+│       ├── ADR-006-federated-adr-governance.md
+│       └── ADR-007-monorepo-foundation-and-decision-baseline.md
 ├── docs/                            # Everything is Code — project management
-│   ├── pr/                          # Pull request records (pr-NNNNNNNN.md)
-│   ├── issues/                      # Issue records (issue-NNNNNNNN.md)
-│   └── kanban/                      # Sprint/project boards ({scope}-{id}.md)
+│   └── project/
+│       ├── pr/                      # Pull request records (pr-NNNNNNNN-short-description.md)
+│       ├── issues/                  # Issue records (issue-NNNNNNNN-short-description.md)
+│       └── kanban/                  # Sprint/project boards ({scope}-{id}-short-description.md)
+├── .crewai/
+│   ├── README.md                    # CrewAI subsystem guide
+│   └── adr/                         # CrewAI-local architecture decisions
+├── apps/                            # Deployable applications (web/api/cli/mobile)
+│   └── README.md
+├── services/                        # Long-running backend services and workers
+│   └── README.md
+├── packages/                        # Shared libraries across runtimes
+│   └── README.md
+├── data/
+│   ├── README.md
+│   └── sql/                         # SQL schema, migrations, and seed assets
+│       └── README.md
 ├── notebooks/                       # Jupyter notebooks, prototypes, analyses
-└── src/                             # Python apps, libraries, and utilities
+└── src/                             # Language-focused source workspace (Python-first)
 ```
 
 ---
@@ -94,6 +112,7 @@ When you find conflicting guidance, check in this order:
 3. **`contribute_standards.md`** — universal standards
 4. **`markdown_style_guide.md` / `mermaid_style_guide.md`** — documentation formatting
 5. **`adr/`** — architecture decision records (for rationale behind decisions)
+6. **Subsystem `adr/` directories** — local decision logs for subsystem-specific implementation choices (for example `.crewai/adr/`)
 
 If guidance still conflicts after checking all sources, **stop and ask the human**.
 
@@ -127,11 +146,11 @@ If guidance still conflicts after checking all sources, **stop and ask the human
 
 ### Project management (Everything is Code)
 
-| Directory      | Contents              | Convention                |
-| -------------- | --------------------- | ------------------------- |
-| `docs/pr/`     | Pull request records  | `pr-NNNNNNNN.md`          |
-| `docs/issues/` | Issue records         | `issue-NNNNNNNN.md`       |
-| `docs/kanban/` | Sprint/project boards | `{scope}-{identifier}.md` |
+| Directory              | Contents              | Convention                                  |
+| ---------------------- | --------------------- | ------------------------------------------- |
+| `docs/project/pr/`     | Pull request records  | `pr-NNNNNNNN-short-description.md`          |
+| `docs/project/issues/` | Issue records         | `issue-NNNNNNNN-short-description.md`       |
+| `docs/project/kanban/` | Sprint/project boards | `{scope}-{identifier}-short-description.md` |
 
 See the [Everything is Code](markdown_style_guide.md#-everything-is-code) section and [ADR-003](adr/ADR-003-everything-is-code.md) for the full philosophy.
 
@@ -144,8 +163,12 @@ See the [Everything is Code](markdown_style_guide.md#-everything-is-code) sectio
 - **Where are templates?** → `agentic/markdown_templates/`
 - **Where are diagram guides?** → `agentic/mermaid_diagrams/`
 - **Where are idempotent script standards?** → `agentic/idempotent_design_patterns.md`
-- **Where are PRs/issues/boards?** → `docs/pr/`, `docs/issues/`, `docs/kanban/`
+- **Where are PRs/issues/boards?** → `docs/project/pr/`, `docs/project/issues/`, `docs/project/kanban/`
+- **Where are apps?** → `apps/`
+- **Where are backend services/workers?** → `services/`
+- **Where are shared packages?** → `packages/`
+- **Where are SQL schemas/migrations?** → `data/sql/`
 - **Where are notebooks?** → `notebooks/`
-- **Where is Python app/library code?** → `src/`
+- **Where is language-focused source code?** → `src/`
 - **Which version is authoritative?** → The repo version, always
 - **Where do I start?** → `AGENTS.md` at repo root → `agentic/instructions.md`

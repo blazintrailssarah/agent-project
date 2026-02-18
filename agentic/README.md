@@ -1,6 +1,6 @@
 # Agentic Development Framework
 
-> **For AI agents:** This directory contains your operating instructions, style guides, templates, and decision records. Start with [instructions.md](instructions.md) — it tells you what to read and when.
+> **For AI agents:** Start at [../AGENTS.md](../AGENTS.md) first, then load [instructions.md](instructions.md). `AGENTS.md` is the repo-wide entrypoint and this directory is the operating framework it routes you into.
 >
 > **For humans:** This framework defines how AI agents work in your repo — autonomy boundaries, workflow checkpoints, documentation standards, and project management conventions. Review and customize to match your team's needs.
 
@@ -102,19 +102,26 @@ flowchart TD
 
 ### Architecture decision records
 
-| ADR                                                            | Decision                                                   |
-| -------------------------------------------------------------- | ---------------------------------------------------------- |
-| [ADR-001](adr/ADR-001-agent-optimized-documentation-system.md) | Agent-optimized documentation system                       |
-| [ADR-002](adr/ADR-002-mermaid-diagram-standards.md)            | Mermaid diagram standards                                  |
-| [ADR-003](adr/ADR-003-everything-is-code.md)                   | Everything is Code — project management as committed files |
+| ADR                                                                 | Decision                                                   |
+| ------------------------------------------------------------------- | ---------------------------------------------------------- |
+| [ADR-001](adr/ADR-001-agent-optimized-documentation-system.md)      | Agent-optimized documentation system                       |
+| [ADR-002](adr/ADR-002-mermaid-diagram-standards.md)                 | Mermaid diagram standards                                  |
+| [ADR-003](adr/ADR-003-everything-is-code.md)                        | Everything is Code — project management as committed files |
+| [ADR-004](adr/ADR-004-task-completion-source-of-truth-sync.md)      | Mandatory source-of-truth sync at task completion          |
+| [ADR-005](adr/ADR-005-polyglot-monorepo-workspace-layout.md)        | Polyglot monorepo workspace layout                         |
+| [ADR-006](adr/ADR-006-federated-adr-governance.md)                  | Federated ADR governance for global + subsystem decisions  |
+| [ADR-007](adr/ADR-007-monorepo-foundation-and-decision-baseline.md) | Baseline monorepo decision map and operating foundation    |
+| [ADR-008](adr/ADR-008-persistent-review-memory-governance.md)       | Persistent review memory governance                        |
+
+Subsystems may also keep local ADR logs (for example `.crewai/adr/`) for implementation decisions that do not affect the full monorepo.
 
 ### Project management (Everything is Code)
 
-| Directory      | Contents              | Naming pattern            |
-| -------------- | --------------------- | ------------------------- |
-| `docs/pr/`     | Pull request records  | `pr-NNNNNNNN.md`          |
-| `docs/issues/` | Issue records         | `issue-NNNNNNNN.md`       |
-| `docs/kanban/` | Sprint/project boards | `{scope}-{identifier}.md` |
+| Directory              | Contents              | Naming pattern                              |
+| ---------------------- | --------------------- | ------------------------------------------- |
+| `docs/project/pr/`     | Pull request records  | `pr-NNNNNNNN-short-description.md`          |
+| `docs/project/issues/` | Issue records         | `issue-NNNNNNNN-short-description.md`       |
+| `docs/project/kanban/` | Sprint/project boards | `{scope}-{identifier}-short-description.md` |
 
 ---
 

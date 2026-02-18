@@ -1,14 +1,16 @@
 # Source Code
 
-> Production Python applications, libraries, and utilities.
+> Language-focused source workspace (Python-first by default).
+
+> **For AI agents:** start at [../AGENTS.md](../AGENTS.md) before making changes in `src/`.
 
 ---
 
 ## 📋 Purpose
 
-This directory holds production-grade Python code:
+This directory holds production-grade source code organized by language/runtime. It is currently Python-first:
 
-- **Applications** — standalone tools, CLI utilities, web services
+- **Applications** — standalone tools, CLI utilities, and services
 - **Libraries** — shared modules used across the project
 - **Integrations** — connectors to external APIs and services
 - **Utilities** — helper scripts that have graduated from `notebooks/`
@@ -33,7 +35,7 @@ src/
     └── ...
 ```
 
-Create subdirectories as needed. Each application or library should be self-contained with its own `__init__.py`.
+Use `src/` for language-specific organization (for example `src/python/`, `src/go/`, `src/rust/`) when that structure is better than app/service boundaries.
 
 ---
 
@@ -80,11 +82,16 @@ Every application should include:
 
 ## 🔗 References
 
+- [apps/](../apps/) — Deployable applications (`apps/web`, `apps/api`, etc.)
+- [services/](../services/) — Long-running workers and backend services
+- [packages/](../packages/) — Shared libraries across runtimes
+- [data/sql/](../data/sql/) — SQL schemas and migrations
 - [notebooks/](../notebooks/) — Prototyping and exploration (code graduates here)
 - [.crewai/](../.crewai/) — CrewAI review system
+- [AGENTS.md](../AGENTS.md) — Repo-wide agent entrypoint and operating constraints
 - [agentic/](../agentic/) — Agent instructions and standards
 - [agentic/idempotent_design_patterns.md](../agentic/idempotent_design_patterns.md) — Script design standards
 
 ---
 
-_Part of the [opencode](https://github.com/borealBytes/agent-project) template project._
+_Part of the [Boreal Bytes GitHub org](https://github.com/borealBytes)._

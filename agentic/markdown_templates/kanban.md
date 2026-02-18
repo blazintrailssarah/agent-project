@@ -4,7 +4,7 @@
 
 **Use this template for:** Tracking work items, sprint boards, project task management, release planning, or any scenario where you need a persistent, markdown-based view of work status. This board IS the tracking system — a file in your repo that evolves with your codebase.
 
-**Key features:** Visual Mermaid kanban diagram, work item tables with status tracking, WIP limits, blocked items, aging indicators, flow efficiency metrics, and historical throughput.
+**Key features:** Visual Mermaid kanban diagram, work item tables with status tracking, WIP limits, blocked items, explicit Won't Do decisions, aging indicators, flow efficiency metrics, and historical throughput.
 
 **Philosophy:** This board is a file. Modify it in your branch, merge it with your PR. The board evolves WITH the codebase — no external board tool required. Anyone with repo access sees the board, AI agents included.
 
@@ -17,13 +17,13 @@ When archived, the board becomes the historical record of what was worked on, wh
 ## File Convention
 
 ```
-docs/kanban/sprint-2026-w07.md       # Sprint-based boards
-docs/kanban/release-v2.3.0.md        # Release-based boards
-docs/kanban/project-auth-migration.md # Project-based boards
+docs/project/kanban/sprint-2026-w07-agentic-template-modernization.md
+docs/project/kanban/release-v2.3.0-launch-readiness.md
+docs/project/kanban/project-auth-migration-phase-1.md
 ```
 
-- **Directory:** `docs/kanban/`
-- **Naming:** Prefix with the board scope (`sprint-`, `release-`, `project-`) + identifier
+- **Directory:** `docs/project/kanban/`
+- **Naming:** Prefix with board scope (`sprint-`, `release-`, `project-`) + identifier + short lowercase hyphenated description
 - **Archiving:** When a board is complete, keep it in place — it becomes the historical record
 
 ---
@@ -49,23 +49,28 @@ _[Team/Owner] · Last updated: [YYYY-MM-DD HH:MM]_
 
 ### Visual board
 
-_Kanban board showing current work distribution across backlog, in-progress, review, and done columns:_
+_Kanban board showing current work distribution across backlog, in-progress, review, done, blocked, and Won't Do columns:_
 
 ```mermaid
 kanban
     Backlog
-        task1[Deploy monitoring]
-        task2[Write API docs]
-        task3[Refactor auth flow]
+        task1[🔧 Deploy monitoring]
+        task2[📝 Write API docs]
     In Progress
-        task4[Build user dashboard]
-        task5[Fix payment timeout]
-    Review
-        task6[Add export feature]
+        task3[⚙️ Build user dashboard]
+        task4[🐛 Fix payment timeout]
+    In Review
+        task5[👀 Add export feature]
     Done
-        task7[Set up CI pipeline]
-        task8[Database migration]
+        task6[🚀 Set up CI pipeline]
+        task7[📊 Database migration]
+    Blocked
+        task8[⛔ Waiting for security approval]
+    Won't Do
+        task9[❌ Drop mobile support in this sprint]
 ```
+
+> ⚠️ Always show all 6 columns — Even if a column has no items, include it with a placeholder. This makes the board structure explicit and ensures categories are never forgotten. Use a placeholder like [No items yet] when a column is empty.
 
 ---
 
@@ -78,28 +83,32 @@ kanban
 | 🔍 **In Review**   | [N]   | [Limit]   | [Status]                                       |
 | ✅ **Done**        | [N]   | —         | [This period]                                  |
 | 🚫 **Blocked**     | [N]   | —         | [See blocked section below]                    |
+| 🚫 **Won't Do**    | [N]   | —         | [Explicitly declined with rationale]           |
+
+> ⚠️ **Always include all 6 columns** — Each column represents a workflow state. Even if count is 0, keep the row visible. This prevents categories from being overlooked.
 
 ---
 
 ## 📋 Backlog
 
-_Prioritized top-to-bottom. Top items are next to be pulled._
+_Prioritized top-to-bottom. Top items are next to be pulled. Include at least one placeholder item if empty._
 
-| #   | Item              | Priority  | Estimate | Assignee     | Notes                   |
-| --- | ----------------- | --------- | -------- | ------------ | ----------------------- |
-| 1   | [Work item title] | 🔴 High   | [S/M/L]  | [Person]     | [Context or dependency] |
-| 2   | [Work item title] | 🟡 Medium | [Size]   | [Person]     | [Notes]                 |
-| 3   | [Work item title] | 🟡 Medium | [Size]   | [Unassigned] | [Notes]                 |
-| 4   | [Work item title] | 🟢 Low    | [Size]   | [Unassigned] | [Notes]                 |
+| #   | Item              | Priority  | Estimate | Assignee | Notes                   |
+| --- | ----------------- | --------- | -------- | -------- | ----------------------- |
+| 1   | [Work item title] | 🔴 High   | [S/M/L]  | [Person] | [Context or dependency] |
+| 2   | [Work item title] | 🟡 Medium | [Size]   | [Person] | [Notes]                 |
+|     | _[No items yet]_  |           |          |          |                         |
 
 ---
 
 ## 🔄 In Progress
 
-| Item        | Assignee | Started | Expected | Days in column | Aging | Status                  |
-| ----------- | -------- | ------- | -------- | -------------- | ----- | ----------------------- |
-| [Work item] | [Person] | [Date]  | [Date]   | [N]            | 🟢    | 🟢 On track             |
-| [Work item] | [Person] | [Date]  | [Date]   | [N]            | 🟡    | 🟡 Slower than expected |
+_Items currently being worked on. Include at least one placeholder item if empty._
+
+| Item        | Assignee | Started | Expected | Days in column | Aging | Status           |
+| ----------- | -------- | ------- | -------- | -------------- | ----- | ---------------- |
+| [Work item] | [Person] | [Date]  | [Date]   | [N]            | 🟢    | 🟢 On track      |
+|             |          |         |          |                |       | _[No items yet]_ |
 
 > 💡 **Aging indicator:** 🟢 Under expected time · 🟡 At expected time · 🔴 Over expected time — items aging red need attention or re-scoping.
 
@@ -109,30 +118,47 @@ _Prioritized top-to-bottom. Top items are next to be pulled._
 
 ## 🔍 In Review
 
-| Item        | Author   | Reviewer | PR                           | Days in review | Aging | Status                                           |
-| ----------- | -------- | -------- | ---------------------------- | -------------- | ----- | ------------------------------------------------ |
-| [Work item] | [Person] | [Person] | [#NNN](../pr/pr-00000000.md) | [N]            | 🟢    | [Awaiting review / Changes requested / Approved] |
+_Items awaiting or in code review. Include at least one placeholder item if empty._
+
+| Item        | Author   | Reviewer | PR                                                                                   | Days in review | Aging | Status                                           |
+| ----------- | -------- | -------- | ------------------------------------------------------------------------------------ | -------------- | ----- | ------------------------------------------------ |
+| [Work item] | [Person] | [Person] | [#NNN](../../docs/project/pr/pr-00000001-agentic-docs-and-monorepo-modernization.md) | [N]            | 🟢    | [Awaiting review / Changes requested / Approved] |
+|             |          |          |                                                                                      |                |       | _[No items yet]_                                 |
 
 ---
 
 ## ✅ Done
 
-_Completed this period._
+_Completed this period. Include at least one placeholder item if empty._
 
-| Item        | Assignee | Completed | Cycle time | PR                           |
-| ----------- | -------- | --------- | ---------- | ---------------------------- |
-| [Work item] | [Person] | [Date]    | [N days]   | [#NNN](../pr/pr-00000000.md) |
-| [Work item] | [Person] | [Date]    | [N days]   | [#NNN](../pr/pr-00000000.md) |
+| Item        | Assignee | Completed | Cycle time | PR                                                                                   |
+| ----------- | -------- | --------- | ---------- | ------------------------------------------------------------------------------------ |
+| [Work item] | [Person] | [Date]    | [N days]   | [#NNN](../../docs/project/pr/pr-00000001-agentic-docs-and-monorepo-modernization.md) |
+|             |          |           |            | _[No items completed this period]_                                                   |
 
 ---
 
 ## 🚫 Blocked
 
+_Items that cannot proceed. Always include at least the placeholder — blocked items are high-signal and should never be hidden._
+
 | Item        | Assignee | Blocked since | Blocked by                                              | Escalated to  | Unblock action         |
 | ----------- | -------- | ------------- | ------------------------------------------------------- | ------------- | ---------------------- |
 | [Work item] | [Person] | [Date]        | [What's blocking — dependency, decision, external team] | [Person/team] | [What needs to happen] |
+|             |          |               |                                                         |               | _[No blocked items]_   |
 
 > 🔴 **[N] items blocked.** [Summary of what's needed to unblock them.]
+
+---
+
+## 🚫 Won't Do
+
+_Explicitly out of scope for this board period. Capture rationale so these decisions are transparent and auditable. Include placeholder if empty._
+
+| Item        | Date decided | Decision owner | Rationale                                      | Revisit trigger                      |
+| ----------- | ------------ | -------------- | ---------------------------------------------- | ------------------------------------ |
+| [Work item] | [Date]       | [Person/team]  | [Why this is intentionally excluded right now] | [What change would reopen this item] |
+|             |              |                | _[No items explicitly declined]_               |                                      |
 
 ---
 
@@ -172,6 +198,7 @@ _Completed this period._
 ### Decisions made this period
 
 - **[Date]:** [Decision and context — e.g., "Deprioritized auth refactor to focus on payment bug"]
+- **[Date]:** [Added/updated Won't Do decision with explicit rationale and revisit trigger]
 
 ### Carryover from last period
 
@@ -185,9 +212,9 @@ _Completed this period._
 
 ## 🔗 References
 
-- [Live project board](https://github.com/org/repo/projects/N) — Real-time tracking
-- [Previous board](./sprint-2026-w06.md) — Last period's snapshot
-- [Status report](../status-2026-02-14.md) — Executive summary of this period
+- [Live project board](../../docs/project/kanban/sprint-2026-w08-crewai-review-hardening-and-memory.md) — Real-time tracking
+- [Previous board](../../docs/project/kanban/sprint-2026-w07-agentic-template-modernization.md) — Last period's snapshot
+- [Status report](../../docs/project/pr/pr-00000001-agentic-docs-and-monorepo-modernization.md) — Executive summary of this period
 
 ---
 

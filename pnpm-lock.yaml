@@ -50,7 +50,7 @@ importers:
         specifier: ^5.7.0
         version: 5.9.3
 
-  website:
+  apps/web:
     devDependencies:
       serve:
         specifier: ^14.2.0

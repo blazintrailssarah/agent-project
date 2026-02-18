@@ -95,6 +95,15 @@ SPECIALIST_CREWS = {
         "module": "crews.strategy_review_crew",
         "description": "Business impact, ROI, and strategic alignment",
     },
+    "data_engineering": {
+        "label": "crewai:data-engineering",
+        "output_file": "data_engineering_review.json",
+        "agent_key": "data_engineering_reviewer",
+        "id_prefix": "DATA",
+        "crew_class": "DataEngineeringReviewCrew",
+        "module": "crews.data_engineering_review_crew",
+        "description": "Data models, ETL/ELT jobs, query safety, and pipeline reliability",
+    },
 }
 
 # Reverse lookup: label → crew key
@@ -203,6 +212,31 @@ AUTODETECT_RULES = {
         "path_patterns": [],
         "file_patterns": [],
         "reason": "Strategic review requested",
+    },
+    "data_engineering": {
+        "path_patterns": [
+            "data/sql",
+            "migration",
+            "schema",
+            "warehouse",
+            "pipeline",
+            "etl",
+            "elt",
+            "dbt",
+            "airflow",
+            "dag",
+            "bigquery",
+            "snowflake",
+            "redshift",
+            "query",
+            "database",
+            "postgres",
+            "mysql",
+            "sqlite",
+            "clickhouse",
+        ],
+        "file_patterns": ["*.sql", "dbt/**", "migrations/**", "data/**"],
+        "reason": "Data engineering artifacts detected",
     },
 }
 

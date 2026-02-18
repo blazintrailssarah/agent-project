@@ -201,9 +201,10 @@ chore: update dependencies
 
 Follow the [Everything is Code](markdown_style_guide.md#-everything-is-code) philosophy:
 
-1. Create a PR record file in `docs/pr/pr-NNNNNNNN.md`
+1. Create a PR record file in `docs/project/pr/pr-NNNNNNNN-short-description.md`
 2. Use the [PR template](markdown_templates/pull_request.md)
-3. The GitHub PR description links to the file — it does **not** duplicate content
+3. The GitHub PR description contains only the full branch URL to the file — it does **not** duplicate content
+   - Format: `https://github.com/<org>/<repo>/blob/<branch>/docs/project/pr/pr-NNNNNNNN-short-description.md`
 4. The file is the single source of truth
 
 See [contribute_standards.md](contribute_standards.md) for full PR standards.
@@ -220,6 +221,9 @@ See [contribute_standards.md](contribute_standards.md) for full PR standards.
 # Install dependencies
 {package-manager} install
 
+# Preferred in repos that provide it: single local CI entrypoint
+./scripts/ci-local.sh
+
 # Run all tests
 {package-manager} test
 
@@ -235,6 +239,10 @@ See [contribute_standards.md](contribute_standards.md) for full PR standards.
 # Build
 {package-manager} run build
 ```
+
+If `./scripts/ci-local.sh` exists, treat it as the default pre-commit/pre-push validation command unless explicitly told to skip it.
+
+If the environment cannot run local CI (for example, missing local secrets/tools in hosted agent environments), document the skip reason in PR/issue records and run all available checks.
 
 ### CI pipeline (automatic on every push)
 
@@ -304,7 +312,7 @@ Key requirements:
 - **Agent autonomy** → [agentic_coding.md](agentic_coding.md)
 - **Markdown formatting** → [markdown_style_guide.md](markdown_style_guide.md)
 - **Mermaid diagrams** → [mermaid_style_guide.md](mermaid_style_guide.md)
-- **Architecture decisions** → [adr/](adr/)
+- **Architecture decisions** → [adr/](adr/) (global) + subsystem `adr/` directories (for example `.crewai/adr/`)
 
 ---
 

@@ -1,5 +1,5 @@
 -- D1 database schema for auth worker
--- Run: wrangler d1 execute <DB_NAME> --file=website/src/workers/schema.sql
+-- Run: wrangler d1 execute <DB_NAME> --file=apps/web/src/workers/schema.sql
 
 CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,

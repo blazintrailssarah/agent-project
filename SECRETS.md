@@ -12,9 +12,10 @@ Add these in your GitHub repository:
 
 ### Required Secrets
 
-| Secret Name          | Where to Get It                                  | Used By                              |
-| -------------------- | ------------------------------------------------ | ------------------------------------ |
-| `OPENROUTER_API_KEY` | [openrouter.ai/keys](https://openrouter.ai/keys) | CrewAI code review (AI model access) |
+| Secret Name          | Where to Get It                                                                        | Used By                                |
+| -------------------- | -------------------------------------------------------------------------------------- | -------------------------------------- |
+| `NVIDIA_API_KEY`     | [build.nvidia.com/moonshotai/kimi-k2.5](https://build.nvidia.com/moonshotai/kimi-k2.5) | CrewAI code review (primary provider)  |
+| `OPENROUTER_API_KEY` | [openrouter.ai/keys](https://openrouter.ai/keys)                                       | CrewAI code review (fallback provider) |
 
 ### Authentication Secrets (Google OAuth)
 
@@ -136,9 +137,17 @@ The `.env` file is gitignored — it will never be committed.
 
 ## What Each Secret Does
 
+### `NVIDIA_API_KEY`
+
+Primary key for CrewAI review runs. When this key is present, all crews use `moonshotai/kimi-k2-5` via NVIDIA NIM.
+
+- Endpoint: `https://integrate.api.nvidia.com/v1`
+- Current policy in this repo: NVIDIA first, OpenRouter fallback
+- Cost: currently free-tier trial on NVIDIA API catalog
+
 ### `OPENROUTER_API_KEY`
 
-Routes AI model requests through [OpenRouter](https://openrouter.ai/), which provides access to 100+ models from a single API key. The CrewAI review system uses this to run code analysis agents.
+Fallback key for CrewAI review runs when `NVIDIA_API_KEY` is absent. Routes AI model requests through [OpenRouter](https://openrouter.ai/), which provides access to multiple models from a single API key.
 
 - **Free tier**: 20 requests/minute, access to free models (Gemini Flash, etc.)
 - **Paid tier**: Higher rate limits, access to premium models (GPT-4o, Claude, etc.)
@@ -202,7 +211,7 @@ The script tests each credential against its service's API and outputs a formatt
 - [ ] No API keys, tokens, or passwords in any committed file
 - [ ] GitHub secrets are set at the repository level, not organization level (unless intentional)
 - [ ] Cloudflare API token uses minimum required permissions
-- [ ] Team members each have their own OpenRouter keys (never share keys)
+- [ ] Team members each have their own provider keys (NVIDIA/OpenRouter; never share keys)
 - [ ] `ALLOWED_EMAILS` contains only authorized personnel
 - [ ] Google OAuth redirect URIs are limited to your domains only
 - [ ] Auth worker validates email against allowlist server-side (never client-side only)

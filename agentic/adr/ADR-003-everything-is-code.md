@@ -69,7 +69,7 @@ This decision must:
 
 ### Option A: Everything is Code — PRs, issues, kanban as committed markdown files
 
-**Description:** PRs, issues, and kanban boards are documented as markdown files in `docs/`. The GitHub PR is a thin pointer — humans comment and review there, but the actual description, investigation, and decisions live in the committed file. Issues are tracked in `docs/issues/`, boards in `docs/kanban/`.
+**Description:** PRs, issues, and kanban boards are documented as markdown files in `docs/project/`. The GitHub PR is a thin pointer — humans comment and review there, but the actual description, investigation, and decisions live in the committed file. Issues are tracked in `docs/project/issues/`, boards in `docs/project/kanban/`.
 
 **Pros:**
 
@@ -77,7 +77,7 @@ This decision must:
 - Full git history on every change to every issue and board
 - Portable — just files, any Git platform works
 - Reviewable — board changes can go through PR review
-- Searchable — `grep docs/issues/` is faster than any issue tracker API
+- Searchable — `grep docs/project/issues/` is faster than any issue tracker API
 - Zero dependencies — markdown + git, nothing else
 
 **Cons:**
@@ -162,9 +162,9 @@ The tradeoff is discipline: someone has to update the file, not just the GitHub 
 
 ### Positive
 
-- **Agent-native:** `grep docs/issues/` finds every issue. `cat docs/pr/pr-00000047.md` gives full PR context. No API needed.
+- **Agent-native:** `grep docs/project/issues/` finds every issue. `cat docs/project/pr/pr-00000047-short-description.md` gives full PR context. No API needed.
 - **Portable:** Move to GitLab tomorrow — every issue, PR record, and board snapshot comes with you
-- **Auditable:** `git log docs/kanban/sprint-2026-w07.md` shows every board change with who/when/why
+- **Auditable:** `git log docs/project/kanban/sprint-2026-w07-agentic-template-modernization.md` shows every board change with who/when/why
 - **Reviewable:** Kanban board changes can be part of a PR — the board evolves with the code it tracks
 - **Searchable:** Standard text search tools work. No special query syntax, no platform-specific filters
 
@@ -172,7 +172,7 @@ The tradeoff is discipline: someone has to update the file, not just the GitHub 
 
 - **Discipline cost:** The team must remember that the file is the source of truth, not GitHub's UI. Old habits die hard.
 - **Not real-time:** The file is a snapshot. If an issue is updated in the file but not in GitHub (or vice versa), they diverge.
-- **Duplicate surfaces:** PR context exists in both the GitHub PR and `docs/pr/pr-NNNN.md`. The rule is clear (file is source of truth, GitHub is the pointer), but there will be moments of confusion early on.
+- **Duplicate surfaces:** PR context exists in both the GitHub PR and `docs/project/pr/pr-NNNN-short-description.md`. The rule is clear (file is source of truth, GitHub is the pointer), but there will be moments of confusion early on.
 
 ### Risks
 

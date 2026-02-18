@@ -50,16 +50,33 @@ Push to remote
 ```text
 PR title: "feat(search): implement product search"
 
-Agent creates PR record: docs/pr/pr-NNNNNNNN.md
+Agent creates PR record: docs/project/pr/pr-NNNNNNNN-short-description.md
 - Uses the PR template from markdown_templates/pull_request.md
 - Includes: Summary, changes, checklist, related docs
 - Links to design doc from Step 3
 
-GitHub PR description links ONLY to the PR file
+GitHub PR description contains ONLY the full branch URL to the PR file
+Example: https://github.com/<org>/<repo>/blob/<branch>/docs/project/pr/pr-NNNNNNNN-short-description.md
 Mark as DRAFT (not Ready for Review)
 ```
 
 **Purpose:** Make intent transparent before implementation.
+
+---
+
+### Step 4.5: Agent syncs source-of-truth tracking files
+
+```text
+Before editing implementation files:
+
+✅ Update PR record in docs/project/pr/ with planned scope and next actions
+✅ Update issue file(s) in docs/project/issues/ with current status and plan
+✅ Update kanban board in docs/project/kanban/ moving work to In Progress
+
+These files are live monitoring surfaces for humans.
+```
+
+**Purpose:** Human observers can track execution before code changes begin.
 
 ---
 
@@ -94,6 +111,8 @@ Once human approves approach:
 Commit with descriptive multi-line message (see contribute_standards.md):
   Subject: "feat(search): implement product search"
   Body: why the change was made, key files touched, behavioral impact
+Run `./scripts/ci-local.sh` before commit/push when available
+If local CI cannot run in this environment, document why in PR/issue files
 Push to remote
 ```
 
@@ -119,23 +138,22 @@ Push to remote
 ### Step 8: Agent updates PR status
 
 ```text
-Agent updates PR file with progress:
-✅ Design review completed
-✅ Implementation complete
-✅ All tests passing
-✅ Build verified
+After each milestone (not just once):
 
-Summary: "Ready for code review. See test results above."
+✅ Update PR file with progress and scope changes
+✅ Update issue file(s) with investigation/fix details
+✅ Update kanban board column/status and blockers
 
-Comment in PR:
-"Design and implementation complete.
-See PR file status checklist.
-Awaiting human confirmation before marking as Ready for Review."
+Before tests:
+✅ Record what validations will run
+
+After tests:
+✅ Record pass/fail evidence and next actions
 
 DO NOT change from Draft to Ready yet
 ```
 
-**Purpose:** Self-documenting progress. Human sees what's done.
+**Purpose:** Continuous, real-time status visibility for humans via repo files.
 
 ---
 

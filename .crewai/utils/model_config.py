@@ -32,28 +32,28 @@ class ModelConfig:
 
 # Available models - crews select from this list
 MODEL_REGISTRY = {
-    # Gemini 3 Flash Preview (User Requested)
+    # Gemini 3 Flash Preview
     "gemini-3-flash": ModelConfig(
         name="openrouter/google/gemini-2.0-flash-001",  # Maps to 2.0 Flash (closest equivalent)
         rpm_limit=60,
         context_window=1000000,
         rate_limit_delay=0,
     ),
-    # MiMo V2 Flash (NEW DEFAULT - testing for reliable function calling)
+    # MiMo V2 Flash
     "mimo-v2-flash": ModelConfig(
         name="openrouter/xiaomi/mimo-v2-flash",
         rpm_limit=60,
         context_window=1000000,
         rate_limit_delay=0,  # Paid tier - no delay needed
     ),
-    # Gemini 2.0 Flash (fallback - has intermittent MALFORMED_FUNCTION_CALL issues)
+    # Gemini 2.0 Flash
     "gemini-flash": ModelConfig(
         name="openrouter/google/gemini-2.0-flash-001",
         rpm_limit=60,
         context_window=1000000,
         rate_limit_delay=0,  # Paid tier - no delay needed
     ),
-    # Gemini 2.5 Flash Lite (fallback option)
+    # Gemini 2.5 Flash Lite (ultra-cheap default)
     "gemini-flash-lite": ModelConfig(
         name="openrouter/google/gemini-2.5-flash-lite",
         rpm_limit=60,
@@ -92,10 +92,8 @@ MODEL_REGISTRY = {
     ),
 }
 
-DEFAULT_MODEL_KEY = (
-    "gemini-3-flash"  # User requested Gemini 3 Flash Preview (mapped to reliable Gemini 2.0 Flash)
-)
-FALLBACK_MODEL_KEY = "gemini-flash"  # Gemini as fallback
+DEFAULT_MODEL_KEY = "gemini-flash-lite"
+FALLBACK_MODEL_KEY = "gemini-flash"
 
 
 class GlobalRateLimiter:
@@ -153,6 +151,11 @@ def get_rate_limiter() -> GlobalRateLimiter:
     return _rate_limiter
 
 
+def _resolve_model_key(model_key: Optional[str] = None) -> str:
+    """Resolve effective model key from explicit argument, env, or default."""
+    return model_key or os.getenv("MODEL_KEY", DEFAULT_MODEL_KEY)
+
+
 def get_llm(model_key: Optional[str] = None) -> LLM:
     """Get a configured LLM instance.
 
@@ -162,7 +165,7 @@ def get_llm(model_key: Optional[str] = None) -> LLM:
     Returns:
         Configured CrewAI LLM instance
     """
-    model_key = model_key or os.getenv("MODEL_KEY", DEFAULT_MODEL_KEY)
+    model_key = _resolve_model_key(model_key)
 
     if model_key not in MODEL_REGISTRY:
         raise ValueError(f"Unknown model: {model_key}. Available: {list(MODEL_REGISTRY.keys())}")
@@ -170,16 +173,16 @@ def get_llm(model_key: Optional[str] = None) -> LLM:
     config = MODEL_REGISTRY[model_key]
     get_rate_limiter().set_limit(config.rpm_limit)
 
-    api_key = os.getenv("OPENROUTER_API_KEY")
-    if not api_key:
-        raise ValueError("OPENROUTER_API_KEY required")
+    openrouter_api_key = os.getenv("OPENROUTER_API_KEY")
+    if not openrouter_api_key:
+        raise ValueError("OPENROUTER_API_KEY is required for CrewAI review runs.")
 
     return LLM(
         model=config.name,
-        api_key=api_key,
+        api_key=openrouter_api_key,
         base_url="https://openrouter.ai/api/v1",
-        timeout=120,  # 120 second timeout for slow responses
-        num_retries=3,  # Retry transient failures
+        timeout=30,
+        num_retries=0,
         extra_headers={
             # CUSTOMIZE: Update these to your GitHub repo URL and project name
             "HTTP-Referer": os.getenv(
@@ -192,7 +195,7 @@ def get_llm(model_key: Optional[str] = None) -> LLM:
 
 def get_model_config(model_key: Optional[str] = None) -> ModelConfig:
     """Get model configuration without creating LLM instance."""
-    model_key = model_key or os.getenv("MODEL_KEY", DEFAULT_MODEL_KEY)
+    model_key = _resolve_model_key(model_key)
     config = MODEL_REGISTRY.get(model_key)
     if not config:
         raise ValueError(f"Unknown model: {model_key}. Available: {list(MODEL_REGISTRY.keys())}")
@@ -206,7 +209,7 @@ def get_rate_limit_delay() -> int:
         int: Seconds to wait between crew executions (0 for paid, 10 for free)
     """
     config = get_model_config()
-    return config.rate_limit_delay
+    return config.rate_limit_delay if config.rate_limit_delay is not None else 0
 
 
 def register_models():

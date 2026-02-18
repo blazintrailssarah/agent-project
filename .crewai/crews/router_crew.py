@@ -22,8 +22,8 @@ class RouterCrew:
 
     def __init__(self):
         """Initialize router crew with config."""
-        # Set LiteLLM base URL for OpenRouter
-        os.environ["OPENROUTER_API_BASE"] = "https://openrouter.ai/api/v1"
+        if not (os.getenv("NVIDIA_API_KEY") or os.getenv("NVIDIA_NIM_API_KEY")):
+            os.environ["OPENROUTER_API_BASE"] = "https://openrouter.ai/api/v1"
 
         # Register cost tracking callbacks (if available)
         try:
@@ -59,7 +59,7 @@ class RouterCrew:
             tools=[WorkspaceTool()],  # Only need workspace tool - data is pre-prepared
             llm=self.llm,  # Use LLM instance
             function_calling_llm=self.llm,  # CRITICAL: Enable function calling
-            max_iter=10,  # Allow more iterations for tool use
+            max_iter=4,
             verbose=True,
             allow_delegation=False,  # Don't delegate to other agents
         )

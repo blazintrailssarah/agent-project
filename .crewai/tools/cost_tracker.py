@@ -3,6 +3,7 @@
 import atexit
 import logging
 import os
+import re
 import time
 from collections import defaultdict
 from dataclasses import dataclass
@@ -20,6 +21,7 @@ class APICallMetrics:
     call_number: int
     task_name: str
     crew_name: str  # NEW: Identify which crew made the call
+    agent_name: str
     model: str
     tokens_in: int
     tokens_out: int
@@ -35,7 +37,7 @@ class APICallMetrics:
         # Shorten model name for display
         model_short = self.model.replace("gemini-2.0-flash", "gemini-flash").replace("-001", "")
         return (
-            f"| #{self.call_number} | {self.crew_name} | {model_short} "
+            f"| #{self.call_number} | {self.crew_name} | {self.agent_name} | {model_short} "
             f"| {self.tokens_in:,} | {self.tokens_out:,} "
             f"| ${self.cost:.6f} | {self.tokens_per_second:.1f} tok/s |"
         )
@@ -49,6 +51,7 @@ class CostTracker:
         self.calls: List[APICallMetrics] = []
         self.current_task: Optional[str] = None
         self.current_crew: Optional[str] = None  # NEW: Track current crew
+        self.current_agent: Optional[str] = None
         self.call_counter = 0
         self.generation_ids: Dict[str, int] = {}  # Track generation_id -> call_number
         self._cleanup_registered = False
@@ -78,10 +81,22 @@ class CostTracker:
     def _infer_crew_from_task(self, task_name: str) -> str:
         """Infer crew name from task name."""
         task_lower = task_name.lower()
+
+        specialist_match = re.search(r"specialist[-_](?P<name>[a-z0-9_]+)", task_lower)
+        if specialist_match:
+            raw_name = specialist_match.group("name")
+            cleaned = raw_name
+            while True:
+                stripped = re.sub(r"(?:_local|_attempt_\d+)$", "", cleaned)
+                if stripped == cleaned:
+                    break
+                cleaned = stripped
+            cleaned = cleaned.replace("_", " ").replace("-", " ")
+            pretty = " ".join(part.capitalize() for part in cleaned.split())
+            return f"Specialist: {pretty}" if pretty else "Specialist"
+
         if "route" in task_lower or "router" in task_lower:
             return "Router"
-        elif "ci" in task_lower or "log" in task_lower:
-            return "CI Analysis"
         elif "quick" in task_lower:
             return "Quick Review"
         elif "full" in task_lower:
@@ -90,13 +105,56 @@ class CostTracker:
             return "Legal Review"
         elif "summary" in task_lower or "synthesize" in task_lower:
             return "Final Summary"
+        elif re.search(r"\bci\b", task_lower) or "parse_ci" in task_lower or "log" in task_lower:
+            return "CI Analysis"
         return "Unknown"
 
     def set_current_task(self, task_name: str):
         """Set the current task name for associating API calls."""
         self.current_task = task_name
         self.current_crew = self._infer_crew_from_task(task_name)
-        logger.info(f"🏷️  Tracking costs for: {task_name} (Crew: {self.current_crew})")
+        self.current_agent = self._infer_agent_from_task(task_name)
+        logger.info(
+            f"🏷️  Tracking costs for: {task_name} "
+            f"(Crew: {self.current_crew}, Agent: {self.current_agent})"
+        )
+
+    def _infer_agent_from_task(self, task_name: str) -> str:
+        """Infer a human-readable agent name from task context."""
+        task_lower = str(task_name or "").lower()
+
+        if "analyze_pr_and_route" in task_lower:
+            return "Router agent"
+        if "parse_ci_output" in task_lower:
+            return "CI analyst"
+
+        if task_lower.startswith("quick_code_review_"):
+            suffix = task_lower.replace("quick_code_review_", "", 1)
+            return " ".join(part.capitalize() for part in suffix.split("_")) or "Quick reviewer"
+        if "quick_code_review" in task_lower:
+            return "Quick review coordinator"
+
+        if "full_review_quality" in task_lower:
+            return "Code quality reviewer"
+        if "full_review_architecture" in task_lower:
+            return "Architecture impact analyst"
+        if "full_review_security" in task_lower:
+            return "Security performance analyst"
+        if "full_review_synthesis" in task_lower:
+            return "Full review synthesizer"
+        if "full_technical_review" in task_lower:
+            return "Full review coordinator"
+
+        if task_lower.startswith("specialist_"):
+            name = task_lower.replace("specialist_", "", 1)
+            name = re.sub(r"(?:_local|_attempt_\d+)$", "", name)
+            pretty = " ".join(part.capitalize() for part in name.split("_"))
+            return f"{pretty} specialist" if pretty else "Specialist reviewer"
+
+        if "synthesize_final_summary" in task_lower:
+            return "Summary synthesizer"
+
+        return "Unknown"
 
     def log_api_call(
         self,
@@ -126,11 +184,13 @@ class CostTracker:
         # Use current task or "Unknown" if not set
         task_name = self.current_task or "Unknown"
         crew_name = self.current_crew or self._infer_crew_from_task(task_name)
+        agent_name = self.current_agent or self._infer_agent_from_task(task_name)
 
         metrics = APICallMetrics(
             call_number=self.call_counter,
             task_name=task_name,
             crew_name=crew_name,
+            agent_name=agent_name,
             model=model,
             tokens_in=tokens_in,
             tokens_out=tokens_out,
@@ -149,7 +209,7 @@ class CostTracker:
             self.generation_ids[generation_id] = self.call_counter
 
         logger.info(
-            f"💸 Call #{self.call_counter} ({crew_name}): {model} "
+            f"💸 Call #{self.call_counter} ({crew_name} / {agent_name}): {model} "
             f"({tokens_in:,} in, {tokens_out:,} out, "
             f"${cost:.6f}, {tokens_per_second:.1f} tok/s)"
         )
@@ -177,6 +237,30 @@ class CostTracker:
             stats["duration"] += call.duration_seconds
 
         return dict(crew_stats)
+
+    def get_agent_summary(self) -> Dict[str, Dict]:
+        """Get cost summary grouped by inferred agent."""
+        agent_stats = defaultdict(
+            lambda: {
+                "calls": 0,
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "total_tokens": 0,
+                "cost": 0.0,
+                "duration": 0.0,
+            }
+        )
+
+        for call in self.calls:
+            stats = agent_stats[call.agent_name]
+            stats["calls"] += 1
+            stats["tokens_in"] += call.tokens_in
+            stats["tokens_out"] += call.tokens_out
+            stats["total_tokens"] += call.total_tokens
+            stats["cost"] += call.cost
+            stats["duration"] += call.duration_seconds
+
+        return dict(agent_stats)
 
     def enrich_from_openrouter(self):
         """Enrich metrics by fetching data from OpenRouter API using generation IDs.
@@ -271,6 +355,7 @@ class CostTracker:
             - total_duration: Total duration in seconds
             - average_tokens_per_second: Average throughput
             - crew_breakdown: Per-crew statistics
+            - agent_breakdown: Per-agent statistics
         """
         return {
             "total_calls": len(self.calls),
@@ -281,6 +366,7 @@ class CostTracker:
             "total_duration": self.get_total_duration(),
             "average_tokens_per_second": self.get_average_tokens_per_second(),
             "crew_breakdown": self.get_crew_summary(),
+            "agent_breakdown": self.get_agent_summary(),
         }
 
     def format_as_markdown_table(self) -> str:
@@ -293,8 +379,8 @@ class CostTracker:
             return "_No API calls recorded_"
 
         lines = [
-            "| Call | Crew | Model | Input | Output | Cost | Speed |",
-            "|------|------|-------|-------|--------|------|-------|",
+            "| Call | Crew | Agent | Model | Input | Output | Cost | Speed |",
+            "|------|------|-------|-------|-------|--------|------|-------|",
         ]
 
         # Group calls by crew and add crew subtotals
@@ -306,7 +392,7 @@ class CostTracker:
             if current_crew and call.crew_name != current_crew:
                 stats = crew_summary[current_crew]
                 lines.append(
-                    f"| **{current_crew} Total** | **{stats['calls']} calls** | - "
+                    f"| **{current_crew} Total** | **{stats['calls']} calls** | - | - "
                     f"| **{stats['tokens_in']:,}** | **{stats['tokens_out']:,}** "
                     f"| **${stats['cost']:.6f}** | - |"
                 )
@@ -318,14 +404,14 @@ class CostTracker:
         if current_crew:
             stats = crew_summary[current_crew]
             lines.append(
-                f"| **{current_crew} Total** | **{stats['calls']} calls** | - "
+                f"| **{current_crew} Total** | **{stats['calls']} calls** | - | - "
                 f"| **{stats['tokens_in']:,}** | **{stats['tokens_out']:,}** "
                 f"| **${stats['cost']:.6f}** | - |"
             )
 
         # Add grand total
         lines.append(
-            f"| **GRAND TOTAL** | **{len(self.calls)} calls** | - "
+            f"| **GRAND TOTAL** | **{len(self.calls)} calls** | - | - "
             f"| **{self.get_total_tokens_in():,}** "
             f"| **{self.get_total_tokens_out():,}** "
             f"| **${self.get_total_cost():.6f}** "
@@ -344,11 +430,20 @@ class CostTracker:
             return "No API calls recorded"
 
         crew_summary = self.get_crew_summary()
+        agent_summary = self.get_agent_summary()
         crew_lines = []
         for crew_name in sorted(crew_summary.keys()):
             stats = crew_summary[crew_name]
             crew_lines.append(
                 f"  • {crew_name}: {stats['calls']} calls, "
+                f"${stats['cost']:.6f} ({stats['total_tokens']:,} tokens)"
+            )
+
+        agent_lines = []
+        for agent_name in sorted(agent_summary.keys()):
+            stats = agent_summary[agent_name]
+            agent_lines.append(
+                f"  • {agent_name}: {stats['calls']} calls, "
                 f"${stats['cost']:.6f} ({stats['total_tokens']:,} tokens)"
             )
 
@@ -358,7 +453,10 @@ class CostTracker:
             f"🔢 Total Tokens: {self.get_total_tokens():,} "
             f"({self.get_total_tokens_in():,} in, {self.get_total_tokens_out():,} out)\n"
             f"⚡ Average Speed: {self.get_average_tokens_per_second():.1f} tokens/sec\n"
-            f"\n📋 By Crew:\n" + "\n".join(crew_lines)
+            f"\n📋 By Crew:\n"
+            + "\n".join(crew_lines)
+            + "\n\n🧠 By Agent:\n"
+            + "\n".join(agent_lines)
         )
 
 

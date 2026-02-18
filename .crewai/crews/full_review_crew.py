@@ -84,6 +84,7 @@ class FullReviewCrew:
         return Task(
             config=self.tasks_config["synthesize_full_review"],
             agent=self.code_quality_reviewer(),
+            output_file="full_review.json",
         )
 
     @crew

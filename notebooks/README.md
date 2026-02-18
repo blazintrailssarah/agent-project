@@ -2,6 +2,8 @@
 
 > Jupyter notebooks for exploration, prototyping, and interactive development.
 
+> **For AI agents:** start at [../AGENTS.md](../AGENTS.md) before creating or modifying notebook artifacts.
+
 ---
 
 ## 📋 Purpose
@@ -78,8 +80,9 @@ python -m ipykernel install --user --name opencode --display-name "opencode"
 
 - [src/](../src/) — Production Python code (notebooks graduate here)
 - [.crewai/](../.crewai/) — CrewAI review system
+- [AGENTS.md](../AGENTS.md) — Repo-wide agent entrypoint and completion requirements
 - [agentic/](../agentic/) — Agent instructions and standards
 
 ---
 
-_Part of the [opencode](https://github.com/borealBytes/agent-project) template project._
+_Part of the [Boreal Bytes GitHub org](https://github.com/borealBytes)._

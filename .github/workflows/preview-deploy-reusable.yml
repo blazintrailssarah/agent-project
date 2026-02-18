@@ -1,4 +1,4 @@
-name: Deploy to Preview
+name: Deploy / Preview
 
 on:
   workflow_call:
@@ -22,10 +22,10 @@ on:
     outputs:
       deployment_url:
         description: 'URL of the preview deployment'
-        value: ${{ jobs.deploy.outputs.url }}
+        value: ${{ jobs.preview-deploy.outputs.url }}
       custom_domain_url:
         description: 'Custom domain URL for the preview'
-        value: ${{ jobs.deploy.outputs.custom_url }}
+        value: ${{ jobs.preview-deploy.outputs.custom_url }}
 
 permissions:
   contents: read
@@ -33,10 +33,13 @@ permissions:
   pull-requests: write
 
 jobs:
-  deploy:
-    name: Deploy Preview
+  preview-deploy:
+    name: Execute Preview Deployment
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    concurrency:
+      group: preview-custom-domain
+      cancel-in-progress: false
 
     outputs:
       url: ${{ steps.extract_url.outputs.url }}
@@ -48,7 +51,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: website
+        working-directory: apps/web
 
     steps:
       - name: Checkout
@@ -94,7 +97,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: ${{ inputs.build_artifact }}
-          path: website/dist
+          path: apps/web/dist
 
       - name: Update GitHub links for preview branch
         if: ${{ inputs.head_ref != '' }}
@@ -156,7 +159,7 @@ jobs:
 
       - name: Append deploy output to captured log
         if: always()
-        working-directory: website
+        working-directory: apps/web
         run: |
           if [ -f deploy_output.txt ]; then
             echo "" >> "$GITHUB_WORKSPACE/.crewai-job-output/current-job.log"

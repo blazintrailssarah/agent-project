@@ -3,6 +3,8 @@
 > **🤖 YOU are the AI agent.** These instructions are for you — the AI assistant working on this codebase. When this documentation says "you" or "agent," that means you.
 >
 > Your job: autonomously write code, create PRs, and iterate on feedback — while humans control via design review, code review, and merge decisions.
+>
+> **Canonical entrypoint:** Start from [../AGENTS.md](../AGENTS.md). It defines repo-wide rules and routes to this file.
 
 ---
 
@@ -81,6 +83,8 @@ Key rules enforced by the style guides:
 - Create PRs with comprehensive documentation
 - Create and update documentation following style guides
 - Respond to feedback and iterate
+- Run `./scripts/ci-local.sh` before commit/push when local environment supports it
+- If local CI is unavailable in the current environment, document the skip reason in PR/issue files
 
 ❌ **What you NEVER do:**
 
@@ -122,16 +126,50 @@ See [workflow_guide.md](workflow_guide.md) for the full 14-step process.
 | Style guides & templates       | `agentic/markdown_style_guide.md`, `agentic/mermaid_style_guide.md` |
 | Document templates             | `agentic/markdown_templates/`                                       |
 | Diagram type guides            | `agentic/mermaid_diagrams/`                                         |
-| Architecture decisions         | `agentic/adr/`                                                      |
-| PR records                     | `docs/pr/`                                                          |
-| Issue records                  | `docs/issues/`                                                      |
-| Kanban boards                  | `docs/kanban/`                                                      |
+| Architecture decisions         | `agentic/adr/` (global) + subsystem `adr/` directories              |
+| Deployable apps                | `apps/`                                                             |
+| Backend services/workers       | `services/`                                                         |
+| Shared packages                | `packages/`                                                         |
+| SQL schemas/migrations         | `data/sql/`                                                         |
+| PR records                     | `docs/project/pr/`                                                  |
+| Issue records                  | `docs/project/issues/`                                              |
+| Kanban boards                  | `docs/project/kanban/`                                              |
 | Idempotent script standards    | `agentic/idempotent_design_patterns.md`                             |
 | Jupyter notebooks              | `notebooks/`                                                        |
-| Python applications/libraries  | `src/`                                                              |
+| Language-focused source area   | `src/`                                                              |
 | Agent entry point              | `AGENTS.md` at repo root → points to `agentic/instructions.md`      |
 
 See [file_organization.md](file_organization.md) for the complete directory map.
+
+---
+
+## ✅ Required before task completion
+
+Before you report a task as done, update source-of-truth records in-repo:
+
+- Update the active PR file in `docs/project/pr/`
+- Update impacted issue file(s) in `docs/project/issues/`
+- Update the active kanban board in `docs/project/kanban/`
+- Create/update ADRs in the right location when a durable decision was introduced:
+  - `agentic/adr/` for repo-wide/cross-subsystem decisions
+  - subsystem `adr/` directories for local implementation decisions (for example `.crewai/adr/`)
+  - if a subsystem decision has cross-repo impact, add or update a mirror ADR in `agentic/adr/`
+
+If no ADR is needed, state `No ADR required` in the PR record.
+
+---
+
+## 🔄 Live progress sync loop
+
+These updates are required while work is in progress (not only at the end):
+
+1. **Before implementation starts**: update active PR/issue/kanban with planned scope and `in progress` status.
+2. **Before editing implementation files**: ensure PR/issue/kanban describe the exact change about to be made.
+3. **After each milestone**: update PR/issue/kanban with progress, decisions, blockers, and scope changes.
+4. **Before tests/verification**: update PR/issue/kanban with what will be validated, then run `./scripts/ci-local.sh` when local environment supports it.
+5. **After tests/verification**: update PR/issue/kanban with outcomes and next actions.
+
+Humans should be able to monitor work from markdown records in real time.
 
 ---
 

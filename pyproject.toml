@@ -1,10 +1,10 @@
 [project]
-name = "project-template"
+name = "agent-project"
 version = "0.1.0"
-description = "Production-grade monorepo template with AI code review"
+description = "AGENTS.md-first agentic coding starter template with local/GitHub CI and optional deep specialist review"
 requires-python = ">=3.10,<=3.13"
 readme = "README.md"
-license = {text = "MIT"}
+license = {text = "Apache-2.0"}
 
 dependencies = [
     "crewai>=0.86.0",

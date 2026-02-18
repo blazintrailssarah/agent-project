@@ -82,16 +82,15 @@ htmlcov/
 # ===========================
 # CrewAI runtime artifacts
 # ===========================
+# CI job-capture output directory
+.crewai-job-output/
+
 # Workspace files generated during reviews
-.crewai/workspace/*.txt
-.crewai/workspace/*.json
-.crewai/workspace/*.md
-.crewai/workspace/trace/*.log
-.crewai/workspace/trace/*.txt
-.crewai/workspace/trace/*.json
+.crewai/workspace/**
 .crewai/*.log
 .crewai/ci_summary.json
-.crewai/workspace/trace/
+.crewai/full_review.json
+.crewai/*_review.json
 
 # Keep workspace directory structure
 !.crewai/workspace/.gitkeep
@@ -100,6 +99,14 @@ htmlcov/
 # Memory files ARE tracked (version-controlled review memory)
 # .crewai/memory/memory.json     — tracked
 # .crewai/memory/suppressions.json — tracked
+# .crewai/memory/sql/memory_seed.sql — tracked (text seed)
+
+# Runtime memory DB artifacts should stay local-only
+.crewai/memory/sql/*.sqlite
+.crewai/memory/sql/*.sqlite3
+
+# Local helper tool installs (runtime only)
+.tools/
 
 # ===========================
 # Test / Coverage

@@ -12,8 +12,8 @@ from utils.specialist_output import (
 
 
 class TestSpecialistRegistry:
-    def test_registry_has_nine_crews(self):
-        assert len(SPECIALIST_CREWS) == 9
+    def test_registry_has_ten_crews(self):
+        assert len(SPECIALIST_CREWS) == 10
 
     def test_all_crews_have_required_keys(self):
         required = {
@@ -56,7 +56,7 @@ class TestSpecialistRegistry:
             assert LABEL_TO_CREW[info["label"]] == key
 
     def test_all_specialist_labels_list(self):
-        assert len(ALL_SPECIALIST_LABELS) == 9
+        assert len(ALL_SPECIALIST_LABELS) == 10
         for label in ALL_SPECIALIST_LABELS:
             assert label.startswith("crewai:")
 
@@ -64,6 +64,7 @@ class TestSpecialistRegistry:
         assert get_crew_for_label("crewai:security") == "security"
         assert get_crew_for_label("crewai:legal") == "legal"
         assert get_crew_for_label("crewai:strategy") == "strategy"
+        assert get_crew_for_label("crewai:data-engineering") == "data_engineering"
 
     def test_get_crew_for_label_not_found(self):
         assert get_crew_for_label("crewai:nonexistent") is None
@@ -71,10 +72,11 @@ class TestSpecialistRegistry:
 
     def test_get_all_output_files(self):
         files = get_all_output_files()
-        assert len(files) == 9
+        assert len(files) == 10
         assert "security_review.json" in files
         assert "legal_review.json" in files
         assert "strategic_review.json" in files
+        assert "data_engineering_review.json" in files
 
 
 class TestSpecialistOutputValidation:
@@ -226,6 +228,11 @@ class TestAutodetect:
         assert "security" in results
         assert "legal" in results
         assert "documentation" in results
+
+    def test_data_engineering_detection(self):
+        files = ["data/sql/model.sql", "dbt/models/staging.sql"]
+        results = autodetect_crews(files)
+        assert "data_engineering" in results
 
     def test_empty_file_list(self):
         results = autodetect_crews([])
