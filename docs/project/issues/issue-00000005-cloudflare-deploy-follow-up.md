@@ -88,7 +88,7 @@ flowchart LR
 ### Verification plan
 
 1. Merge PR-#1 via GitHub UI
-2. Monitor CI workflow at https://github.com/SuperiorByteWorks-LLC/agent-project/actions
+2. Monitor CI workflow at <https://github.com/SuperiorByteWorks-LLC/agent-project/actions>
 3. Confirm `deploy-production` job runs and succeeds
 4. Check Cloudflare Pages dashboard for deployment status
 5. Test production URL returns HTTP 200
