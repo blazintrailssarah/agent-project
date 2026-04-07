@@ -111,6 +111,29 @@ pnpm install
 ./scripts/ci-local.sh
 ```
 
+## 🌾 Row Crop Intelligence Dashboard
+
+This repository includes a Streamlit dashboard prototype for Discovery Bay, CA (zip code 94514). The app showcases field-level NDVI, SSURGO soil overlays, weather trends, soil health metrics, vegetation health, and exploratory correlation analysis.
+
+### Run the dashboard
+
+```bash
+pip install streamlit
+streamlit run apps/dashboard.py
+```
+
+### Technologies used
+
+- Python
+- Streamlit
+- GeoPandas
+- Folium
+- Matplotlib
+- NumPy
+- Pandas
+
+**Note:** The dashboard saves visual report assets to `output/dashboard_assets/` during execution.
+
 **Agent review modes:**
 
 ```bash
