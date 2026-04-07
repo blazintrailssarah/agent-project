@@ -1,0 +1,11 @@
+Map Unit Symbol,Soil Name,Organic Matter (%),Clay (%),Drainage Class,Hydric Soil,pH,Available Water Capacity (in/in)
+10,Rindge muck,15.2,45,Poorly drained,True,6.8,0.28
+20,Canebrake muck,18.5,52,Poorly drained,True,6.5,0.32
+30,Olcabark loam,3.2,28,Moderately well drained,False,7.2,0.18
+40,San Joaquin sandy loam,1.8,15,Well drained,False,7.0,0.12
+50,B構築 loam,2.5,22,Moderately well drained,False,6.9,0.22
+60,Marcador loam,2.5,22,Moderately well drained,False,6.6,0.3
+70,Zebra silty clay,4.1,38,Poorly drained,True,7.1,0.15
+80,Valmead clay loam,2.1,35,Poorly drained,True,6.4,0.25
+90,Rindge muck,15.2,45,Poorly drained,True,6.7,0.2
+100,Canebrake muck,18.5,52,Poorly drained,True,6.3,0.28
