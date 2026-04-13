@@ -1,0 +1,18 @@
+# Ignore large and binary data files to avoid tracking in Git
+# Add patterns for common data file types
+*.zip
+*.tar.gz
+*.gz
+*.tif
+*.tiff
+*.nc
+*.hdf
+*.csv
+*.json
+*.xml
+*.shp
+*.dbf
+*.prj
+*.shx
+# For large files, consider using Git LFS if needed
+# Install Git LFS and track large files with: git lfs track "*.tif" etc.
